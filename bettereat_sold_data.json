@@ -1,7 +1,7 @@
 {
   "source": "BETTEREAT-Feishu-Base",
-  "date": "2026-11-01",
-  "generated_at": "2026-11-01T02:41:48+08:00",
+  "date": "2026-11-02",
+  "generated_at": "2026-11-02T03:05:06+08:00",
   "records": [
     {
       "store": "MAP",
@@ -9554,6 +9554,968 @@
       }
     ],
     "2026-11-01": [
+      {
+        "store": "MAP",
+        "product_code": "P-001",
+        "product_name": "驢打滾",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-004",
+        "product_name": "啡色紅豆砵仔糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-005",
+        "product_name": "白色紅豆砵仔糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-010",
+        "product_name": "馬蹄糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-014",
+        "product_name": "芝麻卷",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-016",
+        "product_name": "斑蘭椰汁卷",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-017",
+        "product_name": "斑蘭千層糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-023",
+        "product_name": "芒果布甸糕",
+        "unit": "盤",
+        "allocated_pans": 4.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 196
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-029",
+        "product_name": "一口tiramisu",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-031",
+        "product_name": "彩虹椰汁糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-034",
+        "product_name": "馬豆糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-036",
+        "product_name": "班蘭大菜糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-037",
+        "product_name": "柚子檸檬糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-040",
+        "product_name": "一口巴斯克",
+        "unit": "盤",
+        "allocated_pans": 5.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 245
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-041",
+        "product_name": "原味巴斯克蛋糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-042",
+        "product_name": "花生糯米糍",
+        "unit": "盤",
+        "allocated_pans": 1.5,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 74
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-045",
+        "product_name": "芒果糯米飯",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-047",
+        "product_name": "楊枝金露",
+        "unit": "杯",
+        "allocated_pans": 10.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 10
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-048",
+        "product_name": "楊枝金露(大)",
+        "unit": "杯",
+        "allocated_pans": 10.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 10
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-051",
+        "product_name": "芒芒多重奏",
+        "unit": "杯",
+        "allocated_pans": 10.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 10
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-053",
+        "product_name": "芒果涼粉",
+        "unit": "件",
+        "allocated_pans": 10.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 10
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-055",
+        "product_name": "木糠布甸",
+        "unit": "件",
+        "allocated_pans": 10.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 10
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-056",
+        "product_name": "Oreo 布甸",
+        "unit": "件",
+        "allocated_pans": 10.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 10
+      },
+      {
+        "store": "MAP",
+        "product_code": "P-058",
+        "product_name": "3.6牛奶燉蛋白(淨底)",
+        "unit": "件",
+        "allocated_pans": 8.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 8
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-001",
+        "product_name": "驢打滾",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-002",
+        "product_name": "白糖糕",
+        "unit": "盤",
+        "allocated_pans": 9.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 441
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-004",
+        "product_name": "啡色紅豆砵仔糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-005",
+        "product_name": "白色紅豆砵仔糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-010",
+        "product_name": "馬蹄糕",
+        "unit": "盤",
+        "allocated_pans": 0.5,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 25
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-015",
+        "product_name": "杜拜芝麻卷",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-016",
+        "product_name": "斑蘭椰汁卷",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-022",
+        "product_name": "楊枝金露糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-023",
+        "product_name": "芒果布甸糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-024",
+        "product_name": "芒果椰汁西米糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-025",
+        "product_name": "芒果椰汁糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-026",
+        "product_name": "椰汁紫米糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-027",
+        "product_name": "椰汁西米糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-029",
+        "product_name": "一口tiramisu",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-030",
+        "product_name": "開心果奶凍糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-031",
+        "product_name": "彩虹椰汁糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-032",
+        "product_name": "芝麻糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-033",
+        "product_name": "桂花糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-034",
+        "product_name": "馬豆糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-036",
+        "product_name": "班蘭大菜糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-038",
+        "product_name": "椰青糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-040",
+        "product_name": "一口巴斯克",
+        "unit": "盤",
+        "allocated_pans": 6.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 294
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-041",
+        "product_name": "原味巴斯克蛋糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-042",
+        "product_name": "花生糯米糍",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-043",
+        "product_name": "芒果糯米糍",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-044",
+        "product_name": "芝麻糯米糍",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-045",
+        "product_name": "芒果糯米飯",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-047",
+        "product_name": "楊枝金露",
+        "unit": "杯",
+        "allocated_pans": 16.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 16
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-049",
+        "product_name": "芒果椰汁西米",
+        "unit": "杯",
+        "allocated_pans": 12.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 12
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-051",
+        "product_name": "芒芒多重奏",
+        "unit": "杯",
+        "allocated_pans": 10.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 10
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-055",
+        "product_name": "木糠布甸",
+        "unit": "件",
+        "allocated_pans": 20.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 20
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-056",
+        "product_name": "Oreo 布甸",
+        "unit": "件",
+        "allocated_pans": 20.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 20
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-057",
+        "product_name": "芒果布甸(淨底)",
+        "unit": "件",
+        "allocated_pans": 10.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 10
+      },
+      {
+        "store": "MJF",
+        "product_code": "P-058",
+        "product_name": "3.6牛奶燉蛋白(淨底)",
+        "unit": "件",
+        "allocated_pans": 12.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 12
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-001",
+        "product_name": "驢打滾",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-004",
+        "product_name": "啡色紅豆砵仔糕",
+        "unit": "盤",
+        "allocated_pans": 1.5,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 74
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-005",
+        "product_name": "白色紅豆砵仔糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-010",
+        "product_name": "馬蹄糕",
+        "unit": "盤",
+        "allocated_pans": 0.5,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 25
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-014",
+        "product_name": "芝麻卷",
+        "unit": "盤",
+        "allocated_pans": 1.5,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 74
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-015",
+        "product_name": "杜拜芝麻卷",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-016",
+        "product_name": "斑蘭椰汁卷",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-017",
+        "product_name": "斑蘭千層糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-022",
+        "product_name": "楊枝金露糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-023",
+        "product_name": "芒果布甸糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-024",
+        "product_name": "芒果椰汁西米糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-025",
+        "product_name": "芒果椰汁糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-026",
+        "product_name": "椰汁紫米糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-027",
+        "product_name": "椰汁西米糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-029",
+        "product_name": "一口tiramisu",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-030",
+        "product_name": "開心果奶凍糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-031",
+        "product_name": "彩虹椰汁糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-032",
+        "product_name": "芝麻糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-033",
+        "product_name": "桂花糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-034",
+        "product_name": "馬豆糕",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-035",
+        "product_name": "冰花大菜糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-037",
+        "product_name": "柚子檸檬糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-038",
+        "product_name": "椰青糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-040",
+        "product_name": "一口巴斯克",
+        "unit": "盤",
+        "allocated_pans": 6.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 294
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-041",
+        "product_name": "原味巴斯克蛋糕",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-042",
+        "product_name": "花生糯米糍",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-043",
+        "product_name": "芒果糯米糍",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-044",
+        "product_name": "芝麻糯米糍",
+        "unit": "盤",
+        "allocated_pans": 1.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 49
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-045",
+        "product_name": "芒果糯米飯",
+        "unit": "盤",
+        "allocated_pans": 2.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 98
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-047",
+        "product_name": "楊枝金露",
+        "unit": "杯",
+        "allocated_pans": 20.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 20
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-048",
+        "product_name": "楊枝金露(大)",
+        "unit": "杯",
+        "allocated_pans": 12.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 12
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-049",
+        "product_name": "芒果椰汁西米",
+        "unit": "杯",
+        "allocated_pans": 10.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 10
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-051",
+        "product_name": "芒芒多重奏",
+        "unit": "杯",
+        "allocated_pans": 15.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 15
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-053",
+        "product_name": "芒果涼粉",
+        "unit": "件",
+        "allocated_pans": 10.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 10
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-055",
+        "product_name": "木糠布甸",
+        "unit": "件",
+        "allocated_pans": 20.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 20
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-056",
+        "product_name": "Oreo 布甸",
+        "unit": "件",
+        "allocated_pans": 20.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 20
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-057",
+        "product_name": "芒果布甸(淨底)",
+        "unit": "件",
+        "allocated_pans": 10.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 10
+      },
+      {
+        "store": "MKH",
+        "product_code": "P-058",
+        "product_name": "3.6牛奶燉蛋白(淨底)",
+        "unit": "件",
+        "allocated_pans": 8.0,
+        "no_of_pcs": null,
+        "remaining_pcs": 0.0,
+        "sold_pcs": 8
+      }
+    ],
+    "2026-11-02": [
       {
         "store": "MAP",
         "product_code": "P-001",
