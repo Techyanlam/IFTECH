@@ -1,0 +1,31 @@
+name: Split Wanchang Vendor Invoices to GR Note
+
+on:
+  schedule:
+    - cron: '*/10 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  split:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Split new Vendor Invoices into GR Note
+        env:
+          WANCHANG_APP_ID: ${{ secrets.WANCHANG_APP_ID }}
+          WANCHANG_APP_SECRET: ${{ secrets.WANCHANG_APP_SECRET }}
+          WANCHANG_STATE_FILE: scripts/wanchang-split-gr-note-state.json
+        run: python3 scripts/wanchang-split-gr-note.py --live
+      - name: Commit state file back if it changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add scripts/wanchang-split-gr-note-state.json
+          git diff --cached --quiet || git commit -m "Update Wanchang split state"
+          git push
