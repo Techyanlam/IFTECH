@@ -6,7 +6,8 @@ Design (v1, deterministic, no AI Agent):
   ("不用理會"): not split, not flagged, not logged as a warning.
 - Target: GR Note (tblyUYU8s2Novavk).
   Writable fields only: 供應商名稱 (fldKT8UB9L, text), 貨品編號 (fldu2XH4jB, text),
-  數量 (fldRA5YL9y, number), 單位 (fldUyHE8J5, text).
+  數量 (fldRA5YL9y, Multiline TEXT as of 2026-11-03 — send as string, not number,
+  otherwise Feishu returns 1254060 TextFieldConvFail), 單位 (fldUyHE8J5, text).
   System fields (1005 auto-number, 1001 created-time) are NEVER written.
   Lookup field Check inventory list (type 19) is NEVER written (computed).
   Duplex link 關聯單據 (fld7CR5SyZ) is attempted AFTER the row is created, in a
@@ -334,13 +335,17 @@ def main():
         print(f"\nSOURCE {plan['source_record_id']} invoice={plan['source_invoice']} "
               f"status={plan['source_status']} supplier={plan['supplier']} units={plan['units']} total={plan['total']}")
         for item, qty in zip(plan["items"], plan["quantities"]):
-            print(f"  -> GR Note: 貨品編號={item} 數量={qty} 單位={plan['units']} 供應商名稱={plan['supplier']}")
+            # 收貨 數量 is a Multiline text field: send quantity as a string.
+            # Whole numbers stay whole ("11", not "11.0"); non-integers keep
+            # their decimal text. Sending a number fails with 1254060.
+            qty_text = str(int(qty)) if float(qty).is_integer() else str(qty)
+            print(f"  -> GR Note: 貨品編號={item} 數量={qty_text} 單位={plan['units']} 供應商名稱={plan['supplier']}")
             if not live:
                 continue
             payload = {"fields": {
                 DST_SUPPLIER: plan["supplier"],
                 DST_ITEM: item,
-                DST_QTY: qty,
+                DST_QTY: qty_text,
                 DST_UNITS: plan["units"],
             }}
             url = (f"https://open.feishu.cn/open-apis/bitable/v1/apps/{APP_TOKEN}/tables/"
