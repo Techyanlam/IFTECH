@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BETTEREAT 門店系統 · 按產品檢視</title>
+<meta name="theme-color" content="#c98a2d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="BETTEREAT">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f6f4ef; color: #2b2620; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 20px 16px 48px; }
+  /* login (same as main portal) */
+  #loginView { max-width: 380px; margin: 12vh auto 0; background: #fff; border-radius: 20px; padding: 40px 28px; box-shadow: 0 12px 36px rgba(60,45,20,.12); text-align: center; }
+  #loginView .logo { font-size: 44px; }
+  #loginView h1 { font-size: 24px; margin: 12px 0 4px; letter-spacing: 2px; }
+  #loginView p.sub { color: #8a7f70; font-size: 14px; margin-bottom: 24px; }
+  #userInput, #codeInput { width: 100%; padding: 13px; font-size: 17px; border: 1.5px solid #ddd3c3; border-radius: 12px; text-align: center; background: #fdfbf7; }
+  #userInput { margin-bottom: 10px; }
+  #codeInput { letter-spacing: 2px; }
+  #userInput:focus, #codeInput:focus { outline: none; border-color: #c98a2d; background: #fff; }
+  #loginBtn { width: 100%; margin-top: 16px; padding: 13px; font-size: 16px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border: none; border-radius: 12px; cursor: pointer; }
+  #loginBtn:active { opacity: .85; }
+  #loginErr { color: #c0392b; font-size: 14px; min-height: 20px; margin-top: 10px; }
+  /* dashboard */
+  #dashView { display: none; }
+  header.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 14px 0; background: rgba(246,244,239,.96); border-bottom: 1px solid #e8e0d2; }
+  header.top .brand { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
+  header.top .brand span { color: #c98a2d; }
+  header.top nav a { font-size: 14px; color: #a06a14; text-decoration: none; border: 1px solid #c98a2d; background: #fdf8ef; padding: 6px 14px; border-radius: 20px; margin-right: 8px; }
+  #userLabel { font-size: 13px; color: #6d6152; margin-right: 8px; }
+  #logoutBtn { background: #fff; border: 1px solid #d8cfc0; color: #6d6152; padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; }
+  .meta { color: #8a7f70; font-size: 13px; margin: 14px 0; line-height: 1.6; }
+  .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 8px; }
+  .card { background: #fff; border-radius: 14px; padding: 14px 12px; box-shadow: 0 2px 10px rgba(60,45,20,.06); border-top: 3px solid #c98a2d; }
+  .card .k { font-size: 12px; color: #8a7f70; }
+  .card .v { font-size: 26px; font-weight: 700; margin-top: 4px; }
+  h2.sec { font-size: 16px; margin: 22px 0 10px; padding-left: 10px; border-left: 4px solid #c98a2d; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .controls select, .controls input[type="text"] { padding: 7px 10px; font-size: 14px; border: 1px solid #d8cfc0; border-radius: 8px; background: #fff; }
+  .controls input[type="text"] { min-width: 200px; }
+  .xbtn { padding: 8px 14px; font-size: 13.5px; border: 1px solid #c98a2d; color: #a06a14; background: #fdf8ef; border-radius: 8px; cursor: pointer; }
+  .xbtn.on { background: #2b2620; color: #fff; border-color: #2b2620; }
+  .xbtn:active { opacity: .8; }
+  .xbtn:disabled { opacity: .45; cursor: not-allowed; }
+  .catrow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; font-size: 14px; }
+  .catrow .lbl { color: #8a7f70; }
+  .cat { padding: 6px 16px; border-radius: 20px; border: 1px solid #d8cfc0; background: #fff; font-size: 14px; cursor: pointer; }
+  .cat.on { background: #2b2620; color: #fff; border-color: #2b2620; }
+  .cat:disabled { opacity: .45; cursor: not-allowed; }
+  .note { background: #fdf8ef; border: 1px solid #e6d3ac; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #6d6152; margin-bottom: 12px; line-height: 1.7; }
+  .tablewrap { overflow-x: auto; background: #fff; border-radius: 12px; box-shadow: 0 2px 10px rgba(60,45,20,.06); }
+  table { border-collapse: collapse; font-size: 13.5px; min-width: 1240px; }
+  th, td { padding: 8px 9px; text-align: left; border-bottom: 1px solid #f0eadf; white-space: nowrap; }
+  th { background: #faf7f1; color: #6d6152; font-weight: 600; }
+  th.grp { text-align: center; background: #f3ecdd; }
+  tbody tr:nth-child(even) td { background: #fdfbf7; }
+  tbody tr.sel td { background: #fdf3dc !important; }
+  td.num, th.num { text-align: right; }
+  td.chk, th.chk { width: 36px; text-align: center; }
+  td.chk input { width: 17px; height: 17px; cursor: pointer; }
+  th.sticky, td.sticky { position: sticky; left: 0; background: #fff; z-index: 2; }
+  th.sticky2, td.sticky2 { position: sticky; left: 36px; background: #fff; z-index: 2; min-width: 190px; }
+  tbody tr:nth-child(even) td.sticky, tbody tr:nth-child(even) td.sticky2 { background: #fdfbf7; }
+  tbody tr.sel td.sticky, tbody tr.sel td.sticky2 { background: #fdf3dc !important; }
+  tfoot td { font-weight: 700; background: #faf7f1; border-top: 2px solid #e6d3ac; }
+  .dash { color: #b8ab97; }
+  .foot { color: #a2937f; font-size: 12px; margin-top: 16px; text-align: center; line-height: 1.8; }
+  @media (max-width: 560px) { .cards { grid-template-columns: repeat(2, 1fr); } }
+</style>
+</head>
+<body>
+
+<div id="loginView">
+  <div class="logo">🍰</div>
+  <h1>BETTEREAT</h1>
+  <p class="sub">門店系統 · 請登入</p>
+  <input id="userInput" type="text" placeholder="帳號" autocomplete="username" value="admin" readonly>
+  <input id="codeInput" type="password" inputmode="text" placeholder="密碼" autocomplete="current-password">
+  <button id="loginBtn">登入</button>
+  <div id="loginErr"></div>
+</div>
+
+<div class="wrap" id="dashView">
+  <header class="top">
+    <div class="brand">🍰 BETTEREAT <span>按產品檢視</span></div>
+    <div>
+      <nav style="display:inline;"><a href="bettereat.html">← 每日清單</a></nav>
+      <span id="userLabel"></span><button id="logoutBtn">登出</button>
+    </div>
+  </header>
+
+  <div class="meta" id="metaLine">載入中…</div>
+  <div class="cards">
+    <div class="card"><div class="k">產品款數</div><div class="v" id="statProducts">–</div></div>
+    <div class="card"><div class="k">已選產品</div><div class="v" id="statSelected">–</div></div>
+    <div class="card"><div class="k">已銷售（件）</div><div class="v" id="statSold">–</div></div>
+    <div class="card"><div class="k">剩餘（件）</div><div class="v" id="statRemain">–</div></div>
+  </div>
+
+  <h2 class="sec">按產品檢視（一行一款，齊睇四間門店）</h2>
+  <div class="controls">
+    <label>日期 <select id="dateSel"></select></label>
+    <input type="text" id="searchInput" placeholder="搜尋產品名稱／編號">
+    <button class="xbtn" id="btnSelOnly">只顯示已選產品</button>
+    <button class="xbtn" id="btnSelAll">全選</button>
+    <button class="xbtn" id="btnSelNone">清除選擇</button>
+    <button class="xbtn" id="expView">⬇ 匯出目前檢視 CSV</button>
+  </div>
+  <div class="catrow">
+    <span class="lbl">分類篩選：</span>
+    <button class="cat on" id="catAll">全部</button>
+    <button class="cat" disabled title="待分類數據接入後啟用">報廢（待數據）</button>
+    <button class="cat" disabled title="待分類數據接入後啟用">損耗（待數據）</button>
+    <button class="cat" disabled title="待分類數據接入後啟用">試食（待數據）</button>
+  </div>
+  <div class="note">生產量以當日四店分配件數合計計算（中央廚房生產後全數分貨，紙單並無獨立生產欄）。分配以件數顯示（盤產品按每盤件數換算）。如某店某產品當日冇記錄，會顯示「—」（同步規則只收錄已銷售 &gt; 0 的記錄）。報廢欄目前顯示「—」，因系統未有報廢數據，待 C 表新增報廢欄後接入；報廢／損耗／試食分類篩選亦待分類數據接入後啟用。</div>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th class="chk sticky" rowspan="2"><input type="checkbox" id="checkAll" title="全選／取消"></th>
+          <th class="sticky2" rowspan="2">產品</th>
+          <th rowspan="2">單位</th>
+          <th class="num" rowspan="2">生產量<br>（件）</th>
+          <th class="grp" colspan="4">謝斐 MJF</th>
+          <th class="grp" colspan="4">淘大 MAP</th>
+          <th class="grp" colspan="4">Aeon MKH</th>
+          <th class="grp" colspan="4">將軍澳 MMCP</th>
+          <th class="grp" colspan="3">合計</th>
+        </tr>
+        <tr>
+          <th class="num">分配</th><th class="num">已售</th><th class="num">剩餘</th><th class="num">報廢</th>
+          <th class="num">分配</th><th class="num">已售</th><th class="num">剩餘</th><th class="num">報廢</th>
+          <th class="num">分配</th><th class="num">已售</th><th class="num">剩餘</th><th class="num">報廢</th>
+          <th class="num">分配</th><th class="num">已售</th><th class="num">剩餘</th><th class="num">報廢</th>
+          <th class="num">分配</th><th class="num">已售</th><th class="num">剩餘</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+      <tfoot><tr id="tfootRow"></tr></tfoot>
+    </table>
+  </div>
+  <div class="foot">數據來源：BETTEREAT 飛書系統 · 每晚自動更新<br>剔選產品後撳「只顯示已選產品」，即可並排比較已選產品於四店的表現。</div>
+</div>
+
+<script>
+var ACCESS_CODE = "BETTEREAT";
+var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/BETTEREAT/main/bettereat_sold_data.json";
+var STORES = ["MJF", "MAP", "MKH", "MMCP"];
+var STORE_NAMES = { MJF: "謝斐", MAP: "淘大", MKH: "Aeon", MMCP: "將軍澳" };
+var payload = null, curDate = "", selected = {}, selOnly = false, searchText = "";
+
+function fmt(n){ return (Math.round(n * 10) / 10).toLocaleString("en-US"); }
+function esc(s){ return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+function showUser(){
+  var u = localStorage.getItem("bettereat_user") || "";
+  document.getElementById("userLabel").textContent = u ? "👤 " + u : "";
+}
+function showDash(){
+  document.getElementById("loginView").style.display = "none";
+  document.getElementById("dashView").style.display = "block";
+  showUser(); loadData();
+}
+function loadData(){
+  fetch(DATA_URL + "?t=" + Date.now()).then(function(r){ return r.json(); }).then(function(j){
+    payload = j;
+    if (!payload.history) { payload.history = {}; payload.history[j.date] = j.records || []; }
+    if (!payload.history[j.date] && j.records) payload.history[j.date] = j.records;
+    var dates = Object.keys(payload.history).sort().reverse();
+    var sel = document.getElementById("dateSel");
+    sel.innerHTML = dates.map(function(d){ return '<option value="' + d + '">' + d + "</option>"; }).join("");
+    if (!curDate || !payload.history[curDate]) curDate = j.date;
+    sel.value = curDate;
+    document.getElementById("metaLine").textContent =
+      "最新日期：" + j.date + " ｜ 更新時間：" + j.generated_at + " ｜ 來源：" + j.source +
+      " ｜ 已存歷史：" + dates.length + " 日";
+    applyDate();
+  }).catch(function(){
+    document.getElementById("metaLine").textContent = "暫時讀取唔到數據，請稍後重新整理。";
+  });
+}
+function allocPcs(r){
+  if (r.no_of_pcs !== null && r.no_of_pcs !== undefined) return r.no_of_pcs;
+  return (r.sold_pcs || 0) + (r.remaining_pcs || 0);
+}
+function buildItems(){
+  var recs = (payload.history && payload.history[curDate]) || payload.records || [];
+  var map = {}, order = [];
+  recs.forEach(function(r){
+    var code = r.product_code;
+    if (!map[code]) { map[code] = { code: code, name: r.product_name, unit: r.unit, stores: {} }; order.push(code); }
+    map[code].stores[r.store] = { alloc: allocPcs(r), sold: r.sold_pcs || 0, rem: r.remaining_pcs || 0 };
+  });
+  order.sort();
+  return order.map(function(c){ return map[c]; });
+}
+function visibleItems(items){
+  return items.filter(function(it){
+    if (selOnly && !selected[it.code]) return false;
+    if (searchText) {
+      var hay = (it.code + " " + it.name).toLowerCase();
+      if (hay.indexOf(searchText) < 0) return false;
+    }
+    return true;
+  });
+}
+function cellNum(v){ return v === null ? '<td class="num dash">—</td>' : '<td class="num">' + fmt(v) + "</td>"; }
+function applyDate(){
+  var items = buildItems();
+  var vis = visibleItems(items);
+  var sold = 0, rem = 0;
+  vis.forEach(function(it){
+    STORES.forEach(function(s){ var d = it.stores[s]; if (d) { sold += d.sold; rem += d.rem; } });
+  });
+  document.getElementById("statProducts").textContent = vis.length + " / " + items.length;
+  document.getElementById("statSelected").textContent = Object.keys(selected).filter(function(c){ return selected[c]; }).length;
+  document.getElementById("statSold").textContent = fmt(sold);
+  document.getElementById("statRemain").textContent = fmt(rem);
+  renderTable(items, vis);
+}
+function renderTable(items, vis){
+  var html = "", tot = { alloc: 0, sold: 0, rem: 0 };
+  vis.forEach(function(it){
+    var tAlloc = 0, tSold = 0, tRem = 0, row = "";
+    STORES.forEach(function(s){
+      var d = it.stores[s];
+      if (d) { tAlloc += d.alloc; tSold += d.sold; tRem += d.rem; }
+      row += d ? '<td class="num">' + fmt(d.alloc) + '</td><td class="num"><b>' + fmt(d.sold) + "</b></td>" + '<td class="num">' + fmt(d.rem) + '</td><td class="num dash">—</td>'
+                 : '<td class="num dash">—</td><td class="num dash">—</td><td class="num dash">—</td><td class="num dash">—</td>';
+    });
+    tot.alloc += tAlloc; tot.sold += tSold; tot.rem += tRem;
+    var checked = selected[it.code] ? " checked" : "";
+    var cls = selected[it.code] ? ' class="sel"' : "";
+    html += "<tr" + cls + "><td class=\"chk sticky\"><input type=\"checkbox\" data-code=\"" + esc(it.code) + "\"" + checked + "></td>" +
+      '<td class="sticky2">' + esc(it.code) + " " + esc(it.name) + "</td><td>" + esc(it.unit) + "</td>" +
+      '<td class="num"><b>' + fmt(tAlloc) + "</b></td>" + row +
+      '<td class="num"><b>' + fmt(tAlloc) + '</b></td><td class="num"><b>' + fmt(tSold) + '</b></td><td class="num"><b>' + fmt(tRem) + '</b></td></tr>';
+  });
+  document.getElementById("tbody").innerHTML = html || '<tr><td colspan="25" style="text-align:center;color:#8a7f70;padding:20px;">冇符合條件嘅產品</td></tr>';
+  document.getElementById("tfootRow").innerHTML =
+    '<td class="chk sticky"></td><td class="sticky2">合計（目前檢視）</td><td></td><td class="num">' + fmt(tot.alloc) + "</td>" +
+    '<td colspan="16"></td>' +
+    '<td class="num">' + fmt(tot.alloc) + '</td><td class="num">' + fmt(tot.sold) + '</td><td class="num">' + fmt(tot.rem) + "</td>";
+  Array.prototype.forEach.call(document.querySelectorAll("#tbody input[type=checkbox]"), function(cb){
+    cb.onchange = function(){ selected[cb.getAttribute("data-code")] = cb.checked; applyDate(); };
+  });
+  var all = document.getElementById("checkAll");
+  all.checked = vis.length > 0 && vis.every(function(it){ return selected[it.code]; });
+  all.onclick = function(){
+    var on = all.checked;
+    vis.forEach(function(it){ selected[it.code] = on; });
+    applyDate();
+  };
+}
+function csvCell(v){ v = (v === null || v === undefined) ? "" : String(v); return '"' + v.replace(/"/g, '""') + '"'; }
+function exportCSV(){
+  if (!payload) return;
+  var items = buildItems(), vis = visibleItems(items);
+  var head = ["日期","產品編號","產品名稱","單位","生產量(件)"];
+  STORES.forEach(function(s){ head.push(STORE_NAMES[s] + "分配", STORE_NAMES[s] + "已售", STORE_NAMES[s] + "剩餘", STORE_NAMES[s] + "報廢"); });
+  head.push("合計分配", "合計已售", "合計剩餘");
+  var lines = [head.map(csvCell).join(",")];
+  vis.forEach(function(it){
+    var row = [curDate, it.code, it.name, it.unit], tA = 0, tS = 0, tR = 0;
+    var parts = [];
+    STORES.forEach(function(s){
+      var d = it.stores[s];
+      if (d) { tA += d.alloc; tS += d.sold; tR += d.rem; parts.push(d.alloc, d.sold, d.rem, ""); }
+      else parts.push("", "", "", "");
+    });
+    row.push(tA);
+    lines.push(row.concat(parts).concat([tA, tS, tR]).map(csvCell).join(","));
+  });
+  var blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "bettereat_by_item_" + curDate + ".csv"; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+}
+
+document.getElementById("loginBtn").onclick = function(){
+  var u = "admin";
+  var v = document.getElementById("codeInput").value.trim();
+  if (v === ACCESS_CODE) {
+    localStorage.setItem("bettereat_auth", "1");
+    localStorage.setItem("bettereat_user", u);
+    showDash();
+  }
+  else { document.getElementById("loginErr").textContent = "密碼唔正確，請再試。"; }
+};
+["userInput", "codeInput"].forEach(function(id){
+  document.getElementById(id).addEventListener("keydown", function(e){
+    if (e.key === "Enter") document.getElementById("loginBtn").click();
+  });
+});
+document.getElementById("logoutBtn").onclick = function(){
+  localStorage.removeItem("bettereat_auth");
+  localStorage.removeItem("bettereat_user");
+  location.reload();
+};
+document.getElementById("dateSel").addEventListener("change", function(){ curDate = this.value; applyDate(); });
+document.getElementById("searchInput").addEventListener("input", function(){ searchText = this.value.trim().toLowerCase(); applyDate(); });
+document.getElementById("btnSelOnly").onclick = function(){
+  selOnly = !selOnly;
+  this.classList.toggle("on", selOnly);
+  this.textContent = selOnly ? "顯示全部產品" : "只顯示已選產品";
+  applyDate();
+};
+document.getElementById("btnSelAll").onclick = function(){
+  buildItems().forEach(function(it){ selected[it.code] = true; });
+  applyDate();
+};
+document.getElementById("btnSelNone").onclick = function(){ selected = {}; applyDate(); };
+document.getElementById("expView").onclick = exportCSV;
+if (localStorage.getItem("bettereat_auth") === "1") showDash();
+setInterval(function(){ if (localStorage.getItem("bettereat_auth") === "1") loadData(); }, 300000);
+</script>
+</body>
+</html>
