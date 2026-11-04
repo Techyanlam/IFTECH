@@ -37,6 +37,15 @@
   .card .step .qty { font-size: 17px; font-weight: 700; min-width: 28px; text-align: center; }
   .summary { background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 2px 10px rgba(60,45,20,.06); }
   .summary textarea { width: 100%; min-height: 120px; padding: 10px; font-size: 14px; line-height: 1.7; border: 1px solid #d8cfc0; border-radius: 10px; background: #fdfbf7; resize: vertical; }
+  .checkout { background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 2px 10px rgba(60,45,20,.06); margin-top: 14px; }
+  .checkout .fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .checkout label { font-size: 13px; color: #6d6152; display: block; margin-bottom: 2px; }
+  .checkout input, .checkout select, .checkout textarea { width: 100%; padding: 10px; font-size: 15px; border: 1px solid #d8cfc0; border-radius: 10px; background: #fff; }
+  .checkout textarea { min-height: 64px; resize: vertical; }
+  .checkout .full { grid-column: 1 / -1; }
+  .checkout .status { font-size: 14px; line-height: 1.7; min-height: 24px; margin-top: 10px; }
+  .checkout .status.ok { color: #3f6b3e; font-weight: 700; }
+  .checkout .status.err { color: #c0392b; }
   .xbtn { padding: 10px 16px; font-size: 14px; border: 1px solid #c98a2d; color: #a06a14; background: #fdf8ef; border-radius: 10px; cursor: pointer; }
   .xbtn.primary { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border: none; font-weight: 700; }
   .xbtn:disabled { opacity: .45; cursor: not-allowed; }
@@ -51,7 +60,7 @@
   .cartbar button:disabled { opacity: .45; cursor: not-allowed; }
   .foot { color: #a2937f; font-size: 12px; margin-top: 16px; text-align: center; line-height: 1.8; }
   @media (max-width: 820px) { .grid { grid-template-columns: repeat(3, 1fr); } }
-  @media (max-width: 560px) { .grid { grid-template-columns: repeat(2, 1fr); } .cartbar { flex-wrap: wrap; } }
+  @media (max-width: 560px) { .grid { grid-template-columns: repeat(2, 1fr); } .cartbar { flex-wrap: wrap; } .checkout .fields { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -67,7 +76,7 @@
   <div class="controls">
     <input type="text" id="searchInput" placeholder="搜尋產品名稱／編號">
   </div>
-  <div class="note">撳產品圖就加 1 件；已選嘅產品可以用 ＋／− 改數量。價錢由店員確認後報價，收款沿用連結方式。落單步驟：1）呢度揀好產品 2）撳「複製訂單」3）撳「去落單表單」，貼上訂單內容，填埋姓名、電話、取貨門店同日期，提交就得。</div>
+  <div class="note">撳產品圖就加 1 件；已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢由店員確認後報價，收款沿用連結方式。揀好產品之後，填埋下面取貨資料，撳「提交訂單」就直接送到門店。</div>
   <div class="grid" id="grid"></div>
 
   <h2 class="sec" id="cartTitle">🛒 已選訂單</h2>
@@ -78,6 +87,47 @@
       <button class="xbtn primary" id="goFormBtn">去落單表單 →</button>
       <button class="xbtn" onclick="clearCart()">清空</button>
     </div>
+  </div>
+
+  <h2 class="sec">取貨資料（提交訂單）</h2>
+  <div class="checkout">
+    <div class="fields">
+      <div>
+        <label>取貨門店 *</label>
+        <select id="coStore">
+          <option value="">請選擇門店</option>
+          <option value="謝斐 (MJF)">謝斐</option>
+          <option value="淘大 (MAP)">淘大</option>
+          <option value="Aeon (MKH)">Aeon</option>
+          <option value="將軍澳 (MMCP)">將軍澳</option>
+        </select>
+      </div>
+      <div>
+        <label>取貨日期 *</label>
+        <input id="coDate" type="date">
+      </div>
+      <div>
+        <label>顧客姓名 *</label>
+        <input id="coName" type="text" placeholder="姓名">
+      </div>
+      <div>
+        <label>聯絡電話 *</label>
+        <input id="coPhone" type="tel" placeholder="電話">
+      </div>
+      <div>
+        <label>取貨時間</label>
+        <input id="coTime" type="text" placeholder="例如：下午 3 點後">
+      </div>
+      <div>
+        <label>備註</label>
+        <input id="coRemarks" type="text" placeholder="其他要求（可空）">
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
+      <button class="xbtn primary" id="coSubmit" style="padding:13px 22px;font-size:16px;">提交訂單</button>
+    </div>
+    <div class="status" id="coStatus"></div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">提交後門店會喺飛書見到呢張單，店員確認後會用連結收款。如果提交唔到，可以用上面「複製訂單」＋「去落單表單」做後備。</div>
   </div>
   <div class="foot">數據來源：BETTEREAT 飛書系統 · 餐牌以最近有銷售記錄嘅產品為準<br>產品相片陸續補上，現時未有相片嘅產品會顯示圖示。</div>
 </div>
@@ -94,6 +144,7 @@
 <script>
 var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/BETTEREAT/main/bettereat_sold_data.json";
 var FORM_URL = "FORM_URL_PLACEHOLDER";
+var WORKER_URL = "WORKER_URL_PLACEHOLDER";
 var products = [], cart = {}, searchText = "";
 
 function esc(s){ return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
@@ -142,13 +193,18 @@ function cartTotals(){
   for (var c in cart) { if (cart[c] > 0) { items += cart[c]; kinds += 1; } }
   return { items: items, kinds: kinds };
 }
-function buildSummary(){
-  var lines = [], items = 0;
+function cartItems(){
+  var list = [];
   products.forEach(function(p){
     var q = cart[p.code] || 0;
-    if (q > 0) { lines.push(p.code + " " + p.name + " x" + q + "（" + p.unit + "）"); items += q; }
+    if (q > 0) list.push({ code: p.code, name: p.name, unit: p.unit, qty: q });
   });
-  if (!lines.length) return "";
+  return list;
+}
+function buildSummary(){
+  var list = cartItems(), items = 0;
+  if (!list.length) return "";
+  var lines = list.map(function(it){ items += it.qty; return it.code + " " + it.name + " x" + it.qty + "（" + it.unit + "）"; });
   return "BETTEREAT 訂購\n" + lines.join("\n") + "\n共 " + items + " 件";
 }
 function updateCart(){
@@ -201,12 +257,60 @@ function goForm(){
     window.open(FORM_URL, "_blank");
   }
 }
+function setStatus(msg, ok){
+  var el = document.getElementById("coStatus");
+  el.textContent = msg;
+  el.className = "status" + (ok ? " ok" : " err");
+}
+async function submitOrder(){
+  var list = cartItems();
+  if (!list.length) { setStatus("請先揀產品。", false); return; }
+  if (list.length > 5) { setStatus("一次最多 5 款，請減到 5 款或者分兩張單。", false); return; }
+  if (WORKER_URL === "WORKER_URL_PLACEHOLDER" || WORKER_URL.indexOf("http") !== 0) {
+    setStatus("提交功能準備緊（等緊後端開通），請先用「複製訂單」＋「去落單表單」做後備。", false);
+    return;
+  }
+  var store = document.getElementById("coStore").value;
+  var name = document.getElementById("coName").value.trim();
+  var phone = document.getElementById("coPhone").value.trim();
+  var date = document.getElementById("coDate").value;
+  var time = document.getElementById("coTime").value.trim();
+  var remarks = document.getElementById("coRemarks").value.trim();
+  if (!store) { setStatus("請選擇取貨門店。", false); return; }
+  if (!name) { setStatus("請填寫顧客姓名。", false); return; }
+  if (!phone) { setStatus("請填寫聯絡電話。", false); return; }
+  if (!date) { setStatus("請選擇取貨日期。", false); return; }
+  var btn = document.getElementById("coSubmit");
+  btn.disabled = true;
+  setStatus("提交緊…", false);
+  try {
+    var res = await fetch(WORKER_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        store: store, name: name, phone: phone, pickupDate: date, pickupTime: time, remarks: remarks,
+        items: list.map(function(it){ return { name: it.name, qty: it.qty }; }),
+      }),
+    });
+    var j = await res.json();
+    if (res.ok && j && j.ok) {
+      setStatus("✅ 訂單已送出！門店會喺飛書見到呢張單，店員確認後會用連結收款。", true);
+      clearCart();
+    } else {
+      setStatus("❌ 提交唔到，請用「複製訂單」＋「去落單表單」做後備，或者稍後再試。", false);
+    }
+  } catch (e) {
+    setStatus("❌ 網絡有問題，提交唔到，請用「複製訂單」＋「去落單表單」做後備。", false);
+  }
+  btn.disabled = false;
+}
 document.getElementById("searchInput").addEventListener("input", function(){
   searchText = this.value.trim().toLowerCase();
   renderGrid();
 });
 document.getElementById("goFormBtn").onclick = goForm;
 document.getElementById("goFormBtnBar").onclick = goForm;
+document.getElementById("coSubmit").onclick = submitOrder;
 loadData();
 </script>
 </body>
