@@ -48,6 +48,7 @@
   .checkout .status.err { color: #c0392b; }
   .xbtn { padding: 10px 16px; font-size: 14px; border: 1px solid #c98a2d; color: #a06a14; background: #fdf8ef; border-radius: 10px; cursor: pointer; }
   .xbtn.primary { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border: none; font-weight: 700; }
+  .xbtn.wa { color: #fff; background: #25d366; border: none; font-weight: 700; }
   .xbtn:disabled { opacity: .45; cursor: not-allowed; }
   .cartbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: rgba(43,38,32,.97); color: #fff; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .cartbar .info { font-size: 15px; font-weight: 700; }
@@ -85,7 +86,13 @@
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
       <button class="xbtn" id="copyBtn" onclick="copyOrder()">📋 複製訂單</button>
       <button class="xbtn primary" id="goFormBtn">去落單表單 →</button>
+      <button class="xbtn wa" onclick="sendToSecretary()">📤 傳送給秘書</button>
       <button class="xbtn" onclick="clearCart()">清空</button>
+    </div>
+    <div style="margin-top:12px;">
+      <div style="font-size:13px;color:#6d6152;margin-bottom:4px;">給秘書嘅訂單列表（同飛書訂單欄位一樣）</div>
+      <textarea id="secretaryListBox" readonly placeholder="未揀任何產品"></textarea>
+      <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">撳「傳送給秘書」會開 WhatsApp，呢張列表自動填好；未設定秘書號碼嗰陣會叫你揀聯絡人，揀返秘書傳送就得。</div>
     </div>
   </div>
 
@@ -145,6 +152,7 @@
 var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/BETTEREAT/main/bettereat_sold_data.json";
 var FORM_URL = "https://acnsnsu3kdns.feishu.cn/share/base/form/shrcnQcUkya8OoqEi9oPAyeCmgb";
 var WORKER_URL = "WORKER_URL_PLACEHOLDER";
+var SECRETARY_WHATSAPP = "";
 var products = [], cart = {}, searchText = "";
 
 function esc(s){ return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
@@ -214,6 +222,7 @@ function updateCart(){
     ? "已選 " + t.items + " 件 · " + t.kinds + " 款 <small>（撳卡加 1 件，＋／− 改數量）</small>"
     : "未揀任何產品";
   document.getElementById("summaryBox").value = buildSummary();
+  document.getElementById("secretaryListBox").value = buildSecretaryList();
   var ready = FORM_URL !== "FORM_URL_PLACEHOLDER" && FORM_URL.indexOf("http") === 0;
   var go1 = document.getElementById("goFormBtn"), go2 = document.getElementById("goFormBtnBar");
   if (ready) {
@@ -248,6 +257,34 @@ function copyOrder(){
     navigator.clipboard.writeText(text).catch(function(){});
   }
   alert("訂單已複製，去落單表單貼上就得。");
+}
+function buildSecretaryList(){
+  var list = cartItems();
+  if (!list.length) return "";
+  function v(id){
+    var el = document.getElementById(id);
+    return el ? el.value.trim() : "";
+  }
+  var lines = ["BETTEREAT 訂購單"];
+  lines.push("取貨門店：" + (v("coStore") || "—"));
+  lines.push("顧客姓名：" + (v("coName") || "—"));
+  lines.push("聯絡電話：" + (v("coPhone") || "—"));
+  lines.push("取貨日期：" + (v("coDate") || "—"));
+  lines.push("取貨時間：" + (v("coTime") || "—"));
+  list.forEach(function(it, i){
+    lines.push("產品" + (i + 1) + "：" + it.name + " ×" + it.qty);
+  });
+  var remarks = v("coRemarks");
+  if (remarks) lines.push("備註：" + remarks);
+  return lines.join("\n");
+}
+function sendToSecretary(){
+  var text = buildSecretaryList();
+  if (!text) { alert("請先揀產品"); return; }
+  var url = SECRETARY_WHATSAPP
+    ? "https://wa.me/" + SECRETARY_WHATSAPP + "?text=" + encodeURIComponent(text)
+    : "https://wa.me/?text=" + encodeURIComponent(text);
+  window.open(url, "_blank");
 }
 function scrollToCart(){
   document.getElementById("cartTitle").scrollIntoView();
