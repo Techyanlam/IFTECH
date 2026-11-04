@@ -77,7 +77,7 @@
   <div class="controls">
     <input type="text" id="searchInput" placeholder="搜尋產品名稱／編號">
   </div>
-  <div class="note">撳產品圖就加 1 件；已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢由店員確認後報價，收款沿用連結方式。揀好產品之後，填埋下面取貨資料，撳「提交訂單」就直接送到門店。</div>
+  <div class="note">撳產品圖就加 1 件；已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢由店員確認後報價，收款沿用連結方式。揀好產品之後，填埋下面取貨資料，撳「去落單表單」，表單會自動填好，撳提交就入飛書訂單表。</div>
   <div class="grid" id="grid"></div>
 
   <h2 class="sec" id="cartTitle">🛒 已選訂單</h2>
@@ -96,7 +96,7 @@
     </div>
   </div>
 
-  <h2 class="sec">取貨資料（提交訂單）</h2>
+  <h2 class="sec">取貨資料</h2>
   <div class="checkout">
     <div class="fields">
       <div>
@@ -131,10 +131,10 @@
       </div>
     </div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-      <button class="xbtn primary" id="coSubmit" style="padding:13px 22px;font-size:16px;">提交訂單</button>
+      <button class="xbtn primary" id="coSubmit" style="padding:13px 22px;font-size:16px;">去飛書表單提交 →</button>
     </div>
     <div class="status" id="coStatus"></div>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">提交後門店會喺飛書見到呢張單，店員確認後會用連結收款。如果提交唔到，可以用上面「複製訂單」＋「去落單表單」做後備，表單會自動填好你揀嘅產品同取貨資料，唔使再逐樣打。</div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">撳「去飛書表單提交」會開飛書表單，上面嘅取貨資料同產品已經自動填好，撳提交就入飛書訂單表，門店確認後會用連結收款。</div>
   </div>
   <div class="foot">數據來源：BETTEREAT 飛書系統 · 餐牌以最近有銷售記錄嘅產品為準<br>產品相片陸續補上，現時未有相片嘅產品會顯示圖示。</div>
 </div>
@@ -151,7 +151,6 @@
 <script>
 var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/BETTEREAT/main/bettereat_sold_data.json";
 var FORM_URL = "https://acnsnsu3kdns.feishu.cn/share/base/form/shrcnQcUkya8OoqEi9oPAyeCmgb";
-var WORKER_URL = "WORKER_URL_PLACEHOLDER";
 var SECRETARY_WHATSAPP = "";
 var products = [], cart = {}, searchText = "";
 
@@ -315,55 +314,13 @@ function setStatus(msg, ok){
   el.textContent = msg;
   el.className = "status" + (ok ? " ok" : " err");
 }
-async function submitOrder(){
-  var list = cartItems();
-  if (!list.length) { setStatus("請先揀產品。", false); return; }
-  if (list.length > 5) { setStatus("一次最多 5 款，請減到 5 款或者分兩張單。", false); return; }
-  if (WORKER_URL === "WORKER_URL_PLACEHOLDER" || WORKER_URL.indexOf("http") !== 0) {
-    setStatus("提交功能準備緊（等緊後端開通），請先用「複製訂單」＋「去落單表單」做後備。", false);
-    return;
-  }
-  var store = document.getElementById("coStore").value;
-  var name = document.getElementById("coName").value.trim();
-  var phone = document.getElementById("coPhone").value.trim();
-  var date = document.getElementById("coDate").value;
-  var time = document.getElementById("coTime").value.trim();
-  var remarks = document.getElementById("coRemarks").value.trim();
-  if (!store) { setStatus("請選擇取貨門店。", false); return; }
-  if (!name) { setStatus("請填寫顧客姓名。", false); return; }
-  if (!phone) { setStatus("請填寫聯絡電話。", false); return; }
-  if (!date) { setStatus("請選擇取貨日期。", false); return; }
-  var btn = document.getElementById("coSubmit");
-  btn.disabled = true;
-  setStatus("提交緊…", false);
-  try {
-    var res = await fetch(WORKER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        store: store, name: name, phone: phone, pickupDate: date, pickupTime: time, remarks: remarks,
-        items: list.map(function(it){ return { name: it.name, qty: it.qty }; }),
-      }),
-    });
-    var j = await res.json();
-    if (res.ok && j && j.ok) {
-      setStatus("✅ 訂單已送出！門店會喺飛書見到呢張單，店員確認後會用連結收款。", true);
-      clearCart();
-    } else {
-      setStatus("❌ 提交唔到，請用「複製訂單」＋「去落單表單」做後備，或者稍後再試。", false);
-    }
-  } catch (e) {
-    setStatus("❌ 網絡有問題，提交唔到，請用「複製訂單」＋「去落單表單」做後備。", false);
-  }
-  btn.disabled = false;
-}
 document.getElementById("searchInput").addEventListener("input", function(){
   searchText = this.value.trim().toLowerCase();
   renderGrid();
 });
 document.getElementById("goFormBtn").onclick = goForm;
 document.getElementById("goFormBtnBar").onclick = goForm;
-document.getElementById("coSubmit").onclick = submitOrder;
+document.getElementById("coSubmit").onclick = goForm;
 loadData();
 </script>
 </body>
