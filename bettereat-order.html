@@ -92,7 +92,7 @@
     <div style="margin-top:12px;">
       <div style="font-size:13px;color:#6d6152;margin-bottom:4px;">給秘書嘅訂單列表（同飛書訂單欄位一樣）</div>
       <textarea id="secretaryListBox" readonly placeholder="未揀任何產品"></textarea>
-      <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">撳「傳送給秘書」會開 WhatsApp，呢張列表自動填好；未設定秘書號碼嗰陣會叫你揀聯絡人，揀返秘書傳送就得。</div>
+      <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">撳「傳送給秘書」會開 WhatsApp，呢張列表自動填好；未設定秘書號碼嗰陣會叫你揀聯絡人，揀返秘書傳送就得。落單嗰陣呢張列表亦會一齊寫入飛書訂單記錄。</div>
     </div>
   </div>
 
@@ -307,6 +307,11 @@ function goForm(){
     add("數量" + (i + 1), it.qty);
   });
   add("備註", document.getElementById("coRemarks").value.trim());
+  var orderList = buildSecretaryList();
+  if (orderList) {
+    params.push("prefill_" + encPrefill("訂單列表") + "=" + encPrefill(orderList));
+    params.push("hide_" + encPrefill("訂單列表") + "=1");
+  }
   window.open(FORM_URL + (params.length ? "?" + params.join("&") : ""), "_blank");
 }
 function setStatus(msg, ok){
