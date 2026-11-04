@@ -1,11 +1,15 @@
 # GitHub Actions 一次性寫入測試：寫一筆測試單去飛書「網上訂單」表，核實後再刪返。
 # 注意：GitHub App 推唔到 .github/workflows/ 檔案（例行 403），所以呢個檔要由 Yan
-# 喺 GitHub 網頁版手動開（BETTEREAT repo → .github/workflows → Add file → Create new file，
+# 喺 GitHub 網頁版手動開（IFTECH repo → .github/workflows → Add file → Create new file，
 # 檔名 test_order_write.yml，貼入呢份內容，Commit）。程式本身（scripts/test_order_write.py）
-# 已經由 Ember 推上 repo，唔使再處理。
-# 用到嘅 repo Secrets（2026-10-28 已加好，同步 workflow 用緊同一組）：
+# 已經喺 repo 入面，唔使再處理。
+# 用到嘅 repo Secrets（同步 workflow 用緊同一組）：
 #   BETTEREAT_FEISHU_APP_ID / BETTEREAT_FEISHU_APP_SECRET
 # 每次跑完都會將結果寫入 repo 嘅 test-order-result.json（record_id、核實結果），方便核對。
+# 2026-11-04 修訂：Commit result 嗰步加咗 push 重試（最多 3 次）＋ continue-on-error，
+# 因為 GitHub 曾經回 Internal Server Error（500）令成個 run 顯示 failed——寫入本身成功，
+# 唔應該因為 result 檔推唔上而當失敗。留意：寫入失敗本身照樣會令 run 失敗，呢個改動
+# 只係容忍 result 檔 push 失敗。
 name: Test order write to Feishu
 on:
   workflow_dispatch:
@@ -39,9 +43,12 @@ jobs:
         run: python3 scripts/test_order_write.py --mode "${{ inputs.mode }}" --record-id "${{ inputs.record_id }}"
       - name: Commit result
         if: always()
+        continue-on-error: true
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add test-order-result.json
           git diff --cached --quiet || git commit -m "Order write test result (${{ inputs.mode }})"
-          git push
+          for i in 1 2 3; do
+            git push && break || sleep 15
+          done
