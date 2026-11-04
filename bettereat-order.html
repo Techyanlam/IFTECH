@@ -127,7 +127,7 @@
       <button class="xbtn primary" id="coSubmit" style="padding:13px 22px;font-size:16px;">提交訂單</button>
     </div>
     <div class="status" id="coStatus"></div>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">提交後門店會喺飛書見到呢張單，店員確認後會用連結收款。如果提交唔到，可以用上面「複製訂單」＋「去落單表單」做後備。</div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">提交後門店會喺飛書見到呢張單，店員確認後會用連結收款。如果提交唔到，可以用上面「複製訂單」＋「去落單表單」做後備，表單會自動填好你揀嘅產品同取貨資料，唔使再逐樣打。</div>
   </div>
   <div class="foot">數據來源：BETTEREAT 飛書系統 · 餐牌以最近有銷售記錄嘅產品為準<br>產品相片陸續補上，現時未有相片嘅產品會顯示圖示。</div>
 </div>
@@ -143,7 +143,7 @@
 
 <script>
 var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/BETTEREAT/main/bettereat_sold_data.json";
-var FORM_URL = "FORM_URL_PLACEHOLDER";
+var FORM_URL = "https://acnsnsu3kdns.feishu.cn/share/base/form/shrcnQcUkya8OoqEi9oPAyeCmgb";
 var WORKER_URL = "WORKER_URL_PLACEHOLDER";
 var products = [], cart = {}, searchText = "";
 
@@ -252,10 +252,26 @@ function copyOrder(){
 function scrollToCart(){
   document.getElementById("cartTitle").scrollIntoView();
 }
+function encPrefill(s){
+  return encodeURIComponent(s).replace(/\(/g, "%28").replace(/\)/g, "%29");
+}
 function goForm(){
-  if (FORM_URL !== "FORM_URL_PLACEHOLDER" && FORM_URL.indexOf("http") === 0) {
-    window.open(FORM_URL, "_blank");
+  if (FORM_URL === "FORM_URL_PLACEHOLDER" || FORM_URL.indexOf("http") !== 0) return;
+  var params = [];
+  function add(q, v){
+    if (v !== undefined && v !== null && String(v).length > 0) params.push("prefill_" + encPrefill(q) + "=" + encPrefill(String(v)));
   }
+  add("取貨門店", document.getElementById("coStore").value);
+  add("顧客姓名", document.getElementById("coName").value.trim());
+  add("聯絡電話", document.getElementById("coPhone").value.trim());
+  add("取貨日期", document.getElementById("coDate").value);
+  add("取貨時間", document.getElementById("coTime").value.trim());
+  cartItems().slice(0, 5).forEach(function(it, i){
+    add("產品" + (i + 1), it.name);
+    add("數量" + (i + 1), it.qty);
+  });
+  add("備註", document.getElementById("coRemarks").value.trim());
+  window.open(FORM_URL + (params.length ? "?" + params.join("&") : ""), "_blank");
 }
 function setStatus(msg, ok){
   var el = document.getElementById("coStatus");
