@@ -22,6 +22,9 @@
   .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
   .controls input[type="text"] { flex: 1; min-width: 200px; padding: 9px 12px; font-size: 15px; border: 1px solid #d8cfc0; border-radius: 10px; background: #fff; }
   .note { background: #fdf8ef; border: 1px solid #e6d3ac; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #6d6152; margin-bottom: 14px; line-height: 1.7; }
+  .shopbtns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+  .shopbtn { padding: 10px 20px; font-size: 15px; border: 1px solid #d8cbb6; color: #6d6152; background: #fff; border-radius: 999px; cursor: pointer; }
+  .shopbtn.active { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border-color: #b97a1e; font-weight: 700; }
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
   .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(60,45,20,.06); cursor: pointer; border: 2px solid transparent; }
   .card.incart { border-color: #c98a2d; }
@@ -92,6 +95,14 @@
   </header>
 
   <div class="meta" id="metaLine">載入餐牌中…</div>
+
+  <div class="shopbtns" id="shopBtns">
+    <span style="font-size:14px;color:#6d6152;">揀邊間店：</span>
+    <button class="shopbtn" id="shopBtn-MJF" onclick="selectShop('謝斐 (MJF)')">謝斐</button>
+    <button class="shopbtn" id="shopBtn-MAP" onclick="selectShop('淘大 (MAP)')">淘大</button>
+    <button class="shopbtn" id="shopBtn-MKH" onclick="selectShop('Aeon (MKH)')">Aeon</button>
+    <button class="shopbtn" id="shopBtn-MMCP" onclick="selectShop('將軍澳 (MMCP)')">將軍澳</button>
+  </div>
 
   <h2 class="sec">撳一下就加 1 件</h2>
   <div class="controls">
@@ -182,7 +193,7 @@
       <option value="Aeon (MKH)">Aeon</option>
       <option value="將軍澳 (MMCP)">將軍澳</option>
     </select>
-    <label style="font-size:14px;color:#6d6152;">取貨日期：</label>
+    <label style="font-size:14px;color:#6d6152;">記錄日期：</label>
     <input type="date" id="recordsDateFilter" onchange="setRecordsDate(this.value);renderRecords()" style="padding:8px 10px;border:1px solid #d8cbb6;border-radius:8px;background:#fff;font-size:14px;">
     <button class="xbtn" onclick="clearRecordsDate()">清除日期</button>
     <span id="recordsCount" style="font-size:13px;color:#8a7f70;"></span>
@@ -366,15 +377,32 @@ function applyRecordsShopFromUrl(){
   try {
     var m = window.location.search.match(/[?&]shop=([^&]*)/);
     var q = m ? decodeURIComponent(m[1].replace(/\+/g, " ")) : null;
-    if (!q) return;
     var labels = ["謝斐 (MJF)", "淘大 (MAP)", "Aeon (MKH)", "將軍澳 (MMCP)"];
     var map = { MJF: "謝斐 (MJF)", MAP: "淘大 (MAP)", MKH: "Aeon (MKH)", MMCP: "將軍澳 (MMCP)" };
-    var val = (labels.indexOf(q) >= 0) ? q : (map[q] || "");
-    if (!val) return;
+    var val = "";
+    if (q) val = (labels.indexOf(q) >= 0) ? q : (map[q] || "");
+    if (!val) val = getRecordsShop();
+    if (!val || labels.indexOf(val) < 0) return;
     setRecordsShop(val);
     var cs = document.getElementById("coStore");
     if (cs) cs.value = val;
   } catch (e) {}
+}
+var SHOP_LABELS = ["謝斐 (MJF)", "淘大 (MAP)", "Aeon (MKH)", "將軍澳 (MMCP)"];
+var SHOP_CODES = { "謝斐 (MJF)": "MJF", "淘大 (MAP)": "MAP", "Aeon (MKH)": "MKH", "將軍澳 (MMCP)": "MMCP" };
+function selectShop(shop){
+  if (SHOP_LABELS.indexOf(shop) < 0) return;
+  setRecordsShop(shop);
+  var cs = document.getElementById("coStore");
+  if (cs) cs.value = shop;
+  renderRecords();
+}
+function syncShopButtons(){
+  var shop = getRecordsShop();
+  SHOP_LABELS.forEach(function(s){
+    var el = document.getElementById("shopBtn-" + SHOP_CODES[s]);
+    if (el) el.className = "shopbtn" + (s === shop ? " active" : "");
+  });
 }
 function loadRecords(){
   try {
@@ -391,13 +419,14 @@ function renderRecords(){
   var shop = getRecordsShop();
   var sel = document.getElementById("recordsShopFilter");
   if (sel) sel.value = shop;
+  syncShopButtons();
   var dateEl = document.getElementById("recordsDateFilter");
   if (dateEl) dateEl.value = recordsDateFilter;
   var btn = document.getElementById("clearRecordsBtn");
   if (btn) btn.textContent = shop ? "清空「" + shop + "」記錄" : "清空全部記錄";
   var pairs = arr.map(function(r, i){ return { r: r, i: i }; });
   if (shop) pairs = pairs.filter(function(p){ return p.r.store === shop; });
-  if (recordsDateFilter) pairs = pairs.filter(function(p){ return p.r.date === recordsDateFilter; });
+  if (recordsDateFilter) pairs = pairs.filter(function(p){ return splitRecordTime(p.r.time).date === recordsDateFilter; });
   var cnt = document.getElementById("recordsCount");
   if (cnt) cnt.textContent = (shop ? shop : "全部店舖") + (recordsDateFilter ? "｜" + recordsDateFilter : "") + "：共 " + pairs.length + " 行";
   var html = "";
@@ -437,8 +466,11 @@ function renderRecords(){
 function splitRecordTime(t){
   t = (t == null ? "" : String(t)).trim();
   if (!t) return { date: "—", time: "—" };
-  var m = t.match(/^(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})[,\s]+(.+)$/);
-  if (m) return { date: m[1].replace(/\//g, "-"), time: m[2] };
+  var m = t.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[,\s]+(.+)$/);
+  if (m) {
+    var p2 = function(n){ n = String(n); return n.length < 2 ? "0" + n : n; };
+    return { date: m[1] + "-" + p2(m[2]) + "-" + p2(m[3]), time: m[4] };
+  }
   var parts = t.split(/\s+/);
   if (parts.length >= 2) return { date: parts[0].replace(/,$/, ""), time: parts.slice(1).join(" ") };
   return { date: t, time: "—" };
