@@ -108,7 +108,7 @@
   <div class="controls">
     <input type="text" id="searchInput" placeholder="搜尋產品名稱／編號">
   </div>
-  <div class="note">撳產品圖就加 1 件；已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。揀好產品之後，下面會直接出「核實金額」表，填埋取貨資料，確認之後「訂單記錄」就會生成記錄，一個產品一行。</div>
+  <div class="note">撳產品圖就加 1 件；已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。記得先喺上面揀邊間店；揀好產品之後，下面會直接出「核實金額」表，確認之後「訂單記錄」就會生成記錄，一個產品一行。</div>
   <div class="grid" id="grid"></div>
 
   <h2 class="sec" id="cartTitle">🛒 已選訂單</h2>
@@ -118,53 +118,8 @@
       <button class="xbtn primary" id="goFormBtn">提交</button>
       <button class="xbtn" onclick="clearCart()">清空</button>
     </div>
-    <div style="margin-top:12px;">
-      <div style="font-size:13px;color:#6d6152;margin-bottom:4px;">給秘書嘅訂單列表（同飛書訂單欄位一樣）</div>
-      <textarea id="secretaryListBox" readonly placeholder="未揀任何產品"></textarea>
-      <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">呢張列表同飛書訂單欄位一樣，方便對照門店記錄。</div>
-    </div>
   </div>
 
-  <h2 class="sec">取貨資料</h2>
-  <div class="checkout">
-    <div class="fields">
-      <div>
-        <label>取貨門店 *</label>
-        <select id="coStore">
-          <option value="">請選擇門店</option>
-          <option value="謝斐 (MJF)">謝斐</option>
-          <option value="淘大 (MAP)">淘大</option>
-          <option value="Aeon (MKH)">Aeon</option>
-          <option value="將軍澳 (MMCP)">將軍澳</option>
-        </select>
-      </div>
-      <div>
-        <label>取貨日期 *</label>
-        <input id="coDate" type="date">
-      </div>
-      <div>
-        <label>顧客姓名 *</label>
-        <input id="coName" type="text" placeholder="姓名">
-      </div>
-      <div>
-        <label>聯絡電話 *</label>
-        <input id="coPhone" type="tel" placeholder="電話">
-      </div>
-      <div>
-        <label>取貨時間</label>
-        <input id="coTime" type="text" placeholder="例如：下午 3 點後">
-      </div>
-      <div>
-        <label>備註</label>
-        <input id="coRemarks" type="text" placeholder="其他要求（可空）">
-      </div>
-    </div>
-    <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-      <button class="xbtn primary" id="coSubmit" style="padding:13px 22px;font-size:16px;">提交</button>
-    </div>
-    <div class="status" id="coStatus"></div>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">撳「提交」會再顯示下面「核實金額」表；揀好產品之後，核實表會直接出，確認之後先喺下面「訂單記錄」生成記錄，一個產品一行；提交後訂單只記喺呢個網站，唔會入飛書表。</div>
-  </div>
   <div class="verify" id="verifySection" style="display:none;">
     <h2 class="sec" style="margin-top:0;">核實金額</h2>
     <div id="verifyMeta" style="font-size:13px;color:#6d6152;line-height:1.7;margin-bottom:10px;"></div>
@@ -304,7 +259,6 @@ function updateCart(){
     ? "已選 " + t.items + " 件 · " + t.kinds + " 款 <small>（撳卡加 1 件，＋／− 改數量）</small>"
     : "未揀任何產品";
   document.getElementById("summaryBox").value = buildSummary();
-  document.getElementById("secretaryListBox").value = buildSecretaryList();
   renderGrid();
   syncVerifyPanel();
 }
@@ -320,26 +274,6 @@ function removeItem(code){
 function clearCart(){
   cart = {};
   updateCart();
-}
-function buildSecretaryList(){
-  var list = cartItems();
-  if (!list.length) return "";
-  function v(id){
-    var el = document.getElementById(id);
-    return el ? el.value.trim() : "";
-  }
-  var lines = ["BETTEREAT 訂購單"];
-  lines.push("取貨門店：" + (v("coStore") || "—"));
-  lines.push("顧客姓名：" + (v("coName") || "—"));
-  lines.push("聯絡電話：" + (v("coPhone") || "—"));
-  lines.push("取貨日期：" + (v("coDate") || "—"));
-  lines.push("取貨時間：" + (v("coTime") || "—"));
-  list.forEach(function(it, i){
-    lines.push("產品" + (i + 1) + "：" + it.name + " ×" + it.qty);
-  });
-  var remarks = v("coRemarks");
-  if (remarks) lines.push("備註：" + remarks);
-  return lines.join("\n");
 }
 function scrollToCart(){
   document.getElementById("cartTitle").scrollIntoView();
@@ -384,8 +318,6 @@ function applyRecordsShopFromUrl(){
     if (!val) val = getRecordsShop();
     if (!val || labels.indexOf(val) < 0) return;
     setRecordsShop(val);
-    var cs = document.getElementById("coStore");
-    if (cs) cs.value = val;
   } catch (e) {}
 }
 var SHOP_LABELS = ["謝斐 (MJF)", "淘大 (MAP)", "Aeon (MKH)", "將軍澳 (MMCP)"];
@@ -393,9 +325,8 @@ var SHOP_CODES = { "謝斐 (MJF)": "MJF", "淘大 (MAP)": "MAP", "Aeon (MKH)": "
 function selectShop(shop){
   if (SHOP_LABELS.indexOf(shop) < 0) return;
   setRecordsShop(shop);
-  var cs = document.getElementById("coStore");
-  if (cs) cs.value = shop;
   renderRecords();
+  if (verifyLines) renderVerify();
 }
 function syncShopButtons(){
   var shop = getRecordsShop();
@@ -536,9 +467,9 @@ function syncVerifyPanel(){
 }
 function renderVerify(){
   var list = verifyLines || [];
-  function v(id){ var el = document.getElementById(id); return el ? el.value.trim() : ""; }
   var meta = document.getElementById("verifyMeta");
-  if (meta) meta.textContent = "取貨門店：" + (v("coStore") || "—") + " ｜ 顧客姓名：" + (v("coName") || "—") + " ｜ 聯絡電話：" + (v("coPhone") || "—") + " ｜ 取貨日期：" + (v("coDate") || "—") + " ｜ 取貨時間：" + (v("coTime") || "—");
+  var _shop = getRecordsShop();
+  if (meta) meta.textContent = _shop ? "取貨門店：" + _shop : "未揀門店：請喺上面撳邊間店。";
   var html = "";
   list.forEach(function(ln, i){
     var sub = (validPrice(parseFloat(ln.price)) && validQty(parseFloat(ln.qty))) ? fmtMoney(parseFloat(ln.price) * parseFloat(ln.qty)) : "—";
@@ -572,6 +503,7 @@ function cartMatchesVerify(){
 }
 function confirmVerifiedSubmit(){
   if (!verifyLines || !verifyLines.length) return;
+  if (!getRecordsShop()) { alert("請先喺上面揀邊間店"); return; }
   if (!cartMatchesVerify()) {
     buildVerifyLines();
     renderVerify();
@@ -592,17 +524,15 @@ function confirmVerifiedSubmit(){
   var total = 0;
   lines.forEach(function(l){ total += l.subtotal; });
   total = Math.round(total * 100) / 100;
-  function v(id){ var el = document.getElementById(id); return el ? el.value.trim() : ""; }
   var _nd = new Date();
   function _p2(n){ return (n < 10 ? "0" : "") + n; }
   var time = _nd.getFullYear() + "-" + _p2(_nd.getMonth() + 1) + "-" + _p2(_nd.getDate()) + " " + _p2(_nd.getHours()) + ":" + _p2(_nd.getMinutes());
   var orderNo = nextOrderNo();
-  var meta = { time: time, store: v("coStore"), name: v("coName"), phone: v("coPhone"), date: v("coDate"), time2: v("coTime"), remarks: v("coRemarks") };
+  var meta = { time: time, store: getRecordsShop(), name: "", phone: "", date: "", time2: "", remarks: "" };
   var rows = lines.map(function(l){
     return { order: orderNo, time: meta.time, store: meta.store, name: meta.name, phone: meta.phone, date: meta.date, time2: meta.time2, product: l.name, qty: l.qty, price: l.price, subtotal: l.subtotal, orderTotal: total, reason: l.reason, remarks: meta.remarks };
   });
   saveRecords(rows.concat(loadRecords()));
-  if (meta.store) setRecordsShop(meta.store);
   renderRecords();
   clearCart();
   verifyLines = null; verifyOrig = null;
@@ -693,18 +623,12 @@ function clearRecords(){
   editingIndex = -1; editDraft = null;
   renderRecords();
 }
-function setStatus(msg, ok){
-  var el = document.getElementById("coStatus");
-  el.textContent = msg;
-  el.className = "status" + (ok ? " ok" : " err");
-}
 document.getElementById("searchInput").addEventListener("input", function(){
   searchText = this.value.trim().toLowerCase();
   renderGrid();
 });
 document.getElementById("goFormBtn").onclick = submitOrderRecord;
 document.getElementById("goFormBtnBar").onclick = submitOrderRecord;
-document.getElementById("coSubmit").onclick = submitOrderRecord;
 loadData();
 applyRecordsShopFromUrl();
 renderRecords();
