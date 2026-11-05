@@ -62,6 +62,10 @@
   .verify .vprice { width:86px; }
   .verify .vqty { width:64px; }
   .verify .vreason { width:150px; }
+  .verify .vreasonDetail { width:150px; }
+  .verify select.vreason { padding:8px; font-size:14px; border:1px solid #d8cfc0; border-radius:8px; background:#fff; }
+  .rectable select.ereason { padding:6px; font-size:13px; border:1px solid #d8cfc0; border-radius:6px; background:#fff; }
+  .rectable .ereasonDetail { width:120px; }
   .rectable input[type="number"], .rectable input[type="text"] { padding:6px; font-size:13px; border:1px solid #d8cfc0; border-radius:6px; background:#fff; }
   .rectable .eprice { width:76px; }
   .rectable .eqty { width:56px; }
@@ -162,7 +166,7 @@
       </table>
     </div>
     <div class="vtotal" id="verifyTotal"></div>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">改動原有單價或者數量就要填原因，例如：外觀不良。本身冇標準售價嘅產品，請直接輸入單價。</div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">改動原有單價或者數量就要揀原因（外觀不良／到期／其他，揀其他可以打埋補充）。本身冇標準售價嘅產品，請直接輸入單價。</div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
       <button class="xbtn primary" onclick="confirmVerifiedSubmit()">確認提交</button>
       <button class="xbtn" onclick="cancelVerify()">返回修改</button>
@@ -190,7 +194,7 @@
   </div>
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
     <button class="xbtn" id="clearRecordsBtn" onclick="clearRecords()">清空全部記錄</button>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">撳「提交」嗰下，呢張單會記低喺呢度，一個產品一行，同一次提交嘅各行會共用同一個訂單編號。記錄可以撳「編輯」改單價、數量同原因；改動原有數字要填原因。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示、獨立清空。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；提交後訂單唔會入飛書表，如需通知門店，可用上面「傳送給秘書」WhatsApp。每間店可以用自己嘅連結入嚟（網址後面加 ?shop=MJF／MAP／MKH／MMCP），一入嚟就自動揀好嗰間店。</div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">撳「提交」嗰下，呢張單會記低喺呢度，一個產品一行，同一次提交嘅各行會共用同一個訂單編號。記錄可以撳「編輯」改單價、數量同原因；改動原有數字要揀原因（外觀不良／到期／其他）。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示、獨立清空。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；提交後訂單唔會入飛書表，如需通知門店，可用上面「傳送給秘書」WhatsApp。每間店可以用自己嘅連結入嚟（網址後面加 ?shop=MJF／MAP／MKH／MMCP），一入嚟就自動揀好嗰間店。</div>
   </div>
 </div>
 
@@ -418,7 +422,8 @@ function renderRecords(){
           '<td><input class="eprice" type="number" step="any" min="0" value="' + esc(editDraft.price) + '" oninput="editDraft.price=this.value;recomputeEditSub()"></td>' +
           '<td id="edsub">' + (r.subtotal != null ? fmtMoney(r.subtotal) : "—") + '</td>' +
           '<td>' + (r.orderTotal != null ? fmtMoney(r.orderTotal) : "—") + '</td>' +
-          '<td><input class="ereason" type="text" placeholder="例如：外觀不良" value="' + esc(editDraft.reason) + '" oninput="editDraft.reason=this.value"></td>' +
+          '<td><select class="ereason" onchange="editDraft.reason=this.value;toggleEditDetail()">' + reasonOptions(editDraft.reason) + '</select>' +
+          '<input class="ereasonDetail" id="eddetail" type="text" placeholder="其他原因說明（可空）" style="display:' + (editDraft.reason === '其他' ? 'block' : 'none') + ';margin-top:4px;" value="' + esc(editDraft.reasonDetail || '') + '" oninput="editDraft.reasonDetail=this.value"></td>' +
           '<td>' + esc(r.remarks) + '</td>' +
           '<td style="white-space:nowrap;"><button class="del" onclick="saveEditedRecord(' + p.i + ')">儲存</button> <button class="del" onclick="cancelEdit()">取消</button></td></tr>';
       } else {
@@ -440,6 +445,29 @@ function fmtMoney(n){
 }
 function validPrice(v){ return isFinite(v) && v >= 0; }
 function validQty(v){ return isFinite(v) && v >= 1 && Math.floor(v) === v; }
+function reasonOptions(current){
+  var opts = ['', '外觀不良', '到期', '其他'];
+  var labels = { '': '請選擇原因', '外觀不良': '外觀不良', '到期': '到期', '其他': '其他' };
+  return opts.map(function(o){ return '<option value="' + o + '"' + (o === current ? ' selected' : '') + '>' + labels[o] + '</option>'; }).join('');
+}
+function storedReason(reason, detail){
+  if (reason === '其他' && detail && detail.trim()) return '其他：' + detail.trim();
+  return reason || '';
+}
+function parseReason(stored){
+  if (stored === '外觀不良' || stored === '到期' || stored === '其他') return { reason: stored, detail: '' };
+  if (stored && stored.indexOf('其他：') === 0) return { reason: '其他', detail: stored.slice(3) };
+  if (stored) return { reason: '其他', detail: stored };
+  return { reason: '', detail: '' };
+}
+function toggleVerifyDetail(i){
+  var el = document.getElementById('vdetail' + i);
+  if (el && verifyLines && verifyLines[i]) el.style.display = (verifyLines[i].reason === '其他') ? 'block' : 'none';
+}
+function toggleEditDetail(){
+  var el = document.getElementById('eddetail');
+  if (el && editDraft) el.style.display = (editDraft.reason === '其他') ? 'block' : 'none';
+}
 var verifyLines = null;
 var verifyOrig = null;
 var editingIndex = -1;
@@ -448,7 +476,7 @@ function buildVerifyLines(){
   var items = cartItems();
   verifyOrig = items.map(function(it){ return { code: it.code, qty: it.qty }; });
   verifyLines = items.map(function(it){
-    return { code: it.code, name: it.name, unit: it.unit, qty: it.qty, qty0: it.qty, stdPrice: it.price, price: it.price, reason: "" };
+    return { code: it.code, name: it.name, unit: it.unit, qty: it.qty, qty0: it.qty, stdPrice: it.price, price: it.price, reason: "", reasonDetail: "" };
   });
 }
 function renderVerify(){
@@ -463,7 +491,8 @@ function renderVerify(){
       '<td><input class="vprice" type="number" step="any" min="0" value="' + esc(ln.price == null ? "" : ln.price) + '" oninput="verifyLines[' + i + '].price=this.value;recomputeVerify()"></td>' +
       '<td><input class="vqty" type="number" step="1" min="1" value="' + esc(ln.qty) + '" oninput="verifyLines[' + i + '].qty=this.value;recomputeVerify()"></td>' +
       '<td id="vsub' + i + '">' + sub + '</td>' +
-      '<td><input class="vreason" type="text" placeholder="例如：外觀不良" value="' + esc(ln.reason) + '" oninput="verifyLines[' + i + '].reason=this.value"></td></tr>';
+      '<td><select class="vreason" onchange="verifyLines[' + i + '].reason=this.value;toggleVerifyDetail(' + i + ')">' + reasonOptions(ln.reason) + '</select>' +
+      '<input class="vreasonDetail" id="vdetail' + i + '" type="text" placeholder="其他原因說明（可空）" style="display:' + (ln.reason === '其他' ? 'block' : 'none') + ';margin-top:4px;" value="' + esc(ln.reasonDetail || '') + '" oninput="verifyLines[' + i + '].reasonDetail=this.value"></td></tr>';
   });
   document.getElementById("verifyBody").innerHTML = html;
   recomputeVerify();
@@ -502,8 +531,8 @@ function confirmVerifiedSubmit(){
     if (!validQty(q)) { alert("「" + ln.name + "」嘅數量要係大過 0 嘅整數。"); return; }
     var priceChanged = (ln.stdPrice != null && ln.stdPrice !== "" && p !== parseFloat(ln.stdPrice));
     var qtyChanged = (q !== ln.qty0);
-    if ((priceChanged || qtyChanged) && !ln.reason.trim()) { alert("「" + ln.name + "」嘅金額有改動，請填寫改價原因。"); return; }
-    lines.push({ name: ln.name, qty: q, price: p, subtotal: Math.round(p * q * 100) / 100, reason: ln.reason.trim() });
+    if ((priceChanged || qtyChanged) && !ln.reason) { alert("「" + ln.name + "」嘅金額有改動，請選擇改價原因。"); return; }
+    lines.push({ name: ln.name, qty: q, price: p, subtotal: Math.round(p * q * 100) / 100, reason: storedReason(ln.reason, ln.reasonDetail) });
   }
   var total = 0;
   lines.forEach(function(l){ total += l.subtotal; });
@@ -545,7 +574,8 @@ function editRecord(i){
   var r = arr[i];
   if (!r) return;
   editingIndex = i;
-  editDraft = { price: (r.price == null ? "" : r.price), qty: r.qty, reason: r.reason || "" };
+  var parsed = parseReason(r.reason);
+  editDraft = { price: (r.price == null ? "" : r.price), qty: r.qty, reason: parsed.reason, reasonDetail: parsed.detail };
   renderRecords();
 }
 function cancelEdit(){
@@ -577,10 +607,10 @@ function saveEditedRecord(i){
   var p = parseFloat(editDraft.price), q = parseFloat(editDraft.qty);
   if (!validPrice(p)) { alert("請輸入有效嘅單價。"); return; }
   if (!validQty(q)) { alert("數量要係大過 0 嘅整數。"); return; }
-  var reason = (editDraft.reason || "").trim();
+  var reason = storedReason(editDraft.reason, editDraft.reasonDetail);
   var priceChanged = (r.price != null && r.price !== "" && p !== parseFloat(r.price));
   var qtyChanged = (r.qty != null && q !== parseFloat(r.qty));
-  if ((priceChanged || qtyChanged) && !reason) { alert("金額有改動，請填寫改價原因。"); return; }
+  if ((priceChanged || qtyChanged) && !reason) { alert("金額有改動，請選擇改價原因。"); return; }
   r.price = p; r.qty = q; r.subtotal = Math.round(p * q * 100) / 100; r.reason = reason;
   recomputeOrderTotal(r.order, arr);
   saveRecords(arr);
