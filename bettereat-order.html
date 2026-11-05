@@ -184,6 +184,9 @@
       <option value="Aeon (MKH)">Aeon</option>
       <option value="將軍澳 (MMCP)">將軍澳</option>
     </select>
+    <label style="font-size:14px;color:#6d6152;">取貨日期：</label>
+    <input type="date" id="recordsDateFilter" onchange="setRecordsDate(this.value);renderRecords()" style="padding:8px 10px;border:1px solid #d8cbb6;border-radius:8px;background:#fff;font-size:14px;">
+    <button class="xbtn" onclick="clearRecordsDate()">清除日期</button>
     <span id="recordsCount" style="font-size:13px;color:#8a7f70;"></span>
   </div>
   <div style="overflow-x:auto;">
@@ -373,6 +376,14 @@ function getRecordsShop(){
 function setRecordsShop(v){
   try { localStorage.setItem(RECORDS_SHOP_KEY, v); } catch (e) {}
 }
+var recordsDateFilter = "";
+function setRecordsDate(v){ recordsDateFilter = v || ""; }
+function clearRecordsDate(){
+  recordsDateFilter = "";
+  var el = document.getElementById("recordsDateFilter");
+  if (el) el.value = "";
+  renderRecords();
+}
 function applyRecordsShopFromUrl(){
   try {
     var m = window.location.search.match(/[?&]shop=([^&]*)/);
@@ -402,15 +413,22 @@ function renderRecords(){
   var shop = getRecordsShop();
   var sel = document.getElementById("recordsShopFilter");
   if (sel) sel.value = shop;
+  var dateEl = document.getElementById("recordsDateFilter");
+  if (dateEl) dateEl.value = recordsDateFilter;
   var btn = document.getElementById("clearRecordsBtn");
   if (btn) btn.textContent = shop ? "清空「" + shop + "」記錄" : "清空全部記錄";
   var pairs = arr.map(function(r, i){ return { r: r, i: i }; });
   if (shop) pairs = pairs.filter(function(p){ return p.r.store === shop; });
+  if (recordsDateFilter) pairs = pairs.filter(function(p){ return p.r.date === recordsDateFilter; });
   var cnt = document.getElementById("recordsCount");
-  if (cnt) cnt.textContent = shop ? shop + "：共 " + pairs.length + " 行" : "全部店舖：共 " + pairs.length + " 行";
+  if (cnt) cnt.textContent = (shop ? shop : "全部店舖") + (recordsDateFilter ? "｜" + recordsDateFilter : "") + "：共 " + pairs.length + " 行";
   var html = "";
   if (!pairs.length) {
-    html = '<tr><td colspan="15" style="color:#8a7f70;text-align:center;">' + (shop ? "呢間店暫時未有記錄" : "暫時未有記錄") + '</td></tr>';
+    var emptyMsg = "暫時未有記錄";
+    if (shop && recordsDateFilter) emptyMsg = "呢間店呢個日期暫時未有記錄";
+    else if (shop) emptyMsg = "呢間店暫時未有記錄";
+    else if (recordsDateFilter) emptyMsg = "呢個日期暫時未有記錄";
+    html = '<tr><td colspan="15" style="color:#8a7f70;text-align:center;">' + emptyMsg + '</td></tr>';
   } else {
     pairs.forEach(function(p){
       var r = p.r;
