@@ -177,20 +177,34 @@
 </div>
 
 <script>
-var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/BETTEREAT/main/bettereat_sold_data.json";
+var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_sold_data.json";
+var PRODUCTS_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_products.json";
 var SECRETARY_WHATSAPP = "";
 var products = [], cart = {}, searchText = "";
 
 function esc(s){ return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 function loadData(){
-  fetch(DATA_URL + "?t=" + Date.now()).then(function(r){ return r.json(); }).then(function(j){
+  var soldP = fetch(DATA_URL + "?t=" + Date.now()).then(function(r){ return r.json(); });
+  var prodP = fetch(PRODUCTS_URL + "?t=" + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; });
+  Promise.all([soldP, prodP]).then(function(res){
+    var j = res[0], pj = res[1];
     var recs = j.records || [];
     if ((!recs || !recs.length) && j.history && j.date) recs = j.history[j.date] || [];
-    var map = {}, order = [];
-    recs.forEach(function(r){
-      if (!map[r.product_code]) { map[r.product_code] = { code: r.product_code, name: r.product_name, unit: r.unit }; order.push(r.product_code); }
+    var map = {};
+    // T1 主檔優先：飛書 T1 改咗，下次同步呢度就跟住改
+    if (pj && pj.products) pj.products.forEach(function(p){
+      if (p.product_code) map[p.product_code] = { code: p.product_code, name: p.product_name, unit: p.unit };
     });
-    order.sort();
+    // 銷售記錄補齊：已售出但未入主檔嘅產品繼續顯示，唔會消失；主檔名／單位為空嗰陣用銷售記錄補返
+    recs.forEach(function(r){
+      if (!r.product_code) return;
+      if (!map[r.product_code]) { map[r.product_code] = { code: r.product_code, name: r.product_name, unit: r.unit }; }
+      else {
+        if (!map[r.product_code].name && r.product_name) map[r.product_code].name = r.product_name;
+        if (!map[r.product_code].unit && r.unit) map[r.product_code].unit = r.unit;
+      }
+    });
+    var order = Object.keys(map).sort();
     products = order.map(function(c){ return map[c]; });
     document.getElementById("metaLine").textContent = "餐牌更新：" + j.date + " ｜ 共 " + products.length + " 款產品 ｜ 撳圖即加 1 件";
     renderGrid();
