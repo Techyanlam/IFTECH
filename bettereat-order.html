@@ -25,6 +25,7 @@
   .shopbtns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
   .shopbtn { padding: 10px 20px; font-size: 15px; border: 1px solid #d8cbb6; color: #6d6152; background: #fff; border-radius: 999px; cursor: pointer; }
   .shopbtn.active { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border-color: #b97a1e; font-weight: 700; }
+  .rectable .prodcol { min-width: 160px; }
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
   .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(60,45,20,.06); cursor: pointer; border: 2px solid transparent; }
   .card.incart { border-color: #c98a2d; }
@@ -151,11 +152,12 @@
     <label style="font-size:14px;color:#6d6152;">記錄日期：</label>
     <input type="date" id="recordsDateFilter" onchange="setRecordsDate(this.value);renderRecords()" style="padding:8px 10px;border:1px solid #d8cbb6;border-radius:8px;background:#fff;font-size:14px;">
     <button class="xbtn" onclick="clearRecordsDate()">清除日期</button>
+    <button class="xbtn" id="exportBtn" onclick="exportRecords()">匯出 Excel</button>
     <span id="recordsCount" style="font-size:13px;color:#8a7f70;"></span>
   </div>
   <div style="overflow-x:auto;">
     <table class="rectable" id="recordsTable">
-      <thead><tr><th>訂單編號</th><th>記錄日期</th><th>記錄時間</th><th>取貨門店</th><th>顧客姓名</th><th>聯絡電話</th><th>取貨日期</th><th>取貨時間</th><th>產品</th><th>數量</th><th>單價</th><th>總金額</th><th>改價原因</th><th>備註</th><th></th></tr></thead>
+      <thead><tr><th>訂單編號</th><th>記錄日期</th><th>記錄時間</th><th>取貨門店</th><th class="prodcol">產品</th><th>數量</th><th>單價</th><th>總金額</th><th>改價原因</th><th>備註</th><th></th></tr></thead>
       <tbody id="recordsBody"></tbody>
     </table>
   </div>
@@ -173,6 +175,7 @@
   </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_sold_data.json";
 var PRODUCTS_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_products.json";
@@ -300,6 +303,7 @@ function setRecordsShop(v){
   try { localStorage.setItem(RECORDS_SHOP_KEY, v); } catch (e) {}
 }
 var recordsDateFilter = "";
+var lastShownPairs = [];
 function setRecordsDate(v){ recordsDateFilter = v || ""; }
 function clearRecordsDate(){
   recordsDateFilter = "";
@@ -358,15 +362,18 @@ function renderRecords(){
   var pairs = arr.map(function(r, i){ return { r: r, i: i }; });
   if (shop) pairs = pairs.filter(function(p){ return p.r.store === shop; });
   if (recordsDateFilter) pairs = pairs.filter(function(p){ return splitRecordTime(p.r.time).date === recordsDateFilter; });
+  lastShownPairs = pairs;
   var cnt = document.getElementById("recordsCount");
   if (cnt) cnt.textContent = (shop ? shop : "全部店舖") + (recordsDateFilter ? "｜" + recordsDateFilter : "") + "：共 " + pairs.length + " 行";
+  var exBtn = document.getElementById("exportBtn");
+  if (exBtn) exBtn.disabled = !pairs.length;
   var html = "";
   if (!pairs.length) {
     var emptyMsg = "暫時未有記錄";
     if (shop && recordsDateFilter) emptyMsg = "呢間店呢個日期暫時未有記錄";
     else if (shop) emptyMsg = "呢間店暫時未有記錄";
     else if (recordsDateFilter) emptyMsg = "呢個日期暫時未有記錄";
-    html = '<tr><td colspan="15" style="color:#8a7f70;text-align:center;">' + emptyMsg + '</td></tr>';
+    html = '<tr><td colspan="11" style="color:#8a7f70;text-align:center;">' + emptyMsg + '</td></tr>';
   } else {
     pairs.forEach(function(p){
       var r = p.r;
@@ -374,7 +381,7 @@ function renderRecords(){
       var qty = (r.qty !== undefined) ? esc(r.qty) : "—";
       var rt = splitRecordTime(r.time);
       if (p.i === editingIndex && editDraft) {
-        html += '<tr><td style="white-space:nowrap;">' + esc(r.order || "—") + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.phone) + '</td><td style="white-space:nowrap;">' + esc(r.date) + '</td><td>' + esc(r.time2) + '</td><td>' + prod + '</td>' +
+        html += '<tr><td style="white-space:nowrap;">' + esc(r.order || "—") + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td class="prodcol">' + prod + '</td>' +
           '<td><input class="eqty" type="number" step="1" min="1" value="' + esc(editDraft.qty) + '" oninput="editDraft.qty=this.value;recomputeEditSub()"></td>' +
           '<td><input class="eprice" type="number" step="any" min="0" value="' + esc(editDraft.price) + '" oninput="editDraft.price=this.value;recomputeEditSub()"></td>' +
           '<td id="edsub">' + (r.subtotal != null ? fmtMoney(r.subtotal) : "—") + '</td>' +
@@ -383,7 +390,7 @@ function renderRecords(){
           '<td>' + esc(r.remarks) + '</td>' +
           '<td style="white-space:nowrap;"><button class="del" onclick="saveEditedRecord(' + p.i + ')">儲存</button> <button class="del" onclick="cancelEdit()">取消</button></td></tr>';
       } else {
-        html += '<tr><td style="white-space:nowrap;">' + esc(r.order || "—") + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.phone) + '</td><td style="white-space:nowrap;">' + esc(r.date) + '</td><td>' + esc(r.time2) + '</td><td>' + prod + '</td><td>' + qty + '</td>' +
+        html += '<tr><td style="white-space:nowrap;">' + esc(r.order || "—") + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td class="prodcol">' + prod + '</td><td>' + qty + '</td>' +
           '<td>' + (r.price != null ? fmtMoney(r.price) : "—") + '</td>' +
           '<td>' + (r.subtotal != null ? fmtMoney(r.subtotal) : "—") + '</td>' +
           '<td>' + (r.reason ? esc(r.reason) : "—") + '</td>' +
@@ -393,6 +400,34 @@ function renderRecords(){
     });
   }
   document.getElementById("recordsBody").innerHTML = html;
+}
+function exportRecords(){
+  if (typeof XLSX === "undefined") { alert("匯出功能載入唔到，請檢查網絡後重新整理再試。"); return; }
+  var pairs = lastShownPairs || [];
+  if (!pairs.length) { alert("暫時未有記錄可以匯出。"); return; }
+  var rows = pairs.map(function(p){
+    var r = p.r, rt = splitRecordTime(r.time);
+    return {
+      "訂單編號": r.order || "",
+      "記錄日期": rt.date === "—" ? "" : rt.date,
+      "記錄時間": rt.time === "—" ? "" : rt.time,
+      "取貨門店": r.store || "",
+      "產品": (r.product !== undefined) ? r.product : (r.items || ""),
+      "數量": (r.qty !== undefined && r.qty !== null && r.qty !== "") ? Number(r.qty) : "",
+      "單價": (r.price != null && r.price !== "") ? Number(r.price) : "",
+      "總金額": (r.subtotal != null && r.subtotal !== "") ? Number(r.subtotal) : "",
+      "改價原因": r.reason || "",
+      "備註": r.remarks || ""
+    };
+  });
+  var ws = XLSX.utils.json_to_sheet(rows);
+  ws["!cols"] = [{wch:16},{wch:12},{wch:10},{wch:12},{wch:30},{wch:8},{wch:10},{wch:10},{wch:12},{wch:20}];
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "訂單記錄");
+  var d = new Date();
+  function p2(n){ return (n < 10 ? "0" : "") + n; }
+  var fname = "BETTEREAT訂單記錄_" + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + ".xlsx";
+  XLSX.writeFile(wb, fname);
 }
 function splitRecordTime(t){
   t = (t == null ? "" : String(t)).trim();
@@ -473,7 +508,7 @@ function renderVerify(){
   var html = "";
   list.forEach(function(ln, i){
     var sub = (validPrice(parseFloat(ln.price)) && validQty(parseFloat(ln.qty))) ? fmtMoney(parseFloat(ln.price) * parseFloat(ln.qty)) : "—";
-    html += '<tr><td>' + esc(ln.name) + '（' + esc(ln.unit) + '）</td>' +
+    html += '<tr><td class="prodcol">' + esc(ln.name) + '（' + esc(ln.unit) + '）</td>' +
       '<td><input class="vprice" type="number" step="any" min="0" value="' + esc(ln.price == null ? "" : ln.price) + '" oninput="verifyLines[' + i + '].price=this.value;recomputeVerify()"></td>' +
       '<td><input class="vqty" type="number" step="1" min="1" value="' + esc(ln.qty) + '" oninput="verifyLines[' + i + '].qty=this.value;recomputeVerify()"></td>' +
       '<td id="vsub' + i + '">' + sub + '</td>' +
