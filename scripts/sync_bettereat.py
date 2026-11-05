@@ -14,6 +14,9 @@
 # its own snapshot, even if the data is identical to the previous day —
 # the archive is a daily record, not a change log.
 # Credentials from env: FEISHU_APP_ID / FEISHU_APP_SECRET (GitHub Secrets).
+# 2026-11-05: also dumps T1_產品主檔 to bettereat_products.json so the
+# order page product list tracks the Feishu master (a T1 fetch failure
+# never blocks the sold-data sync).
 import json, os, urllib.request
 from datetime import datetime, timezone, timedelta
 
@@ -22,6 +25,8 @@ APP_SECRET = os.environ.get("FEISHU_APP_SECRET", "")
 FEISHU = "https://open.feishu.cn"
 APP_TOKEN = "YvpCbgjTia7wqWsMjNhcPwL7nih"      # BETTEREAT - Dessert V1 base (BETTEREAT HONG KONG LIMITED)
 C_TABLE = "tblJuBUdRyqbL8Pq"                    # V1 C_每日分配及出貨記錄 (main table, 232 rows = 58 products x 4 stores)
+T1_TABLE = "tblueJrNjwgQk8nN"                   # V1 T1_產品主檔 (59 products, verified 2026-11-05)
+PRODUCTS_OUT = os.environ.get("PRODUCTS_PATH", "bettereat_products.json")
 OUT = os.environ.get("OUT_PATH", "bettereat_sold_data.json")
 HKT = timezone(timedelta(hours=8))
 BOGUS_KEYS = {"1970-01-01", ""}
@@ -56,11 +61,11 @@ def get_token():
         raise RuntimeError(f"token failed: {r.get('code')} {r.get('msg')}")
     return r["tenant_access_token"]
 
-def list_records(token):
+def list_records(token, table_id):
     # small pages + gzip + retries: long responses get cut by the egress proxy
     items, page = [], None
     while True:
-        url = f"{FEISHU}/open-apis/bitable/v1/apps/{APP_TOKEN}/tables/{C_TABLE}/records?page_size=50"
+        url = f"{FEISHU}/open-apis/bitable/v1/apps/{APP_TOKEN}/tables/{table_id}/records?page_size=50"
         if page:
             url += f"&page_token={page}"
         r = call("GET", url, token=token)
@@ -89,7 +94,7 @@ def _remaining(f):
 
 def fetch_current(token):
     rows = []
-    for it in list_records(token):
+    for it in list_records(token, C_TABLE):
         f = it.get("fields") or {}
         sold = num(f.get("已銷售"))
         if sold is None or sold <= 0:
@@ -109,6 +114,35 @@ def fetch_current(token):
     rows.sort(key=lambda r: (r["store"], r["product_code"]))
     return rows
 
+def fetch_products(token):
+    rows = []
+    for it in list_records(token, T1_TABLE):
+        f = it.get("fields") or {}
+        code = text_of(f.get("產品編號"))
+        if not code:
+            continue
+        pcs = num(f.get("No of pcs"))
+        if pcs is not None and pcs == int(pcs):
+            pcs = int(pcs)
+        price = num(f.get("標準售價"))
+        if price is not None and price == int(price):
+            price = int(price)
+        rows.append({
+            "product_code": code,
+            "product_name": text_of(f.get("產品名稱")),
+            "category": text_of(f.get("大類")),
+            "subcategory": text_of(f.get("類別")),
+            "cabinet": text_of(f.get("存放櫃")),
+            "unit": text_of(f.get("計量單位")),
+            "no_of_pcs": pcs,
+            "standard_price": price,
+            "sku": text_of(f.get("E365商品編號SKU")),
+            "status": text_of(f.get("狀態")),
+            "remarks": text_of(f.get("備註")),
+        })
+    rows.sort(key=lambda r: r["product_code"])
+    return rows
+
 def main():
     run_date = datetime.now(HKT).strftime("%Y-%m-%d")
     history = {}
@@ -119,7 +153,25 @@ def main():
                        if k not in BOGUS_KEYS}
         except Exception:
             history = {}
-    rows = fetch_current(get_token())
+    token = get_token()
+    try:
+        products = fetch_products(token)
+    except Exception as e:
+        print(f"T1 products fetch failed (sold sync continues): {e}")
+        products = []
+    if products:
+        pout = {
+            "source": "BETTEREAT-Feishu-Base-T1",
+            "generated_at": datetime.now(HKT).strftime("%Y-%m-%dT%H:%M:%S+08:00"),
+            "count": len(products),
+            "products": products,
+        }
+        with open(PRODUCTS_OUT, "w", encoding="utf-8") as fh:
+            json.dump(pout, fh, ensure_ascii=False, indent=2)
+        print(f"wrote {PRODUCTS_OUT}: count={len(products)}")
+    else:
+        print("no T1 products found; leaving existing products JSON untouched")
+    rows = fetch_current(token)
     if not rows:
         print("no sold records found; leaving existing JSON untouched")
         return
