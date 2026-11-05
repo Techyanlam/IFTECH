@@ -49,6 +49,11 @@
   .xbtn { padding: 10px 16px; font-size: 14px; border: 1px solid #c98a2d; color: #a06a14; background: #fdf8ef; border-radius: 10px; cursor: pointer; }
   .xbtn.primary { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border: none; font-weight: 700; }
   .xbtn.wa { color: #fff; background: #25d366; border: none; font-weight: 700; }
+  .rectable { width:100%; border-collapse:collapse; font-size:13px; background:#fff; }
+  .rectable th, .rectable td { border:1px solid #d8cbb6; padding:7px 9px; text-align:left; vertical-align:top; }
+  .rectable th { background:#f3e7cf; color:#6d6152; white-space:nowrap; }
+  .rectable tr:nth-child(even) td { background:#fdf8ef; }
+  .rectable .del { color:#b3402e; background:none; border:none; cursor:pointer; padding:0; font-size:13px; }
   .xbtn:disabled { opacity: .45; cursor: not-allowed; }
   .cartbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: rgba(43,38,32,.97); color: #fff; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .cartbar .info { font-size: 15px; font-weight: 700; }
@@ -134,9 +139,20 @@
       <button class="xbtn primary" id="coSubmit" style="padding:13px 22px;font-size:16px;">去飛書表單提交 →</button>
     </div>
     <div class="status" id="coStatus"></div>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">撳「去飛書表單提交」會開飛書表單，上面嘅取貨資料同產品已經自動填好，撳提交就入飛書訂單表，門店確認後會用連結收款。</div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">撳「去飛書表單提交」會開飛書表單，上面嘅取貨資料同產品已經自動填好，撳提交就入飛書訂單表，門店確認後會用連結收款；同時會喺下面「訂單記錄」記低一筆。</div>
   </div>
   <div class="foot">數據來源：BETTEREAT 飛書系統 · 餐牌以最近有銷售記錄嘅產品為準<br>產品相片陸續補上，現時未有相片嘅產品會顯示圖示。</div>
+  <h2 class="sec">訂單記錄</h2>
+  <div style="overflow-x:auto;">
+    <table class="rectable" id="recordsTable">
+      <thead><tr><th>記錄時間</th><th>取貨門店</th><th>顧客姓名</th><th>聯絡電話</th><th>取貨日期</th><th>取貨時間</th><th>訂單內容</th><th>備註</th><th></th></tr></thead>
+      <tbody id="recordsBody"></tbody>
+    </table>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
+    <button class="xbtn" onclick="clearRecords()">清空全部記錄</button>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">撳「去飛書表單提交」嗰下，呢張單會同時記低喺呢度。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；正式共用記錄繼續以飛書訂單表為準。如果顧客最後冇交表，請撳返嗰行嘅刪除。</div>
+  </div>
 </div>
 
 <div class="cartbar">
@@ -291,6 +307,58 @@ function scrollToCart(){
 function encPrefill(s){
   return encodeURIComponent(s).replace(/\(/g, "%28").replace(/\)/g, "%29");
 }
+var RECORDS_KEY = "bettereat_order_records";
+function loadRecords(){
+  try {
+    var raw = localStorage.getItem(RECORDS_KEY);
+    var arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) { return []; }
+}
+function saveRecords(arr){
+  try { localStorage.setItem(RECORDS_KEY, JSON.stringify(arr)); } catch (e) {}
+}
+function renderRecords(){
+  var arr = loadRecords();
+  var html = "";
+  if (!arr.length) {
+    html = '<tr><td colspan="9" style="color:#8a7f70;text-align:center;">暫時未有記錄</td></tr>';
+  } else {
+    arr.forEach(function(r, i){
+      html += '<tr><td style="white-space:nowrap;">' + esc(r.time) + '</td><td>' + esc(r.store) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.phone) + '</td><td style="white-space:nowrap;">' + esc(r.date) + '</td><td>' + esc(r.time2) + '</td><td>' + esc(r.items) + '</td><td>' + esc(r.remarks) + '</td><td><button class="del" onclick="deleteRecord(' + i + ')">刪除</button></td></tr>';
+    });
+  }
+  document.getElementById("recordsBody").innerHTML = html;
+}
+function saveCurrentOrderToRecords(){
+  var list = cartItems();
+  if (!list.length) return;
+  function v(id){ var el = document.getElementById(id); return el ? el.value.trim() : ""; }
+  var arr = loadRecords();
+  arr.unshift({
+    time: new Date().toLocaleString(),
+    store: v("coStore"),
+    name: v("coName"),
+    phone: v("coPhone"),
+    date: v("coDate"),
+    time2: v("coTime"),
+    items: list.map(function(it){ return it.name + " ×" + it.qty; }).join("；"),
+    remarks: v("coRemarks")
+  });
+  saveRecords(arr);
+  renderRecords();
+}
+function deleteRecord(i){
+  var arr = loadRecords();
+  arr.splice(i, 1);
+  saveRecords(arr);
+  renderRecords();
+}
+function clearRecords(){
+  if (!confirm("確定清空全部訂單記錄？")) return;
+  saveRecords([]);
+  renderRecords();
+}
 function goForm(){
   if (FORM_URL === "FORM_URL_PLACEHOLDER" || FORM_URL.indexOf("http") !== 0) return;
   var params = [];
@@ -312,6 +380,7 @@ function goForm(){
     params.push("prefill_" + encPrefill("訂單列表") + "=" + encPrefill(orderList));
     params.push("hide_" + encPrefill("訂單列表") + "=1");
   }
+  if (cartItems().length) saveCurrentOrderToRecords();
   window.open(FORM_URL + (params.length ? "?" + params.join("&") : ""), "_blank");
 }
 function setStatus(msg, ok){
@@ -327,6 +396,7 @@ document.getElementById("goFormBtn").onclick = goForm;
 document.getElementById("goFormBtnBar").onclick = goForm;
 document.getElementById("coSubmit").onclick = goForm;
 loadData();
+renderRecords();
 </script>
 </body>
 </html>
