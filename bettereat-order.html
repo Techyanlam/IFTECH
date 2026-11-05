@@ -31,6 +31,7 @@
   .card .body { padding: 10px 12px 12px; }
   .card .name { font-size: 15px; font-weight: 700; line-height: 1.4; min-height: 42px; }
   .card .sub { font-size: 12px; color: #8a7f70; margin-top: 2px; }
+  .card .price { font-size: 14px; font-weight: 700; color: #a06a14; margin-top: 4px; }
   .card .step { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
   .card .step .add { flex: 1; padding: 9px; font-size: 15px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border: none; border-radius: 10px; cursor: pointer; }
   .card .step .minus, .card .step .plus { width: 38px; height: 38px; font-size: 20px; font-weight: 700; color: #a06a14; background: #fdf8ef; border: 1px solid #c98a2d; border-radius: 10px; cursor: pointer; }
@@ -157,13 +158,13 @@
   </div>
   <div style="overflow-x:auto;">
     <table class="rectable" id="recordsTable">
-      <thead><tr><th>記錄時間</th><th>取貨門店</th><th>顧客姓名</th><th>聯絡電話</th><th>取貨日期</th><th>取貨時間</th><th>產品</th><th>數量</th><th>備註</th><th></th></tr></thead>
+      <thead><tr><th>訂單編號</th><th>記錄時間</th><th>取貨門店</th><th>顧客姓名</th><th>聯絡電話</th><th>取貨日期</th><th>取貨時間</th><th>產品</th><th>數量</th><th>備註</th><th></th></tr></thead>
       <tbody id="recordsBody"></tbody>
     </table>
   </div>
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
     <button class="xbtn" id="clearRecordsBtn" onclick="clearRecords()">清空全部記錄</button>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">撳「提交」嗰下，呢張單會記低喺呢度，一個產品一行。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示、獨立清空。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；提交後訂單唔會入飛書表，如需通知門店，可用上面「傳送給秘書」WhatsApp。每間店可以用自己嘅連結入嚟（網址後面加 ?shop=MJF／MAP／MKH／MMCP），一入嚟就自動揀好嗰間店。</div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">撳「提交」嗰下，呢張單會記低喺呢度，一個產品一行，同一次提交嘅各行會共用同一個訂單編號。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示、獨立清空。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；提交後訂單唔會入飛書表，如需通知門店，可用上面「傳送給秘書」WhatsApp。每間店可以用自己嘅連結入嚟（網址後面加 ?shop=MJF／MAP／MKH／MMCP），一入嚟就自動揀好嗰間店。</div>
   </div>
 </div>
 
@@ -193,7 +194,7 @@ function loadData(){
     var map = {};
     // T1 主檔優先：飛書 T1 改咗，下次同步呢度就跟住改
     if (pj && pj.products) pj.products.forEach(function(p){
-      if (p.product_code) map[p.product_code] = { code: p.product_code, name: p.product_name, unit: p.unit };
+      if (p.product_code) map[p.product_code] = { code: p.product_code, name: p.product_name, unit: p.unit, price: p.standard_price };
     });
     // 銷售記錄補齊：已售出但未入主檔嘅產品繼續顯示，唔會消失；主檔名／單位為空嗰陣用銷售記錄補返
     recs.forEach(function(r){
@@ -232,6 +233,7 @@ function renderGrid(){
       '<div class="imgwrap"><img src="images/products/' + esc(p.code) + '.jpg" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><div class="ph" style="display:none;">🍰</div></div>' +
       '<div class="body"><div class="name">' + esc(p.name) + '</div>' +
       '<div class="sub">' + esc(p.code) + ' · 單位：' + esc(p.unit) + '</div>' +
+      (p.price !== undefined && p.price !== null && p.price !== "" ? '<div class="price">標準售價：$' + esc(p.price) + '</div>' : '') +
       '<div class="step">' + step + '</div></div></div>';
   });
   document.getElementById("grid").innerHTML = html || '<div style="color:#8a7f70;padding:20px;">冇符合條件嘅產品</div>';
@@ -322,6 +324,19 @@ function scrollToCart(){
 }
 var RECORDS_KEY = "bettereat_order_records";
 var RECORDS_SHOP_KEY = "bettereat_records_shop";
+var ORDER_SEQ_KEY = "bettereat_order_seq";
+function nextOrderNo(){
+  var d = new Date();
+  var ymd = d.getFullYear() + ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
+  var seq = 1;
+  try {
+    var raw = localStorage.getItem(ORDER_SEQ_KEY);
+    var obj = raw ? JSON.parse(raw) : null;
+    if (obj && obj.date === ymd && obj.seq) seq = obj.seq + 1;
+    localStorage.setItem(ORDER_SEQ_KEY, JSON.stringify({ date: ymd, seq: seq }));
+  } catch (e) {}
+  return "B" + ymd + "-" + ("00" + seq).slice(-3);
+}
 function getRecordsShop(){
   try { return localStorage.getItem(RECORDS_SHOP_KEY) || ""; } catch (e) { return ""; }
 }
@@ -365,40 +380,41 @@ function renderRecords(){
   if (cnt) cnt.textContent = shop ? shop + "：共 " + pairs.length + " 行" : "全部店舖：共 " + pairs.length + " 行";
   var html = "";
   if (!pairs.length) {
-    html = '<tr><td colspan="10" style="color:#8a7f70;text-align:center;">' + (shop ? "呢間店暫時未有記錄" : "暫時未有記錄") + '</td></tr>';
+    html = '<tr><td colspan="11" style="color:#8a7f70;text-align:center;">' + (shop ? "呢間店暫時未有記錄" : "暫時未有記錄") + '</td></tr>';
   } else {
     pairs.forEach(function(p){
       var r = p.r;
       var prod = (r.product !== undefined) ? esc(r.product) : esc(r.items || "");
       var qty = (r.qty !== undefined) ? esc(r.qty) : "—";
-      html += '<tr><td style="white-space:nowrap;">' + esc(r.time) + '</td><td>' + esc(r.store) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.phone) + '</td><td style="white-space:nowrap;">' + esc(r.date) + '</td><td>' + esc(r.time2) + '</td><td>' + prod + '</td><td>' + qty + '</td><td>' + esc(r.remarks) + '</td><td><button class="del" onclick="deleteRecord(' + p.i + ')">刪除</button></td></tr>';
+      html += '<tr><td style="white-space:nowrap;">' + esc(r.order || "—") + '</td><td style="white-space:nowrap;">' + esc(r.time) + '</td><td>' + esc(r.store) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.phone) + '</td><td style="white-space:nowrap;">' + esc(r.date) + '</td><td>' + esc(r.time2) + '</td><td>' + prod + '</td><td>' + qty + '</td><td>' + esc(r.remarks) + '</td><td><button class="del" onclick="deleteRecord(' + p.i + ')">刪除</button></td></tr>';
     });
   }
   document.getElementById("recordsBody").innerHTML = html;
 }
 function saveCurrentOrderToRecords(){
   var list = cartItems();
-  if (!list.length) return 0;
+  if (!list.length) return { n: 0, orderNo: "" };
   function v(id){ var el = document.getElementById(id); return el ? el.value.trim() : ""; }
   var time = new Date().toLocaleString();
+  var orderNo = nextOrderNo();
   var meta = { time: time, store: v("coStore"), name: v("coName"), phone: v("coPhone"), date: v("coDate"), time2: v("coTime"), remarks: v("coRemarks") };
   var rows = list.map(function(it){
-    return { time: meta.time, store: meta.store, name: meta.name, phone: meta.phone, date: meta.date, time2: meta.time2, product: it.name, qty: it.qty, remarks: meta.remarks };
+    return { order: orderNo, time: meta.time, store: meta.store, name: meta.name, phone: meta.phone, date: meta.date, time2: meta.time2, product: it.name, qty: it.qty, remarks: meta.remarks };
   });
   saveRecords(rows.concat(loadRecords()));
   renderRecords();
-  return rows.length;
+  return { n: rows.length, orderNo: orderNo };
 }
 function submitOrderRecord(){
   if (!cartItems().length) { alert("請先揀產品"); return; }
   var shopEl = document.getElementById("coStore");
   var shop = shopEl ? shopEl.value.trim() : "";
-  var n = saveCurrentOrderToRecords();
+  var res = saveCurrentOrderToRecords();
   if (shop) setRecordsShop(shop);
   renderRecords();
   clearCart();
   var st = document.getElementById("recordsStatus");
-  if (st) { st.textContent = "已提交：新增 " + n + " 行記錄（一個產品一行）。"; st.className = "status ok"; }
+  if (st) { st.textContent = "已提交：新增 " + res.n + " 行記錄（一個產品一行），訂單編號：" + res.orderNo + "。"; st.className = "status ok"; }
   var sec = document.getElementById("recordsSection");
   if (sec && sec.scrollIntoView) sec.scrollIntoView();
 }
