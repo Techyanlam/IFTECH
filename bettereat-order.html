@@ -144,6 +144,17 @@
   <div class="foot">數據來源：BETTEREAT 飛書系統 · 餐牌以最近有銷售記錄嘅產品為準<br>產品相片陸續補上，現時未有相片嘅產品會顯示圖示。</div>
   <h2 class="sec" id="recordsSection">訂單記錄</h2>
   <div class="status" id="recordsStatus"></div>
+  <div style="display:flex;gap:8px;margin-top:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+    <label style="font-size:14px;color:#6d6152;">睇邊間店嘅記錄：</label>
+    <select id="recordsShopFilter" onchange="setRecordsShop(this.value);renderRecords()" style="padding:8px 10px;border:1px solid #d8cbb6;border-radius:8px;background:#fff;font-size:14px;">
+      <option value="">全部店舖</option>
+      <option value="謝斐 (MJF)">謝斐</option>
+      <option value="淘大 (MAP)">淘大</option>
+      <option value="Aeon (MKH)">Aeon</option>
+      <option value="將軍澳 (MMCP)">將軍澳</option>
+    </select>
+    <span id="recordsCount" style="font-size:13px;color:#8a7f70;"></span>
+  </div>
   <div style="overflow-x:auto;">
     <table class="rectable" id="recordsTable">
       <thead><tr><th>記錄時間</th><th>取貨門店</th><th>顧客姓名</th><th>聯絡電話</th><th>取貨日期</th><th>取貨時間</th><th>產品</th><th>數量</th><th>備註</th><th></th></tr></thead>
@@ -151,8 +162,8 @@
     </table>
   </div>
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
-    <button class="xbtn" onclick="clearRecords()">清空全部記錄</button>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">撳「提交」嗰下，呢張單會記低喺呢度，一個產品一行。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；提交後訂單唔會入飛書表，如需通知門店，可用上面「傳送給秘書」WhatsApp。</div>
+    <button class="xbtn" id="clearRecordsBtn" onclick="clearRecords()">清空全部記錄</button>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">撳「提交」嗰下，呢張單會記低喺呢度，一個產品一行。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示、獨立清空。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；提交後訂單唔會入飛書表，如需通知門店，可用上面「傳送給秘書」WhatsApp。每間店可以用自己嘅連結入嚟（網址後面加 ?shop=MJF／MAP／MKH／MMCP），一入嚟就自動揀好嗰間店。</div>
   </div>
 </div>
 
@@ -296,6 +307,27 @@ function scrollToCart(){
   document.getElementById("cartTitle").scrollIntoView();
 }
 var RECORDS_KEY = "bettereat_order_records";
+var RECORDS_SHOP_KEY = "bettereat_records_shop";
+function getRecordsShop(){
+  try { return localStorage.getItem(RECORDS_SHOP_KEY) || ""; } catch (e) { return ""; }
+}
+function setRecordsShop(v){
+  try { localStorage.setItem(RECORDS_SHOP_KEY, v); } catch (e) {}
+}
+function applyRecordsShopFromUrl(){
+  try {
+    var m = window.location.search.match(/[?&]shop=([^&]*)/);
+    var q = m ? decodeURIComponent(m[1].replace(/\+/g, " ")) : null;
+    if (!q) return;
+    var labels = ["謝斐 (MJF)", "淘大 (MAP)", "Aeon (MKH)", "將軍澳 (MMCP)"];
+    var map = { MJF: "謝斐 (MJF)", MAP: "淘大 (MAP)", MKH: "Aeon (MKH)", MMCP: "將軍澳 (MMCP)" };
+    var val = (labels.indexOf(q) >= 0) ? q : (map[q] || "");
+    if (!val) return;
+    setRecordsShop(val);
+    var cs = document.getElementById("coStore");
+    if (cs) cs.value = val;
+  } catch (e) {}
+}
 function loadRecords(){
   try {
     var raw = localStorage.getItem(RECORDS_KEY);
@@ -308,14 +340,24 @@ function saveRecords(arr){
 }
 function renderRecords(){
   var arr = loadRecords();
+  var shop = getRecordsShop();
+  var sel = document.getElementById("recordsShopFilter");
+  if (sel) sel.value = shop;
+  var btn = document.getElementById("clearRecordsBtn");
+  if (btn) btn.textContent = shop ? "清空「" + shop + "」記錄" : "清空全部記錄";
+  var pairs = arr.map(function(r, i){ return { r: r, i: i }; });
+  if (shop) pairs = pairs.filter(function(p){ return p.r.store === shop; });
+  var cnt = document.getElementById("recordsCount");
+  if (cnt) cnt.textContent = shop ? shop + "：共 " + pairs.length + " 行" : "全部店舖：共 " + pairs.length + " 行";
   var html = "";
-  if (!arr.length) {
-    html = '<tr><td colspan="10" style="color:#8a7f70;text-align:center;">暫時未有記錄</td></tr>';
+  if (!pairs.length) {
+    html = '<tr><td colspan="10" style="color:#8a7f70;text-align:center;">' + (shop ? "呢間店暫時未有記錄" : "暫時未有記錄") + '</td></tr>';
   } else {
-    arr.forEach(function(r, i){
+    pairs.forEach(function(p){
+      var r = p.r;
       var prod = (r.product !== undefined) ? esc(r.product) : esc(r.items || "");
       var qty = (r.qty !== undefined) ? esc(r.qty) : "—";
-      html += '<tr><td style="white-space:nowrap;">' + esc(r.time) + '</td><td>' + esc(r.store) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.phone) + '</td><td style="white-space:nowrap;">' + esc(r.date) + '</td><td>' + esc(r.time2) + '</td><td>' + prod + '</td><td>' + qty + '</td><td>' + esc(r.remarks) + '</td><td><button class="del" onclick="deleteRecord(' + i + ')">刪除</button></td></tr>';
+      html += '<tr><td style="white-space:nowrap;">' + esc(r.time) + '</td><td>' + esc(r.store) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.phone) + '</td><td style="white-space:nowrap;">' + esc(r.date) + '</td><td>' + esc(r.time2) + '</td><td>' + prod + '</td><td>' + qty + '</td><td>' + esc(r.remarks) + '</td><td><button class="del" onclick="deleteRecord(' + p.i + ')">刪除</button></td></tr>';
     });
   }
   document.getElementById("recordsBody").innerHTML = html;
@@ -335,7 +377,11 @@ function saveCurrentOrderToRecords(){
 }
 function submitOrderRecord(){
   if (!cartItems().length) { alert("請先揀產品"); return; }
+  var shopEl = document.getElementById("coStore");
+  var shop = shopEl ? shopEl.value.trim() : "";
   var n = saveCurrentOrderToRecords();
+  if (shop) setRecordsShop(shop);
+  renderRecords();
   clearCart();
   var st = document.getElementById("recordsStatus");
   if (st) { st.textContent = "已提交：新增 " + n + " 行記錄（一個產品一行）。"; st.className = "status ok"; }
@@ -349,8 +395,14 @@ function deleteRecord(i){
   renderRecords();
 }
 function clearRecords(){
-  if (!confirm("確定清空全部訂單記錄？")) return;
-  saveRecords([]);
+  var shop = getRecordsShop();
+  if (shop) {
+    if (!confirm("確定清空「" + shop + "」的記錄？其他店嘅記錄唔會受影響。")) return;
+    saveRecords(loadRecords().filter(function(r){ return r.store !== shop; }));
+  } else {
+    if (!confirm("確定清空全部店舖的記錄？")) return;
+    saveRecords([]);
+  }
   renderRecords();
 }
 function setStatus(msg, ok){
@@ -366,6 +418,7 @@ document.getElementById("goFormBtn").onclick = submitOrderRecord;
 document.getElementById("goFormBtnBar").onclick = submitOrderRecord;
 document.getElementById("coSubmit").onclick = submitOrderRecord;
 loadData();
+applyRecordsShopFromUrl();
 renderRecords();
 </script>
 </body>
