@@ -19,6 +19,6 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add bettereat_sold_data.json
+          git add bettereat_sold_data.json bettereat_products.json
           git diff --cached --quiet || git commit -m "BETTEREAT sold data sync"
           git push
