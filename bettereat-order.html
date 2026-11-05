@@ -82,7 +82,7 @@
   <div class="controls">
     <input type="text" id="searchInput" placeholder="搜尋產品名稱／編號">
   </div>
-  <div class="note">撳產品圖就加 1 件；已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢由店員確認後報價，收款沿用連結方式。揀好產品之後，填埋下面取貨資料，撳「去落單表單」，表單會自動填好，撳提交就入飛書訂單表。</div>
+  <div class="note">撳產品圖就加 1 件；已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢由店員確認後報價，收款沿用連結方式。揀好產品之後，填埋下面取貨資料，撳「提交」，下面「訂單記錄」就會生成記錄，一個產品一行。</div>
   <div class="grid" id="grid"></div>
 
   <h2 class="sec" id="cartTitle">🛒 已選訂單</h2>
@@ -90,7 +90,7 @@
     <textarea id="summaryBox" readonly placeholder="未揀任何產品"></textarea>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
       <button class="xbtn" id="copyBtn" onclick="copyOrder()">📋 複製訂單</button>
-      <button class="xbtn primary" id="goFormBtn">去落單表單 →</button>
+      <button class="xbtn primary" id="goFormBtn">提交</button>
       <button class="xbtn wa" onclick="sendToSecretary()">📤 傳送給秘書</button>
       <button class="xbtn" onclick="clearCart()">清空</button>
     </div>
@@ -136,22 +136,23 @@
       </div>
     </div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-      <button class="xbtn primary" id="coSubmit" style="padding:13px 22px;font-size:16px;">去飛書表單提交 →</button>
+      <button class="xbtn primary" id="coSubmit" style="padding:13px 22px;font-size:16px;">提交</button>
     </div>
     <div class="status" id="coStatus"></div>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">撳「去飛書表單提交」會開飛書表單，上面嘅取貨資料同產品已經自動填好，撳提交就入飛書訂單表，門店確認後會用連結收款；同時會喺下面「訂單記錄」記低一筆。</div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">撳「提交」會喺下面「訂單記錄」生成記錄，一個產品一行；提交後訂單只記喺呢個網站，唔會入飛書表。</div>
   </div>
   <div class="foot">數據來源：BETTEREAT 飛書系統 · 餐牌以最近有銷售記錄嘅產品為準<br>產品相片陸續補上，現時未有相片嘅產品會顯示圖示。</div>
-  <h2 class="sec">訂單記錄</h2>
+  <h2 class="sec" id="recordsSection">訂單記錄</h2>
+  <div class="status" id="recordsStatus"></div>
   <div style="overflow-x:auto;">
     <table class="rectable" id="recordsTable">
-      <thead><tr><th>記錄時間</th><th>取貨門店</th><th>顧客姓名</th><th>聯絡電話</th><th>取貨日期</th><th>取貨時間</th><th>訂單內容</th><th>備註</th><th></th></tr></thead>
+      <thead><tr><th>記錄時間</th><th>取貨門店</th><th>顧客姓名</th><th>聯絡電話</th><th>取貨日期</th><th>取貨時間</th><th>產品</th><th>數量</th><th>備註</th><th></th></tr></thead>
       <tbody id="recordsBody"></tbody>
     </table>
   </div>
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
     <button class="xbtn" onclick="clearRecords()">清空全部記錄</button>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">撳「去飛書表單提交」嗰下，呢張單會同時記低喺呢度。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；正式共用記錄繼續以飛書訂單表為準。如果顧客最後冇交表，請撳返嗰行嘅刪除。</div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">撳「提交」嗰下，呢張單會記低喺呢度，一個產品一行。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；提交後訂單唔會入飛書表，如需通知門店，可用上面「傳送給秘書」WhatsApp。</div>
   </div>
 </div>
 
@@ -160,13 +161,12 @@
   <div class="btns">
     <button class="clear" onclick="clearCart()">清空</button>
     <button class="copy" onclick="copyOrder()">📋 複製訂單</button>
-    <button class="go" id="goFormBtnBar">去落單表單 →</button>
+    <button class="go" id="goFormBtnBar">提交</button>
   </div>
 </div>
 
 <script>
 var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/BETTEREAT/main/bettereat_sold_data.json";
-var FORM_URL = "https://acnsnsu3kdns.feishu.cn/share/base/form/shrcnQcUkya8OoqEi9oPAyeCmgb";
 var SECRETARY_WHATSAPP = "";
 var products = [], cart = {}, searchText = "";
 
@@ -238,15 +238,6 @@ function updateCart(){
     : "未揀任何產品";
   document.getElementById("summaryBox").value = buildSummary();
   document.getElementById("secretaryListBox").value = buildSecretaryList();
-  var ready = FORM_URL !== "FORM_URL_PLACEHOLDER" && FORM_URL.indexOf("http") === 0;
-  var go1 = document.getElementById("goFormBtn"), go2 = document.getElementById("goFormBtnBar");
-  if (ready) {
-    go1.disabled = false; go1.textContent = "去落單表單 →";
-    go2.disabled = false; go2.textContent = "去落單表單 →";
-  } else {
-    go1.disabled = true; go1.textContent = "落單表單準備緊";
-    go2.disabled = true; go2.textContent = "落單表單準備緊";
-  }
   renderGrid();
 }
 function addItem(code){
@@ -271,7 +262,7 @@ function copyOrder(){
   if (navigator.clipboard && navigator.clipboard.writeText) {
     navigator.clipboard.writeText(text).catch(function(){});
   }
-  alert("訂單已複製，去落單表單貼上就得。");
+  alert("訂單已複製。");
 }
 function buildSecretaryList(){
   var list = cartItems();
@@ -304,9 +295,6 @@ function sendToSecretary(){
 function scrollToCart(){
   document.getElementById("cartTitle").scrollIntoView();
 }
-function encPrefill(s){
-  return encodeURIComponent(s).replace(/\(/g, "%28").replace(/\)/g, "%29");
-}
 var RECORDS_KEY = "bettereat_order_records";
 function loadRecords(){
   try {
@@ -322,31 +310,37 @@ function renderRecords(){
   var arr = loadRecords();
   var html = "";
   if (!arr.length) {
-    html = '<tr><td colspan="9" style="color:#8a7f70;text-align:center;">暫時未有記錄</td></tr>';
+    html = '<tr><td colspan="10" style="color:#8a7f70;text-align:center;">暫時未有記錄</td></tr>';
   } else {
     arr.forEach(function(r, i){
-      html += '<tr><td style="white-space:nowrap;">' + esc(r.time) + '</td><td>' + esc(r.store) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.phone) + '</td><td style="white-space:nowrap;">' + esc(r.date) + '</td><td>' + esc(r.time2) + '</td><td>' + esc(r.items) + '</td><td>' + esc(r.remarks) + '</td><td><button class="del" onclick="deleteRecord(' + i + ')">刪除</button></td></tr>';
+      var prod = (r.product !== undefined) ? esc(r.product) : esc(r.items || "");
+      var qty = (r.qty !== undefined) ? esc(r.qty) : "—";
+      html += '<tr><td style="white-space:nowrap;">' + esc(r.time) + '</td><td>' + esc(r.store) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.phone) + '</td><td style="white-space:nowrap;">' + esc(r.date) + '</td><td>' + esc(r.time2) + '</td><td>' + prod + '</td><td>' + qty + '</td><td>' + esc(r.remarks) + '</td><td><button class="del" onclick="deleteRecord(' + i + ')">刪除</button></td></tr>';
     });
   }
   document.getElementById("recordsBody").innerHTML = html;
 }
 function saveCurrentOrderToRecords(){
   var list = cartItems();
-  if (!list.length) return;
+  if (!list.length) return 0;
   function v(id){ var el = document.getElementById(id); return el ? el.value.trim() : ""; }
-  var arr = loadRecords();
-  arr.unshift({
-    time: new Date().toLocaleString(),
-    store: v("coStore"),
-    name: v("coName"),
-    phone: v("coPhone"),
-    date: v("coDate"),
-    time2: v("coTime"),
-    items: list.map(function(it){ return it.name + " ×" + it.qty; }).join("；"),
-    remarks: v("coRemarks")
+  var time = new Date().toLocaleString();
+  var meta = { time: time, store: v("coStore"), name: v("coName"), phone: v("coPhone"), date: v("coDate"), time2: v("coTime"), remarks: v("coRemarks") };
+  var rows = list.map(function(it){
+    return { time: meta.time, store: meta.store, name: meta.name, phone: meta.phone, date: meta.date, time2: meta.time2, product: it.name, qty: it.qty, remarks: meta.remarks };
   });
-  saveRecords(arr);
+  saveRecords(rows.concat(loadRecords()));
   renderRecords();
+  return rows.length;
+}
+function submitOrderRecord(){
+  if (!cartItems().length) { alert("請先揀產品"); return; }
+  var n = saveCurrentOrderToRecords();
+  clearCart();
+  var st = document.getElementById("recordsStatus");
+  if (st) { st.textContent = "已提交：新增 " + n + " 行記錄（一個產品一行）。"; st.className = "status ok"; }
+  var sec = document.getElementById("recordsSection");
+  if (sec && sec.scrollIntoView) sec.scrollIntoView();
 }
 function deleteRecord(i){
   var arr = loadRecords();
@@ -359,30 +353,6 @@ function clearRecords(){
   saveRecords([]);
   renderRecords();
 }
-function goForm(){
-  if (FORM_URL === "FORM_URL_PLACEHOLDER" || FORM_URL.indexOf("http") !== 0) return;
-  var params = [];
-  function add(q, v){
-    if (v !== undefined && v !== null && String(v).length > 0) params.push("prefill_" + encPrefill(q) + "=" + encPrefill(String(v)));
-  }
-  add("取貨門店", document.getElementById("coStore").value);
-  add("顧客姓名", document.getElementById("coName").value.trim());
-  add("聯絡電話", document.getElementById("coPhone").value.trim());
-  add("取貨日期", document.getElementById("coDate").value);
-  add("取貨時間", document.getElementById("coTime").value.trim());
-  cartItems().slice(0, 5).forEach(function(it, i){
-    add("產品" + (i + 1), it.name);
-    add("數量" + (i + 1), it.qty);
-  });
-  add("備註", document.getElementById("coRemarks").value.trim());
-  var orderList = buildSecretaryList();
-  if (orderList) {
-    params.push("prefill_" + encPrefill("訂單列表") + "=" + encPrefill(orderList));
-    params.push("hide_" + encPrefill("訂單列表") + "=1");
-  }
-  if (cartItems().length) saveCurrentOrderToRecords();
-  window.open(FORM_URL + (params.length ? "?" + params.join("&") : ""), "_blank");
-}
 function setStatus(msg, ok){
   var el = document.getElementById("coStatus");
   el.textContent = msg;
@@ -392,9 +362,9 @@ document.getElementById("searchInput").addEventListener("input", function(){
   searchText = this.value.trim().toLowerCase();
   renderGrid();
 });
-document.getElementById("goFormBtn").onclick = goForm;
-document.getElementById("goFormBtnBar").onclick = goForm;
-document.getElementById("coSubmit").onclick = goForm;
+document.getElementById("goFormBtn").onclick = submitOrderRecord;
+document.getElementById("goFormBtnBar").onclick = submitOrderRecord;
+document.getElementById("coSubmit").onclick = submitOrderRecord;
 loadData();
 renderRecords();
 </script>
