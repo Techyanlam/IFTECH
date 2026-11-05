@@ -97,22 +97,20 @@
   <div class="controls">
     <input type="text" id="searchInput" placeholder="搜尋產品名稱／編號">
   </div>
-  <div class="note">撳產品圖就加 1 件；已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢由店員確認後報價，收款沿用連結方式。揀好產品之後，填埋下面取貨資料，撳「提交」，下面「訂單記錄」就會生成記錄，一個產品一行。</div>
+  <div class="note">撳產品圖就加 1 件；已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。揀好產品之後，下面會直接出「核實金額」表，填埋取貨資料，確認之後「訂單記錄」就會生成記錄，一個產品一行。</div>
   <div class="grid" id="grid"></div>
 
   <h2 class="sec" id="cartTitle">🛒 已選訂單</h2>
   <div class="summary">
     <textarea id="summaryBox" readonly placeholder="未揀任何產品"></textarea>
     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-      <button class="xbtn" id="copyBtn" onclick="copyOrder()">📋 複製訂單</button>
       <button class="xbtn primary" id="goFormBtn">提交</button>
-      <button class="xbtn wa" onclick="sendToSecretary()">📤 傳送給秘書</button>
       <button class="xbtn" onclick="clearCart()">清空</button>
     </div>
     <div style="margin-top:12px;">
       <div style="font-size:13px;color:#6d6152;margin-bottom:4px;">給秘書嘅訂單列表（同飛書訂單欄位一樣）</div>
       <textarea id="secretaryListBox" readonly placeholder="未揀任何產品"></textarea>
-      <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">撳「傳送給秘書」會開 WhatsApp，呢張列表自動填好；未設定秘書號碼嗰陣會叫你揀聯絡人，揀返秘書傳送就得。落單嗰陣呢張列表亦會一齊寫入飛書訂單記錄。</div>
+      <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">呢張列表同飛書訂單欄位一樣，方便對照門店記錄。</div>
     </div>
   </div>
 
@@ -154,7 +152,7 @@
       <button class="xbtn primary" id="coSubmit" style="padding:13px 22px;font-size:16px;">提交</button>
     </div>
     <div class="status" id="coStatus"></div>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">撳「提交」會先彈出「核實金額」俾你對數，確認之後先喺下面「訂單記錄」生成記錄，一個產品一行；提交後訂單只記喺呢個網站，唔會入飛書表。</div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;margin-top:6px;">撳「提交」會再顯示下面「核實金額」表；揀好產品之後，核實表會直接出，確認之後先喺下面「訂單記錄」生成記錄，一個產品一行；提交後訂單只記喺呢個網站，唔會入飛書表。</div>
   </div>
   <div class="verify" id="verifySection" style="display:none;">
     <h2 class="sec" style="margin-top:0;">核實金額</h2>
@@ -197,7 +195,7 @@
   </div>
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
     <button class="xbtn" id="clearRecordsBtn" onclick="clearRecords()">清空全部記錄</button>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">撳「提交」嗰下，呢張單會記低喺呢度，一個產品一行，同一次提交嘅各行會共用同一個訂單編號。記錄可以撳「編輯」改單價、數量同原因；改動原有數字要揀原因（外觀不良／到期／其他）。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示、獨立清空。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；提交後訂單唔會入飛書表，如需通知門店，可用上面「傳送給秘書」WhatsApp。每間店可以用自己嘅連結入嚟（網址後面加 ?shop=MJF／MAP／MKH／MMCP），一入嚟就自動揀好嗰間店。</div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">確認提交嗰下，呢張單會記低喺呢度，一個產品一行，同一次提交嘅各行會共用同一個訂單編號。記錄可以撳「編輯」改單價、數量同原因；改動原有數字要揀原因（外觀不良／到期／其他）。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示、獨立清空。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；提交後訂單唔會入飛書表。每間店可以用自己嘅連結入嚟（網址後面加 ?shop=MJF／MAP／MKH／MMCP），一入嚟就自動揀好嗰間店。</div>
   </div>
 </div>
 
@@ -205,7 +203,6 @@
   <div class="info"><span id="cartInfo">未揀任何產品</span></div>
   <div class="btns">
     <button class="clear" onclick="clearCart()">清空</button>
-    <button class="copy" onclick="copyOrder()">📋 複製訂單</button>
     <button class="go" id="goFormBtnBar">提交</button>
   </div>
 </div>
@@ -213,7 +210,6 @@
 <script>
 var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_sold_data.json";
 var PRODUCTS_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_products.json";
-var SECRETARY_WHATSAPP = "";
 var products = [], cart = {}, searchText = "";
 
 function esc(s){ return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
@@ -299,6 +295,7 @@ function updateCart(){
   document.getElementById("summaryBox").value = buildSummary();
   document.getElementById("secretaryListBox").value = buildSecretaryList();
   renderGrid();
+  syncVerifyPanel();
 }
 function addItem(code){
   cart[code] = (cart[code] || 0) + 1;
@@ -312,17 +309,6 @@ function removeItem(code){
 function clearCart(){
   cart = {};
   updateCart();
-}
-function copyOrder(){
-  var text = buildSummary();
-  if (!text) { alert("未揀任何產品"); return; }
-  var box = document.getElementById("summaryBox");
-  box.select();
-  try { document.execCommand("copy"); } catch (e) {}
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(text).catch(function(){});
-  }
-  alert("訂單已複製。");
 }
 function buildSecretaryList(){
   var list = cartItems();
@@ -343,14 +329,6 @@ function buildSecretaryList(){
   var remarks = v("coRemarks");
   if (remarks) lines.push("備註：" + remarks);
   return lines.join("\n");
-}
-function sendToSecretary(){
-  var text = buildSecretaryList();
-  if (!text) { alert("請先揀產品"); return; }
-  var url = SECRETARY_WHATSAPP
-    ? "https://wa.me/" + SECRETARY_WHATSAPP + "?text=" + encodeURIComponent(text)
-    : "https://wa.me/?text=" + encodeURIComponent(text);
-  window.open(url, "_blank");
 }
 function scrollToCart(){
   document.getElementById("cartTitle").scrollIntoView();
@@ -492,10 +470,29 @@ var editingIndex = -1;
 var editDraft = null;
 function buildVerifyLines(){
   var items = cartItems();
+  var prev = {};
+  (verifyLines || []).forEach(function(ln){ prev[ln.code] = ln; });
   verifyOrig = items.map(function(it){ return { code: it.code, qty: it.qty }; });
   verifyLines = items.map(function(it){
-    return { code: it.code, name: it.name, unit: it.unit, qty: it.qty, qty0: it.qty, stdPrice: it.price, price: it.price, reason: "", reasonDetail: "" };
+    var old = prev[it.code];
+    var edited = old && old.price != null && old.price !== "" &&
+      (old.stdPrice == null || old.stdPrice === "" || parseFloat(old.price) !== parseFloat(old.stdPrice));
+    return { code: it.code, name: it.name, unit: it.unit, qty: it.qty, qty0: it.qty, stdPrice: it.price,
+      price: edited ? old.price : it.price,
+      reason: edited ? old.reason : "", reasonDetail: edited ? old.reasonDetail : "" };
   });
+}
+function syncVerifyPanel(){
+  var t = cartTotals();
+  var sec = document.getElementById("verifySection");
+  if (t.items <= 0) {
+    verifyLines = null; verifyOrig = null;
+    if (sec) sec.style.display = "none";
+    return;
+  }
+  buildVerifyLines();
+  renderVerify();
+  if (sec) sec.style.display = "block";
 }
 function renderVerify(){
   var list = verifyLines || [];
