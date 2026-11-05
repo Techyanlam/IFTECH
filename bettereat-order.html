@@ -189,7 +189,7 @@
   </div>
   <div style="overflow-x:auto;">
     <table class="rectable" id="recordsTable">
-      <thead><tr><th>訂單編號</th><th>記錄時間</th><th>取貨門店</th><th>顧客姓名</th><th>聯絡電話</th><th>取貨日期</th><th>取貨時間</th><th>產品</th><th>數量</th><th>單價</th><th>小計</th><th>訂單總金額</th><th>改價原因</th><th>備註</th><th></th></tr></thead>
+      <thead><tr><th>訂單編號</th><th>記錄日期</th><th>記錄時間</th><th>取貨門店</th><th>顧客姓名</th><th>聯絡電話</th><th>取貨日期</th><th>取貨時間</th><th>產品</th><th>數量</th><th>單價</th><th>總金額</th><th>改價原因</th><th>備註</th><th></th></tr></thead>
       <tbody id="recordsBody"></tbody>
     </table>
   </div>
@@ -412,21 +412,20 @@ function renderRecords(){
       var r = p.r;
       var prod = (r.product !== undefined) ? esc(r.product) : esc(r.items || "");
       var qty = (r.qty !== undefined) ? esc(r.qty) : "—";
+      var rt = splitRecordTime(r.time);
       if (p.i === editingIndex && editDraft) {
-        html += '<tr><td style="white-space:nowrap;">' + esc(r.order || "—") + '</td><td style="white-space:nowrap;">' + esc(r.time) + '</td><td>' + esc(r.store) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.phone) + '</td><td style="white-space:nowrap;">' + esc(r.date) + '</td><td>' + esc(r.time2) + '</td><td>' + prod + '</td>' +
+        html += '<tr><td style="white-space:nowrap;">' + esc(r.order || "—") + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.phone) + '</td><td style="white-space:nowrap;">' + esc(r.date) + '</td><td>' + esc(r.time2) + '</td><td>' + prod + '</td>' +
           '<td><input class="eqty" type="number" step="1" min="1" value="' + esc(editDraft.qty) + '" oninput="editDraft.qty=this.value;recomputeEditSub()"></td>' +
           '<td><input class="eprice" type="number" step="any" min="0" value="' + esc(editDraft.price) + '" oninput="editDraft.price=this.value;recomputeEditSub()"></td>' +
           '<td id="edsub">' + (r.subtotal != null ? fmtMoney(r.subtotal) : "—") + '</td>' +
-          '<td>' + (r.orderTotal != null ? fmtMoney(r.orderTotal) : "—") + '</td>' +
           '<td><select class="ereason" onchange="editDraft.reason=this.value;toggleEditDetail()">' + reasonOptions(editDraft.reason) + '</select>' +
           '<input class="ereasonDetail" id="eddetail" type="text" placeholder="其他原因說明（可空）" style="display:' + (editDraft.reason === '其他' ? 'block' : 'none') + ';margin-top:4px;" value="' + esc(editDraft.reasonDetail || '') + '" oninput="editDraft.reasonDetail=this.value"></td>' +
           '<td>' + esc(r.remarks) + '</td>' +
           '<td style="white-space:nowrap;"><button class="del" onclick="saveEditedRecord(' + p.i + ')">儲存</button> <button class="del" onclick="cancelEdit()">取消</button></td></tr>';
       } else {
-        html += '<tr><td style="white-space:nowrap;">' + esc(r.order || "—") + '</td><td style="white-space:nowrap;">' + esc(r.time) + '</td><td>' + esc(r.store) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.phone) + '</td><td style="white-space:nowrap;">' + esc(r.date) + '</td><td>' + esc(r.time2) + '</td><td>' + prod + '</td><td>' + qty + '</td>' +
+        html += '<tr><td style="white-space:nowrap;">' + esc(r.order || "—") + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td>' + esc(r.name) + '</td><td>' + esc(r.phone) + '</td><td style="white-space:nowrap;">' + esc(r.date) + '</td><td>' + esc(r.time2) + '</td><td>' + prod + '</td><td>' + qty + '</td>' +
           '<td>' + (r.price != null ? fmtMoney(r.price) : "—") + '</td>' +
           '<td>' + (r.subtotal != null ? fmtMoney(r.subtotal) : "—") + '</td>' +
-          '<td>' + (r.orderTotal != null ? fmtMoney(r.orderTotal) : "—") + '</td>' +
           '<td>' + (r.reason ? esc(r.reason) : "—") + '</td>' +
           '<td>' + esc(r.remarks) + '</td>' +
           '<td style="white-space:nowrap;"><button class="del" onclick="editRecord(' + p.i + ')">編輯</button> <button class="del" onclick="deleteRecord(' + p.i + ')">刪除</button></td></tr>';
@@ -434,6 +433,15 @@ function renderRecords(){
     });
   }
   document.getElementById("recordsBody").innerHTML = html;
+}
+function splitRecordTime(t){
+  t = (t == null ? "" : String(t)).trim();
+  if (!t) return { date: "—", time: "—" };
+  var m = t.match(/^(\d{4}[-\/]\d{1,2}[-\/]\d{1,2})[,\s]+(.+)$/);
+  if (m) return { date: m[1].replace(/\//g, "-"), time: m[2] };
+  var parts = t.split(/\s+/);
+  if (parts.length >= 2) return { date: parts[0].replace(/,$/, ""), time: parts.slice(1).join(" ") };
+  return { date: t, time: "—" };
 }
 function fmtMoney(n){
   var r = Math.round(n * 100) / 100;
@@ -553,7 +561,9 @@ function confirmVerifiedSubmit(){
   lines.forEach(function(l){ total += l.subtotal; });
   total = Math.round(total * 100) / 100;
   function v(id){ var el = document.getElementById(id); return el ? el.value.trim() : ""; }
-  var time = new Date().toLocaleString();
+  var _nd = new Date();
+  function _p2(n){ return (n < 10 ? "0" : "") + n; }
+  var time = _nd.getFullYear() + "-" + _p2(_nd.getMonth() + 1) + "-" + _p2(_nd.getDate()) + " " + _p2(_nd.getHours()) + ":" + _p2(_nd.getMinutes());
   var orderNo = nextOrderNo();
   var meta = { time: time, store: v("coStore"), name: v("coName"), phone: v("coPhone"), date: v("coDate"), time2: v("coTime"), remarks: v("coRemarks") };
   var rows = lines.map(function(l){
