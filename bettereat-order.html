@@ -12,7 +12,7 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f6f4ef; color: #2b2620; padding-bottom: 110px; }
-  .wrap { max-width: 1060px; margin: 0 auto; padding: 20px 16px 32px; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 16px 32px; }
   header.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 14px 0; background: rgba(246,244,239,.96); border-bottom: 1px solid #e8e0d2; }
   header.top .brand { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
   header.top .brand span { color: #c98a2d; }
@@ -27,6 +27,23 @@
   .shopbtn.active { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border-color: #b97a1e; font-weight: 700; }
   .rectable .prodcol { min-width: 160px; }
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .main { display: flex; gap: 16px; align-items: flex-start; }
+  .side { width: 300px; flex: 0 0 300px; position: sticky; top: 74px; background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(60,45,20,.06); }
+  .maincol { flex: 1; min-width: 0; }
+  .sideItem { border-bottom: 1px solid #efe8db; padding: 10px 0; }
+  .sideItem:last-child { border-bottom: none; }
+  .sideName { font-size: 14px; font-weight: 700; line-height: 1.4; }
+  .sideName span { font-weight: 400; color: #8a7f70; font-size: 12px; }
+  .sideRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+  .sidePrice { font-size: 13px; color: #a06a14; font-weight: 700; white-space: nowrap; }
+  .sideStep { display: flex; align-items: center; gap: 6px; }
+  .sideStep button { width: 30px; height: 30px; font-size: 18px; font-weight: 700; color: #a06a14; background: #fdf8ef; border: 1px solid #c98a2d; border-radius: 8px; cursor: pointer; }
+  .sideStep span { font-size: 15px; font-weight: 700; min-width: 22px; text-align: center; }
+  .sideSub { font-size: 14px; font-weight: 700; white-space: nowrap; }
+  .sideTotal { font-size: 19px; font-weight: 700; margin: 12px 0; padding-top: 12px; border-top: 2px solid #c98a2d; }
+  .sideBtns { display: flex; gap: 8px; }
+  .sideBtns .xbtn { flex: 1; }
+  .sideEmpty { color: #8a7f70; font-size: 14px; line-height: 1.7; padding: 8px 0; }
   .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(60,45,20,.06); cursor: pointer; border: 2px solid transparent; }
   .card.incart { border-color: #c98a2d; }
   .card .imgwrap { position: relative; width: 100%; padding-top: 72%; background: #faf7f1; overflow: hidden; }
@@ -84,8 +101,10 @@
   .cartbar .go { background: linear-gradient(135deg, #d99a35, #b97a1e); color: #fff; }
   .cartbar button:disabled { opacity: .45; cursor: not-allowed; }
   .foot { color: #a2937f; font-size: 12px; margin-top: 16px; text-align: center; line-height: 1.8; }
-  @media (max-width: 820px) { .grid { grid-template-columns: repeat(3, 1fr); } }
-  @media (max-width: 560px) { .grid { grid-template-columns: repeat(2, 1fr); } .cartbar { flex-wrap: wrap; } .checkout .fields { grid-template-columns: 1fr; } }
+  @media (max-width: 1180px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 860px) { .grid { grid-template-columns: repeat(2, 1fr); } .side { width: 260px; flex-basis: 260px; } }
+  @media (max-width: 640px) { .main { flex-direction: column; } .side { width: 100%; flex: none; position: static; } }
+  @media (max-width: 560px) { .cartbar { flex-wrap: wrap; } .checkout .fields { grid-template-columns: 1fr; } }
   .loginbox { max-width: 420px; margin: 60px auto 0; background: #fff; border-radius: 16px; padding: 28px 24px; box-shadow: 0 4px 20px rgba(60,45,20,.10); text-align: center; }
   .loginbox h1 { font-size: 22px; margin: 0 0 4px; }
   .loginbox .sub { color: #8a7f70; font-size: 14px; margin-bottom: 18px; }
@@ -146,19 +165,21 @@
     <input type="text" id="searchInput" placeholder="搜尋產品名稱／編號">
     <button class="xbtn primary" onclick="refreshPrices()">🔄 價格更新</button>
   </div>
-  <div class="note">撳產品圖就加 1 件；已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。如果飛書改咗價，撳上面「🔄 價格更新」就會即時讀取最新價錢，唔使重新載入成頁。訂單會記落你登入嗰間店；揀好產品之後，下面會直接出「核實金額」表，確認之後「訂單記錄」就會生成記錄，一個產品一行。</div>
-  <div class="grid" id="grid"></div>
+  <div class="note">撳產品圖就加 1 件；左邊「已選訂單」會即時見到揀咗咩同總金額。已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。如果飛書改咗價，撳上面「🔄 價格更新」就會即時讀取最新價錢，唔使重新載入成頁。訂單會記落你登入嗰間店；揀好產品之後，下面會直接出「核實金額」表，確認之後「訂單記錄」就會生成記錄，一個產品一行。</div>
+  <div class="main">
+    <aside class="side" id="cartPanel">
+      <h2 class="sec" id="cartTitle" style="margin-top:0;">🛒 已選訂單</h2>
+      <div id="cartList"></div>
+      <div class="sideTotal" id="cartTotal">總金額：$0</div>
+      <div class="sideBtns">
+        <button class="xbtn primary" id="goFormBtn">核實金額</button>
+        <button class="xbtn" onclick="clearCart()">清空</button>
+      </div>
+    </aside>
+    <div class="maincol">
+      <div class="grid" id="grid"></div>
 
-  <h2 class="sec" id="cartTitle">🛒 已選訂單</h2>
-  <div class="summary">
-    <textarea id="summaryBox" readonly placeholder="未揀任何產品"></textarea>
-    <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
-      <button class="xbtn primary" id="goFormBtn">提交</button>
-      <button class="xbtn" onclick="clearCart()">清空</button>
-    </div>
-  </div>
-
-  <div class="verify" id="verifySection" style="display:none;">
+      <div class="verify" id="verifySection" style="display:none;">
     <h2 class="sec" style="margin-top:0;">核實金額</h2>
     <div id="verifyMeta" style="font-size:13px;color:#6d6152;line-height:1.7;margin-bottom:10px;"></div>
     <div style="overflow-x:auto;">
@@ -201,6 +222,8 @@
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
     <button class="xbtn" id="clearRecordsBtn" onclick="clearRecords()">清空全部記錄</button>
     <div style="font-size:13px;color:#8a7f70;line-height:1.7;">確認提交嗰下，呢張單會記低喺呢度，一個產品一行，同一次提交嘅各行會共用同一個訂單編號，同時即刻傳送去飛書「銷售紀錄」表。記錄可以撳「編輯」改單價、數量同原因；改動原有數字要揀原因（外觀不良／到期／其他）。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示、獨立清空。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；傳送去飛書失敗嗰陣，記錄仍然會存喺呢部裝置。提交後再喺度改記錄，唔會同步去飛書。登入嗰陣揀邊間店，記錄就睇邊間店；管理員登入可以睇晒全部店。</div>
+  </div>
+    </div>
   </div>
 </div>
 
@@ -338,13 +361,40 @@ function buildSummary(){
   var lines = list.map(function(it){ items += it.qty; return it.code + " " + it.name + " x" + it.qty + "（" + it.unit + "）"; });
   return "BETTEREAT 訂購\n" + lines.join("\n") + "\n共 " + items + " 件";
 }
+function renderCartPanel(){
+  var list = cartItems();
+  var el = document.getElementById("cartList");
+  var totalEl = document.getElementById("cartTotal");
+  var goBtn = document.getElementById("goFormBtn");
+  if (!el) return;
+  if (!list.length) {
+    el.innerHTML = '<div class="sideEmpty">未揀任何產品<br><span>撳產品卡就加 1 件</span></div>';
+    if (totalEl) totalEl.textContent = "總金額：$0";
+    if (goBtn) goBtn.disabled = true;
+    return;
+  }
+  var total = 0, unpriced = false, html = "";
+  list.forEach(function(it){
+    var hasPrice = (typeof it.price === "number" && isFinite(it.price));
+    var sub = hasPrice ? Math.round(it.price * it.qty * 100) / 100 : null;
+    if (hasPrice) total += sub; else unpriced = true;
+    html += '<div class="sideItem">'
+      + '<div class="sideName">' + esc(it.name) + ' <span>' + esc(it.code) + '</span></div>'
+      + '<div class="sideRow"><span class="sidePrice">' + (hasPrice ? fmtMoney(it.price) + (it.unit ? "/" + esc(it.unit) : "") : "未定價") + '</span>'
+      + '<span class="sideStep"><button onclick="event.stopPropagation();removeItem(\'' + esc(it.code) + '\')">−</button><span>' + it.qty + '</span><button onclick="event.stopPropagation();addItem(\'' + esc(it.code) + '\')">＋</button></span>'
+      + '<span class="sideSub">' + (sub == null ? "—" : fmtMoney(sub)) + '</span></div></div>';
+  });
+  el.innerHTML = html;
+  if (totalEl) totalEl.textContent = "總金額：" + fmtMoney(total) + (unpriced ? "（有未定價產品）" : "");
+  if (goBtn) goBtn.disabled = false;
+}
 function updateCart(){
   var t = cartTotals();
   document.getElementById("cartCountTop").textContent = t.items;
   document.getElementById("cartInfo").innerHTML = t.items > 0
     ? "已選 " + t.items + " 件 · " + t.kinds + " 款 <small>（撳卡加 1 件，＋／− 改數量）</small>"
     : "未揀任何產品";
-  document.getElementById("summaryBox").value = buildSummary();
+  renderCartPanel();
   renderGrid();
   syncVerifyPanel();
 }
