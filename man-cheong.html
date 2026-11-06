@@ -605,6 +605,13 @@
           '<h1 class="page-title">收貨</h1>' +
           '<p class="page-sub">影低包裝相、核對產品同數量，確認先入庫存；同一批貨可以逐項加，每項可拆去多個倉位。</p>' +
           '<div class="card">' +
+          '<h3 style="margin-top:0">飛書待收貨單</h3>' +
+          '<div class="small">撳下面個掣，即刻由飛書供應商發票表攞未做收貨嘅單；揀其中一張，就會將貨品同數量填入下面收貨卡片，你核對完、揀好入倉位置，先撳「確認收貨」入庫存。</div>' +
+          '<div class="btn-row"><button type="button" class="btn primary" id="btnFetchFs">由飛書攞最新單</button></div>' +
+          '<div class="small mt8" id="fsStatus"></div>' +
+          '<div id="fsList"></div>' +
+          "</div>" +
+          '<div class="card">' +
           '<label class="flabel">包裝相片</label>' +
           '<input type="file" id="rcvPhoto" accept="image/*" class="input" />' +
           '<div class="photo-preview" id="rcvPhotoPreview"><img alt="收貨相片預覽" /></div>' +
@@ -665,6 +672,161 @@
           }
         });
         document.getElementById("btnSaveReceive").addEventListener("click", saveReceive);
+        /* ---- 飛書待收貨單：即時向同步 Worker 攞未做收貨嘅單 ---- */
+        var feishuInvoices = [];
+        function fsSetStatus(msg) {
+          var el = document.getElementById("fsStatus");
+          if (el) el.textContent = msg || "";
+        }
+        function fsPick(raw) {
+          for (var i = 1; i < arguments.length; i++) {
+            var v = raw[arguments[i]];
+            if (v != null && String(v).trim() !== "") return v;
+          }
+          return null;
+        }
+        function fsNormInvoice(raw) {
+          if (!raw || typeof raw !== "object") return null;
+          var itemsRaw = raw.items || raw.lines || raw.products || [];
+          var items = [];
+          if (Array.isArray(itemsRaw)) {
+            itemsRaw.forEach(function (it) {
+              if (it == null) return;
+              if (typeof it === "string") { items.push({ part: it, qty: null }); return; }
+              var part = it.part != null ? it.part : (it.partNumber != null ? it.partNumber : (it.name != null ? it.name : (it.productName != null ? it.productName : "")));
+              var qv = it.qty != null ? it.qty : (it.quantity != null ? it.quantity : null);
+              var qn = qv != null && qv !== "" ? parseFloat(qv) : null;
+              items.push({ part: String(part == null ? "" : part).trim(), qty: (qn == null || isNaN(qn)) ? null : qn });
+            });
+          }
+          var dateVal = fsPick(raw, "delivery_date", "deliveryDate", "date", "送貨日期");
+          var dateTxt = "";
+          if (dateVal != null) {
+            if (typeof dateVal === "number" && dateVal > 100000000000) {
+              var d = new Date(dateVal);
+              dateTxt = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+            } else dateTxt = String(dateVal);
+          }
+          return {
+            recordId: fsPick(raw, "record_id", "recordId", "id"),
+            docNo: fsPick(raw, "doc_no", "docNo", "doc_number", "docNumber", "number", "單據編號"),
+            supplier: fsPick(raw, "supplier", "vendor", "供應商"),
+            invoiceNo: fsPick(raw, "invoice_no", "invoiceNo", "invoice_number", "invoiceNumber", "發票編號"),
+            deliveryDate: dateTxt,
+            items: items
+          };
+        }
+        function fsRenderList() {
+          var wrap = document.getElementById("fsList");
+          if (!wrap) return;
+          if (!feishuInvoices.length) { wrap.innerHTML = ""; return; }
+          wrap.innerHTML = '<div class="picker-results">' + feishuInvoices.map(function (inv, i) {
+            var meta = [
+              inv.supplier ? "供應商：" + inv.supplier : "",
+              inv.invoiceNo ? "發票：" + inv.invoiceNo : "",
+              inv.deliveryDate ? "送貨：" + inv.deliveryDate : "",
+              "共 " + inv.items.length + " 項貨"
+            ].filter(Boolean).join(" · ");
+            return '<button type="button" class="picker-item" data-fs="' + i + '">' +
+              '<span class="pname">' + esc(inv.docNo || inv.recordId || ("飛書單 " + (i + 1))) + "</span>" +
+              '<span class="pmeta"> ' + esc(meta) + "</span></button>";
+          }).join("") + "</div>";
+        }
+        function fsApplyInvoice(inv) {
+          var wrap = document.getElementById("rcvItems");
+          wrap.innerHTML = receiveItemHtml(0);
+          receivePickers = [attachPicker("rcv0")];
+          itemCount = 1;
+          if (inv.supplier) document.getElementById("rcvSupplier").value = inv.supplier;
+          var matched = 0, unmatched = 0;
+          inv.items.forEach(function (it, i) {
+            if (i > 0) document.getElementById("btnAddItem").click();
+            var cards = view.querySelectorAll("[data-item]");
+            var card = cards[cards.length - 1];
+            if (!card) return;
+            var idx = parseInt(card.getAttribute("data-item"), 10);
+            var pid = it.part ? matchProduct({ partNumber: it.part, productName: it.part }) : null;
+            var note = document.createElement("div");
+            note.className = "picker-note";
+            if (pid && receivePickers[idx]) {
+              receivePickers[idx].setId(pid);
+              matched++;
+              note.textContent = "飛書單項目：" + it.part + (it.qty != null ? " × " + it.qty : "") + "（已配對到主檔）";
+            } else {
+              unmatched++;
+              var search = document.getElementById("rcv" + idx + "Search");
+              if (search && it.part) search.value = it.part;
+              note.textContent = "飛書單項目：" + it.part + (it.qty != null ? " × " + it.qty : "") + " — 未配對到主檔產品，請喺上面搜尋框手動揀返產品。";
+              note.style.color = "var(--warn)";
+              note.style.fontWeight = "700";
+            }
+            var head = card.querySelector(".item-head");
+            if (head) head.parentNode.insertBefore(note, head.nextSibling);
+            if (it.qty != null) {
+              card.querySelector(".label-qty").value = it.qty;
+              var aq = card.querySelector(".alloc-qty");
+              if (aq) aq.value = it.qty;
+            }
+          });
+          var tag = inv.docNo ? "「" + inv.docNo + "」" : "";
+          if (!inv.items.length) setNotice("呢張飛書單" + tag + "冇貨品項目，未有嘢填入。", "warn");
+          else if (unmatched) setNotice("已將飛書單" + tag + "填入下面：配對到 " + matched + " 項，" + unmatched + " 項未配對到，要手動揀產品。請逐項揀入倉位置，核對後撳「確認收貨」。", "warn");
+          else setNotice("已將飛書單" + tag + "填入下面，共 " + matched + " 項。請逐項揀入倉位置，核對後撳「確認收貨」。", "ok");
+        }
+        document.getElementById("fsList").addEventListener("click", function (e) {
+          var b = e.target.closest("[data-fs]");
+          if (!b) return;
+          var inv = feishuInvoices[parseInt(b.getAttribute("data-fs"), 10)];
+          if (inv) fsApplyInvoice(inv);
+        });
+        document.getElementById("btnFetchFs").addEventListener("click", function () {
+          var btn = document.getElementById("btnFetchFs");
+          btn.disabled = true;
+          fsSetStatus("正在由飛書攞最新待收貨單…");
+          var controller = null, timeoutId = null, timedOut = false;
+          var opts = { method: "GET" };
+          if (window.AbortController) {
+            controller = new AbortController();
+            opts.signal = controller.signal;
+            timeoutId = setTimeout(function () { timedOut = true; try { controller.abort(); } catch (e) {} }, 60000);
+          }
+          function fail(msg) { fsSetStatus(msg); setNotice(msg, "err"); }
+          fetch("https://man-cheong-feishu-sync.yan-lam.workers.dev/invoices", opts).then(function (resp) {
+            return resp.json().catch(function () { return null; }).then(function (data) {
+              return { ok: resp.ok, status: resp.status, data: data };
+            });
+          }).then(function (r) {
+            if (timeoutId) clearTimeout(timeoutId);
+            btn.disabled = false;
+            var data = r.data;
+            var errMsg = null;
+            if (data && typeof data === "object" && !Array.isArray(data) && data.error) errMsg = String(data.error);
+            if (errMsg || !r.ok) {
+              var raw = errMsg || ("伺服器回覆 " + r.status);
+              if (/未設定|未配置|憑證|credential|not configured|app_id|app_secret|appId|appSecret/i.test(raw)) {
+                fail("飛書憑證未設定，暫時攞唔到待收貨單。請聯絡管理員喺同步 Worker 設定飛書 App 憑證後再試。");
+              } else {
+                fail("攞唔到飛書待收貨單（" + raw + "）。請檢查網絡後再撳一次。");
+              }
+              return;
+            }
+            var list = null;
+            if (Array.isArray(data)) list = data;
+            else if (data && Array.isArray(data.invoices)) list = data.invoices;
+            else if (data && Array.isArray(data.data)) list = data.data;
+            else if (data && Array.isArray(data.records)) list = data.records;
+            if (!list) { fail("攞唔到飛書待收貨單：同步服務回覆格式唔啱。請聯絡管理員檢查 Worker。"); return; }
+            feishuInvoices = list.map(fsNormInvoice).filter(Boolean);
+            fsRenderList();
+            if (!feishuInvoices.length) fsSetStatus("飛書暫時冇未做收貨嘅單。");
+            else fsSetStatus("攞到 " + feishuInvoices.length + " 張未做收貨嘅單，撳其中一張就會將貨品同數量填入下面收貨卡片。");
+          }).catch(function (err) {
+            if (timeoutId) clearTimeout(timeoutId);
+            btn.disabled = false;
+            if (timedOut || (err && err.name === "AbortError")) fail("攞飛書單逾時（等咗 60 秒都冇回覆）。請檢查網絡後再撳一次。");
+            else fail("攞唔到飛書待收貨單：連唔到同步服務。請檢查網絡後再撳一次。");
+          });
+        });
       }
       function ocrBaseUrl() {
         // 識別工具（程式、核心、英文字型＋繁體中文字型）全部內置喺 assets/ocr/，
