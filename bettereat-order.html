@@ -95,6 +95,14 @@
   .loginerr { color: #b3402e; font-size: 14px; min-height: 20px; margin-bottom: 8px; }
   .loginbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #fff8ea; border: 1px solid #ecd9ac; border-radius: 10px; padding: 8px 12px; margin: 14px 0; font-size: 14px; }
   .loginbar .who { font-weight: 700; }
+  .pwmodal { position: fixed; inset: 0; z-index: 50; background: rgba(43,38,32,.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .pwbox { background: #fff; border-radius: 16px; padding: 24px; width: 100%; max-width: 380px; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+  .pwbox h3 { font-size: 18px; margin-bottom: 4px; }
+  .pwbox .sub { color: #8a7f70; font-size: 13px; margin-bottom: 6px; line-height: 1.6; }
+  .pwbox label { display: block; font-size: 13px; color: #6d6152; margin: 12px 0 4px; text-align: left; }
+  .pwbox input[type="password"], .pwbox select { width: 100%; padding: 11px; font-size: 16px; border: 1px solid #d8cfc0; border-radius: 10px; background: #fff; }
+  .pwbox .pwerr { color: #b3402e; font-size: 14px; min-height: 20px; margin: 10px 0 4px; }
+  .pwbox .pwok { color: #3f6b3e; font-size: 14px; font-weight: 700; min-height: 20px; margin: 10px 0 4px; }
 </style>
 </head>
 <body>
@@ -115,7 +123,10 @@
 <div class="wrap" id="mainWrap" style="display:none;">
   <header class="top">
     <div class="brand">🍰 BETTEREAT <span>訂購</span></div>
-    <button class="cartbtn" onclick="scrollToCart()">🛒 已選 <span id="cartCountTop">0</span> 件</button>
+    <div style="display:flex;gap:8px;">
+      <button class="cartbtn" onclick="openChangePw()">🔑 改密碼</button>
+      <button class="cartbtn" onclick="scrollToCart()">🛒 已選 <span id="cartCountTop">0</span> 件</button>
+    </div>
   </header>
 
   <div class="loginbar" id="loginBar" style="display:none;"><span class="who" id="loginWho"></span><button class="xbtn" onclick="logout()">登出</button></div>
@@ -198,6 +209,35 @@
   <div class="btns">
     <button class="clear" onclick="clearCart()">清空</button>
     <button class="go" id="goFormBtnBar">提交</button>
+  </div>
+</div>
+
+<div class="pwmodal" id="pwDialog" style="display:none;">
+  <div class="pwbox">
+    <h3>改密碼</h3>
+    <div class="sub" id="pwTarget">更改你間店嘅密碼。</div>
+    <div id="pwShopRow" style="display:none;">
+      <label>改邊間店／管理員：</label>
+      <select id="pwShopSelect">
+        <option value="謝斐 (MJF)">謝斐 (MJF)</option>
+        <option value="淘大 (MAP)">淘大 (MAP)</option>
+        <option value="Aeon (MKH)">Aeon (MKH)</option>
+        <option value="將軍澳 (MMCP)">將軍澳 (MMCP)</option>
+        <option value="ADMIN">管理員</option>
+      </select>
+    </div>
+    <label>現有密碼：</label>
+    <input type="password" id="pwOld" autocomplete="off">
+    <label>新密碼（4–32 字，唔可以有空格）：</label>
+    <input type="password" id="pwNew" autocomplete="off">
+    <label>確認新密碼：</label>
+    <input type="password" id="pwNew2" autocomplete="off" onkeydown="if(event.key==='Enter')submitChangePw()">
+    <div class="pwerr" id="pwMsg"></div>
+    <div style="display:flex;gap:8px;margin-top:6px;">
+      <button class="xbtn primary" id="pwSaveBtn" style="flex:1;padding:12px;" onclick="submitChangePw()">儲存新密碼</button>
+      <button class="xbtn" id="pwCancelBtn" style="padding:12px;" onclick="closeChangePw()">取消</button>
+    </div>
+    <div style="font-size:12px;color:#8a7f70;margin-top:10px;line-height:1.6;">新密碼大約 1 分鐘後喺全部裝置生效；如果即刻用新密碼登入話唔啱，等一陣再試。</div>
   </div>
 </div>
 
@@ -406,6 +446,43 @@ function selectLoginShop(code){
   var err = document.getElementById("loginErr");
   if (err) err.textContent = "";
 }
+// 經 Worker 核對密碼（KV 優先）。回 "ok" / "wrong" / "unavailable"（連唔到／Worker 未就緒）。
+// 連唔到嗰陣回 unavailable，頁面會跌返去用寫死喺頁面嘅預設密碼核對。
+function verifyPwRemote(role, label, pw, timeoutMs){
+  return new Promise(function(resolve){
+    var done = false;
+    var timer = setTimeout(function(){ if (!done) { done = true; resolve("unavailable"); } }, timeoutMs || 8000);
+    var ctrl = null;
+    try { ctrl = new AbortController(); } catch (e) { ctrl = null; }
+    var opts = { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "verify", role: role, shop: label, password: pw }) };
+    if (ctrl) opts.signal = ctrl.signal;
+    fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
+      if (done) return; done = true; clearTimeout(timer);
+      if (j && j.ok) resolve("ok");
+      else if (j && j.error === "wrong_password") resolve("wrong");
+      else resolve("unavailable");
+    }).catch(function(){
+      if (done) return; done = true; clearTimeout(timer);
+      resolve("unavailable");
+    });
+  });
+}
+function localLogin(role, label, pw){
+  var err = document.getElementById("loginErr");
+  var pwEl = document.getElementById("loginPw");
+  function fail(msg){ if (err) err.textContent = msg; if (pwEl) pwEl.value = ""; }
+  if (role === "admin") {
+    if (pw !== ADMIN_PASSWORD) { fail("密碼唔啱，請再試。"); return; }
+    try { localStorage.setItem(LOGIN_KEY, JSON.stringify({ role: "admin" })); } catch (e) {}
+    unlockPage();
+    return;
+  }
+  var code = SHOP_CODES[label];
+  if (pw !== SHOP_PASSWORDS[code]) { fail("密碼唔啱，請再試。"); return; }
+  try { localStorage.setItem(LOGIN_KEY, JSON.stringify({ role: "shop", shop: label })); } catch (e) {}
+  unlockPage();
+}
 function doLogin(){
   var pwEl = document.getElementById("loginPw");
   var pw = pwEl ? pwEl.value : "";
@@ -413,16 +490,36 @@ function doLogin(){
   function fail(msg){ if (err) err.textContent = msg; if (pwEl) pwEl.value = ""; }
   if (!loginShopChoice) { fail("請先揀邊間店（或者管理員）。"); return; }
   if (!pw) { fail("請輸入密碼。"); return; }
-  if (loginShopChoice === "ADMIN") {
-    if (pw !== ADMIN_PASSWORD) { fail("密碼唔啱，請再試。"); return; }
-    try { localStorage.setItem(LOGIN_KEY, JSON.stringify({ role: "admin" })); } catch (e) {}
-    unlockPage();
-    return;
+  var role = loginShopChoice === "ADMIN" ? "admin" : "shop";
+  var label = role === "admin" ? null : SHOP_LABELS.filter(function(s){ return SHOP_CODES[s] === loginShopChoice; })[0];
+  if (err) err.textContent = "登入緊…";
+  // 啱啱改完密碼嗰陣，Worker 嗰邊 KV 同步可能要幾秒：如果新密碼驗證話唔啱，重試幾次先至當真係錯。
+  var justChanged = null;
+  try { justChanged = sessionStorage.getItem("bettereat_pw_just_changed"); } catch (e) {}
+  var tries = 0;
+  function attempt(){
+    verifyPwRemote(role, label, pw, 8000).then(function(res){
+      if (res === "ok") {
+        try { sessionStorage.removeItem("bettereat_pw_just_changed"); } catch (e) {}
+        if (role === "admin") {
+          try { localStorage.setItem(LOGIN_KEY, JSON.stringify({ role: "admin" })); } catch (e) {}
+        } else {
+          try { localStorage.setItem(LOGIN_KEY, JSON.stringify({ role: "shop", shop: label })); } catch (e) {}
+        }
+        unlockPage();
+      } else if (res === "wrong") {
+        if (justChanged && pw === justChanged && tries < 3) {
+          tries++;
+          setTimeout(attempt, tries === 1 ? 2000 : 4000);
+        } else {
+          fail("密碼唔啱，請再試。");
+        }
+      } else {
+        localLogin(role, label, pw);
+      }
+    });
   }
-  if (pw !== SHOP_PASSWORDS[loginShopChoice]) { fail("密碼唔啱，請再試。"); return; }
-  var label = SHOP_LABELS.filter(function(s){ return SHOP_CODES[s] === loginShopChoice; })[0];
-  try { localStorage.setItem(LOGIN_KEY, JSON.stringify({ role: "shop", shop: label })); } catch (e) {}
-  unlockPage();
+  attempt();
 }
 function unlockPage(){
   var s = getLoginSession();
@@ -471,6 +568,88 @@ function logout(){
   });
   updateCart();
   showLogin();
+}
+// ===== 改密碼（經 Worker 寫入 KV，全店即時生效；改完唔使登出） =====
+function openChangePw(){
+  var s = getLoginSession();
+  if (!s) return;
+  var dlg = document.getElementById("pwDialog");
+  if (!dlg) return;
+  var target = document.getElementById("pwTarget");
+  var row = document.getElementById("pwShopRow");
+  var sel = document.getElementById("pwShopSelect");
+  if (s.role === "admin") {
+    if (target) target.textContent = "管理員可以改任何一間店或者管理員本身嘅密碼。";
+    if (row) row.style.display = "block";
+    if (sel) sel.value = "謝斐 (MJF)";
+  } else {
+    if (target) target.textContent = "更改「" + s.shop + "」嘅密碼。";
+    if (row) row.style.display = "none";
+  }
+  ["pwOld", "pwNew", "pwNew2"].forEach(function(id){ var e = document.getElementById(id); if (e) e.value = ""; });
+  var msg = document.getElementById("pwMsg");
+  if (msg) { msg.textContent = ""; msg.className = "pwerr"; }
+  var saveBtn = document.getElementById("pwSaveBtn");
+  if (saveBtn) saveBtn.style.display = "";
+  var cancelBtn = document.getElementById("pwCancelBtn");
+  if (cancelBtn) cancelBtn.textContent = "取消";
+  dlg.style.display = "flex";
+}
+function closeChangePw(){
+  var dlg = document.getElementById("pwDialog");
+  if (dlg) dlg.style.display = "none";
+}
+function submitChangePw(){
+  var s = getLoginSession();
+  if (!s) { closeChangePw(); return; }
+  var msg = document.getElementById("pwMsg");
+  function fail(m){ if (msg) { msg.className = "pwerr"; msg.textContent = m; } }
+  var oldPw = (document.getElementById("pwOld") || {}).value || "";
+  var np = (document.getElementById("pwNew") || {}).value || "";
+  var np2 = (document.getElementById("pwNew2") || {}).value || "";
+  var role = s.role;
+  var label = null;
+  if (role === "admin") {
+    var sel = document.getElementById("pwShopSelect");
+    var v = sel ? sel.value : "";
+    if (v === "ADMIN") { role = "admin"; label = null; }
+    else if (SHOP_LABELS.indexOf(v) >= 0) { role = "shop"; label = v; }
+    else { fail("請揀邊間店。"); return; }
+  } else {
+    label = s.shop;
+  }
+  if (!oldPw) { fail("請輸入現有密碼。"); return; }
+  if (np.length < 4 || np.length > 32 || /\s/.test(np)) { fail("新密碼要 4–32 字，唔可以有空格。"); return; }
+  if (np !== np2) { fail("兩次輸入嘅新密碼唔一樣。"); return; }
+  if (msg) { msg.className = "pwerr"; msg.textContent = "更改緊…"; }
+  var ctrl = null, timer = null;
+  try { ctrl = new AbortController(); timer = setTimeout(function(){ try { ctrl.abort(); } catch (e) {} }, 15000); } catch (e) {}
+  var opts = { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: "change", role: role, shop: label, oldPassword: oldPw, newPassword: np }) };
+  if (ctrl) opts.signal = ctrl.signal;
+  fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
+    if (timer) clearTimeout(timer);
+    if (j && j.ok) {
+      try { sessionStorage.setItem("bettereat_pw_just_changed", np); } catch (e) {}
+      ["pwOld", "pwNew", "pwNew2"].forEach(function(id){ var e = document.getElementById(id); if (e) e.value = ""; });
+      if (msg) { msg.className = "pwok"; msg.textContent = "✓ 已更改密碼，新密碼大約 1 分鐘後喺全部裝置生效。"; }
+      var saveBtn = document.getElementById("pwSaveBtn");
+      if (saveBtn) saveBtn.style.display = "none";
+      var cancelBtn = document.getElementById("pwCancelBtn");
+      if (cancelBtn) cancelBtn.textContent = "完成";
+    } else if (j && j.error === "wrong_password") {
+      fail("現有密碼唔啱，請再試。");
+    } else if (j && j.error === "invalid_new") {
+      fail("新密碼要 4–32 字，唔可以有空格。");
+    } else if (j && j.error === "same_password") {
+      fail("新密碼同現有密碼一樣。");
+    } else {
+      fail("暫時改唔到（連唔到伺服器），密碼未改，稍後再試。");
+    }
+  }).catch(function(){
+    if (timer) clearTimeout(timer);
+    fail("暫時改唔到（連唔到伺服器），密碼未改，稍後再試。");
+  });
 }
 function loadRecords(){
   try {
