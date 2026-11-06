@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BETTEREAT 訂單記錄</title>
+<meta name="theme-color" content="#c98a2d">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="BETTEREAT 訂單記錄">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f6f4ef; color: #2b2620; padding-bottom: 110px; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 16px 32px; }
+  header.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; row-gap: 8px; padding: 14px 0; background: rgba(246,244,239,.96); border-bottom: 1px solid #e8e0d2; }
+  header.top .brand { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
+  header.top .brand span { color: #c98a2d; }
+  header.top .cartbtn { font-size: 14px; color: #a06a14; border: 1px solid #c98a2d; background: #fdf8ef; padding: 6px 14px; border-radius: 20px; cursor: pointer; }
+  header.top .shopbtns { margin-bottom: 0; }
+  header.top .shopbtn { padding: 6px 14px; font-size: 14px; }
+  .meta { color: #8a7f70; font-size: 13px; margin: 14px 0; line-height: 1.6; }
+  h2.sec { font-size: 16px; margin: 22px 0 10px; padding-left: 10px; border-left: 4px solid #c98a2d; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+  .controls input[type="text"] { flex: 1; min-width: 200px; padding: 9px 12px; font-size: 15px; border: 1px solid #d8cfc0; border-radius: 10px; background: #fff; }
+  .note { background: #fdf8ef; border: 1px solid #e6d3ac; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #6d6152; margin-bottom: 14px; line-height: 1.7; }
+  .shopbtns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+  .shopbtn { padding: 10px 20px; font-size: 15px; border: 1px solid #d8cbb6; color: #6d6152; background: #fff; border-radius: 999px; cursor: pointer; }
+  .shopbtn.active { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border-color: #b97a1e; font-weight: 700; }
+  .rectable .prodcol { min-width: 160px; }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .main { display: flex; gap: 16px; align-items: flex-start; }
+  .side { width: 300px; flex: 0 0 300px; position: sticky; top: 74px; background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(60,45,20,.06); }
+  .maincol { flex: 1; min-width: 0; }
+  .sideItem { border-bottom: 1px solid #efe8db; padding: 10px 0; }
+  .sideItem:last-child { border-bottom: none; }
+  .sideName { font-size: 14px; font-weight: 700; line-height: 1.4; }
+  .sideName span { font-weight: 400; color: #8a7f70; font-size: 12px; }
+  .sideRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
+  .sidePrice { font-size: 13px; color: #a06a14; font-weight: 700; white-space: nowrap; }
+  .sideStep { display: flex; align-items: center; gap: 6px; }
+  .sideStep button { width: 30px; height: 30px; font-size: 18px; font-weight: 700; color: #a06a14; background: #fdf8ef; border: 1px solid #c98a2d; border-radius: 8px; cursor: pointer; }
+  .sideStep span { font-size: 15px; font-weight: 700; min-width: 22px; text-align: center; }
+  .sideSub { font-size: 14px; font-weight: 700; white-space: nowrap; }
+  .sideTotal { font-size: 19px; font-weight: 700; margin: 12px 0; padding-top: 12px; border-top: 2px solid #c98a2d; }
+  .sideBtns { display: flex; gap: 8px; }
+  .sideBtns .xbtn { flex: 1; }
+  .sideEmpty { color: #8a7f70; font-size: 14px; line-height: 1.7; padding: 8px 0; }
+  .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(60,45,20,.06); cursor: pointer; border: 2px solid transparent; }
+  .card.incart { border-color: #c98a2d; }
+  .card .imgwrap { position: relative; width: 100%; padding-top: 72%; background: #faf7f1; overflow: hidden; }
+  .card .imgwrap img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
+  .card .imgwrap .ph { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 52px; }
+  .card .body { padding: 10px 12px 12px; }
+  .card .name { font-size: 15px; font-weight: 700; line-height: 1.4; min-height: 42px; }
+  .card .sub { font-size: 12px; color: #8a7f70; margin-top: 2px; }
+  .card .price { font-size: 14px; font-weight: 700; color: #a06a14; margin-top: 4px; }
+  .card .step { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
+  .card .step .add { flex: 1; padding: 9px; font-size: 15px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border: none; border-radius: 10px; cursor: pointer; }
+  .card .step .minus, .card .step .plus { width: 38px; height: 38px; font-size: 20px; font-weight: 700; color: #a06a14; background: #fdf8ef; border: 1px solid #c98a2d; border-radius: 10px; cursor: pointer; }
+  .card .step .qty { font-size: 17px; font-weight: 700; min-width: 28px; text-align: center; }
+  .summary { background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 2px 10px rgba(60,45,20,.06); }
+  .summary textarea { width: 100%; min-height: 120px; padding: 10px; font-size: 14px; line-height: 1.7; border: 1px solid #d8cfc0; border-radius: 10px; background: #fdfbf7; resize: vertical; }
+  .checkout { background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 2px 10px rgba(60,45,20,.06); margin-top: 14px; }
+  .checkout .fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .checkout label { font-size: 13px; color: #6d6152; display: block; margin-bottom: 2px; }
+  .checkout input, .checkout select, .checkout textarea { width: 100%; padding: 10px; font-size: 15px; border: 1px solid #d8cfc0; border-radius: 10px; background: #fff; }
+  .checkout textarea { min-height: 64px; resize: vertical; }
+  .checkout .full { grid-column: 1 / -1; }
+  .checkout .status { font-size: 14px; line-height: 1.7; min-height: 24px; margin-top: 10px; }
+  .checkout .status.ok { color: #3f6b3e; font-weight: 700; }
+  .checkout .status.err { color: #c0392b; }
+  .xbtn { padding: 10px 16px; font-size: 14px; border: 1px solid #c98a2d; color: #a06a14; background: #fdf8ef; border-radius: 10px; cursor: pointer; }
+  .xbtn.primary { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border: none; font-weight: 700; }
+  .xbtn.wa { color: #fff; background: #25d366; border: none; font-weight: 700; }
+  .rectable { width:100%; border-collapse:collapse; font-size:13px; background:#fff; }
+  .rectable th, .rectable td { border:1px solid #d8cbb6; padding:7px 9px; text-align:left; vertical-align:top; }
+  .rectable th { background:#f3e7cf; color:#6d6152; white-space:nowrap; }
+  .rectable tr:nth-child(even) td { background:#fdf8ef; }
+  .rectable .del { color:#b3402e; background:none; border:none; cursor:pointer; padding:0; font-size:13px; }
+  .xbtn:disabled { opacity: .45; cursor: not-allowed; }
+  .verify { background:#fff; border-radius:14px; padding:14px; box-shadow:0 2px 10px rgba(60,45,20,.06); margin-top:14px; }
+  .verify .vtotal { font-size:18px; font-weight:700; margin:12px 0 4px; }
+  .verify input[type="number"], .verify input[type="text"] { padding:8px; font-size:14px; border:1px solid #d8cfc0; border-radius:8px; background:#fff; }
+  .verify .vprice { width:86px; }
+  .verify .vqty { width:64px; }
+  .verify .vreason { width:150px; }
+  .verify .vreasonDetail { width:150px; }
+  .verify select.vreason { padding:8px; font-size:14px; border:1px solid #d8cfc0; border-radius:8px; background:#fff; }
+  .rectable select.ereason { padding:6px; font-size:13px; border:1px solid #d8cfc0; border-radius:6px; background:#fff; }
+  .rectable .ereasonDetail { width:120px; }
+  .rectable input[type="number"], .rectable input[type="text"] { padding:6px; font-size:13px; border:1px solid #d8cfc0; border-radius:6px; background:#fff; }
+  .rectable .eprice { width:76px; }
+  .rectable .eqty { width:56px; }
+  .rectable .ereason { width:120px; }
+  .cartbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: rgba(43,38,32,.97); color: #fff; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+  .cartbar .info { font-size: 15px; font-weight: 700; }
+  .cartbar .info small { font-weight: 400; opacity: .75; }
+  .cartbar .btns { display: flex; gap: 8px; }
+  .cartbar button { padding: 10px 16px; font-size: 14px; font-weight: 700; border-radius: 10px; border: none; cursor: pointer; }
+  .cartbar .clear { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.4); }
+  .cartbar .copy { background: #fff; color: #2b2620; }
+  .cartbar .go { background: linear-gradient(135deg, #d99a35, #b97a1e); color: #fff; }
+  .cartbar button:disabled { opacity: .45; cursor: not-allowed; }
+  .foot { color: #a2937f; font-size: 12px; margin-top: 16px; text-align: center; line-height: 1.8; }
+  @media (max-width: 1180px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 860px) { .grid { grid-template-columns: repeat(2, 1fr); } .side { width: 260px; flex-basis: 260px; top: 112px; } }
+  @media (max-width: 640px) { .main { flex-direction: column; } .side { width: 100%; flex: none; position: static; } }
+  @media (max-width: 560px) { .cartbar { flex-wrap: wrap; } .checkout .fields { grid-template-columns: 1fr; } }
+  .loginbox { max-width: 420px; margin: 60px auto 0; background: #fff; border-radius: 16px; padding: 28px 24px; box-shadow: 0 4px 20px rgba(60,45,20,.10); text-align: center; }
+  .loginbox h1 { font-size: 22px; margin: 0 0 4px; }
+  .loginbox .sub { color: #8a7f70; font-size: 14px; margin-bottom: 18px; }
+  .loginshop { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 14px; }
+  .loginshop .shopbtn { font-size: 15px; padding: 10px 16px; }
+  .loginbox input[type="password"] { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #d8cfc0; border-radius: 10px; margin-bottom: 12px; background: #fff; }
+  .loginerr { color: #b3402e; font-size: 14px; min-height: 20px; margin-bottom: 8px; }
+  .loginbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #fff8ea; border: 1px solid #ecd9ac; border-radius: 10px; padding: 8px 12px; margin: 14px 0; font-size: 14px; }
+  .loginbar .who { font-weight: 700; }
+  .pwmodal { position: fixed; inset: 0; z-index: 50; background: rgba(43,38,32,.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .pwbox { background: #fff; border-radius: 16px; padding: 24px; width: 100%; max-width: 380px; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
+  .pwbox h3 { font-size: 18px; margin-bottom: 4px; }
+  .pwbox .sub { color: #8a7f70; font-size: 13px; margin-bottom: 6px; line-height: 1.6; }
+  .pwbox label { display: block; font-size: 13px; color: #6d6152; margin: 12px 0 4px; text-align: left; }
+  .pwbox input[type="password"], .pwbox select { width: 100%; padding: 11px; font-size: 16px; border: 1px solid #d8cfc0; border-radius: 10px; background: #fff; }
+  .pwbox .pwerr { color: #b3402e; font-size: 14px; min-height: 20px; margin: 10px 0 4px; }
+  .pwbox .pwok { color: #3f6b3e; font-size: 14px; font-weight: 700; min-height: 20px; margin: 10px 0 4px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">🍰 BETTEREAT <span>訂單記錄</span></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button class="cartbtn" onclick="location.href='bettereat-order.html'">← 返訂購頁</button>
+      <button class="cartbtn" id="homeBtn" style="display:none;" onclick="location.href='https://iftech.dpdns.org/bettereat.html'">🏠 主頁</button>
+      <button class="cartbtn" onclick="logout()">登出</button>
+    </div>
+  </header>
+
+  <div class="loginbar" id="loginBar" style="display:none;"><span class="who" id="loginWho"></span></div>
+
+  <h2 class="sec" id="recordsSection">訂單記錄</h2>
+  <div class="status" id="recordsStatus"></div>
+  <div style="display:flex;gap:8px;margin-top:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
+    <label style="font-size:14px;color:#6d6152;">睇邊間店嘅記錄：</label>
+    <select id="recordsShopFilter" onchange="setRecordsShop(this.value);renderRecords()" style="padding:8px 10px;border:1px solid #d8cbb6;border-radius:8px;background:#fff;font-size:14px;">
+      <option value="">全部店舖</option>
+      <option value="謝斐 (MJF)">謝斐</option>
+      <option value="淘大 (MAP)">淘大</option>
+      <option value="Aeon (MKH)">Aeon</option>
+      <option value="將軍澳 (MMCP)">將軍澳</option>
+    </select>
+    <label style="font-size:14px;color:#6d6152;">記錄日期：</label>
+    <input type="date" id="recordsDateFilter" onchange="setRecordsDate(this.value);renderRecords()" style="padding:8px 10px;border:1px solid #d8cbb6;border-radius:8px;background:#fff;font-size:14px;">
+    <button class="xbtn" onclick="clearRecordsDate()">清除日期</button>
+    <button class="xbtn" id="exportBtn" onclick="exportRecords()">匯出 Excel</button>
+    <span id="recordsCount" style="font-size:13px;color:#8a7f70;"></span>
+  </div>
+  <div style="overflow-x:auto;">
+    <table class="rectable" id="recordsTable">
+      <thead><tr><th>訂單編號</th><th>記錄日期</th><th>記錄時間</th><th>取貨門店</th><th class="prodcol">產品</th><th>數量</th><th>單價</th><th>總金額</th><th>改價原因</th><th>備註</th><th></th></tr></thead>
+      <tbody id="recordsBody"></tbody>
+    </table>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
+    <button class="xbtn" id="clearRecordsBtn" onclick="clearRecords()">清空全部記錄</button>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">記錄係喺訂購頁確認提交嗰陣生成，一個產品一行，同一次提交嘅各行會共用同一個訂單編號，同時即刻傳送去飛書「銷售紀錄」表。喺呢頁可以撳「編輯」改單價、數量同原因，或者撳「刪除」刪走一行；改動會即刻同步去飛書「銷售紀錄」，如果同步失敗，記錄仍然會存喺呢部裝置，下次再改同一行會再試同步。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示、獨立清空。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；「清空」只會清呢部裝置嘅記錄，唔會刪除飛書嘅數據。登入嗰陣揀邊間店，記錄就睇邊間店；管理員登入可以睇晒全部店。</div>
+  </div>
+  <div class="foot">數據來源：BETTEREAT 飛書系統 · 餐牌以飛書產品主檔為準</div>
+</div>
+<script>
+// ===== 訂單記錄頁：由 bettereat-order.html 抽出嚟嘅記錄功能（登入、產品、購物車、核實、提交流程唔喺呢頁） =====
+var LOGIN_KEY = "bettereat_order_login";
+function esc(s){ return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+var RECORDS_KEY = "bettereat_order_records";
+var RECORDS_SHOP_KEY = "bettereat_records_shop";
+function getRecordsShop(){
+  try { return localStorage.getItem(RECORDS_SHOP_KEY) || ""; } catch (e) { return ""; }
+}
+function setRecordsShop(v){
+  try { localStorage.setItem(RECORDS_SHOP_KEY, v); } catch (e) {}
+}
+var recordsDateFilter = "";
+var lastShownPairs = [];
+function setRecordsDate(v){ recordsDateFilter = v || ""; }
+function clearRecordsDate(){
+  recordsDateFilter = "";
+  var el = document.getElementById("recordsDateFilter");
+  if (el) el.value = "";
+  renderRecords();
+}
+function applyRecordsShopFromUrl(){
+  try {
+    var m = window.location.search.match(/[?&]shop=([^&]*)/);
+    var q = m ? decodeURIComponent(m[1].replace(/\+/g, " ")) : null;
+    var labels = ["謝斐 (MJF)", "淘大 (MAP)", "Aeon (MKH)", "將軍澳 (MMCP)"];
+    var map = { MJF: "謝斐 (MJF)", MAP: "淘大 (MAP)", MKH: "Aeon (MKH)", MMCP: "將軍澳 (MMCP)" };
+    var val = "";
+    if (q) val = (labels.indexOf(q) >= 0) ? q : (map[q] || "");
+    if (!val) val = getRecordsShop();
+    if (!val || labels.indexOf(val) < 0) return;
+    setRecordsShop(val);
+  } catch (e) {}
+}
+var SHOP_LABELS = ["謝斐 (MJF)", "淘大 (MAP)", "Aeon (MKH)", "將軍澳 (MMCP)"];
+var SHOP_CODES = { "謝斐 (MJF)": "MJF", "淘大 (MAP)": "MAP", "Aeon (MKH)": "MKH", "將軍澳 (MMCP)": "MMCP" };
+// 呢頁冇揀店掣（店舖由登入決定，篩選用上面嘅下拉選單），renderRecords() 會叫呢個函數，所以留一個空殼。
+function syncShopButtons(){}
+function getLoginSession(){
+  try {
+    var raw = localStorage.getItem(LOGIN_KEY);
+    if (!raw) return null;
+    var s = JSON.parse(raw);
+    if (s && s.role === "admin") return s;
+    if (s && s.role === "shop" && SHOP_LABELS.indexOf(s.shop) >= 0) return s;
+    return null;
+  } catch (e) { return null; }
+}
+function loadRecords(){
+  try {
+    var raw = localStorage.getItem(RECORDS_KEY);
+    var arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) { return []; }
+}
+function saveRecords(arr){
+  try { localStorage.setItem(RECORDS_KEY, JSON.stringify(arr)); } catch (e) {}
+}
+function renderRecords(){
+  var arr = loadRecords();
+  var shop = getRecordsShop();
+  var sel = document.getElementById("recordsShopFilter");
+  if (sel) sel.value = shop;
+  syncShopButtons();
+  var dateEl = document.getElementById("recordsDateFilter");
+  if (dateEl) dateEl.value = recordsDateFilter;
+  var btn = document.getElementById("clearRecordsBtn");
+  if (btn) btn.textContent = shop ? "清空「" + shop + "」記錄" : "清空全部記錄";
+  var pairs = arr.map(function(r, i){ return { r: r, i: i }; });
+  if (shop) pairs = pairs.filter(function(p){ return p.r.store === shop; });
+  if (recordsDateFilter) pairs = pairs.filter(function(p){ return splitRecordTime(p.r.time).date === recordsDateFilter; });
+  lastShownPairs = pairs;
+  var cnt = document.getElementById("recordsCount");
+  if (cnt) cnt.textContent = (shop ? shop : "全部店舖") + (recordsDateFilter ? "｜" + recordsDateFilter : "") + "：共 " + pairs.length + " 行";
+  var exBtn = document.getElementById("exportBtn");
+  if (exBtn) exBtn.disabled = !pairs.length;
+  var html = "";
+  if (!pairs.length) {
+    var emptyMsg = "暫時未有記錄";
+    if (shop && recordsDateFilter) emptyMsg = "呢間店呢個日期暫時未有記錄";
+    else if (shop) emptyMsg = "呢間店暫時未有記錄";
+    else if (recordsDateFilter) emptyMsg = "呢個日期暫時未有記錄";
+    html = '<tr><td colspan="11" style="color:#8a7f70;text-align:center;">' + emptyMsg + '</td></tr>';
+  } else {
+    pairs.forEach(function(p){
+      var r = p.r;
+      var prod = (r.product !== undefined) ? esc(r.product) : esc(r.items || "");
+      var qty = (r.qty !== undefined) ? esc(r.qty) : "—";
+      var rt = splitRecordTime(r.time);
+      if (p.i === editingIndex && editDraft) {
+        html += '<tr><td style="white-space:nowrap;">' + esc(r.order || "—") + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td class="prodcol">' + prod + '</td>' +
+          '<td><input class="eqty" type="number" step="1" min="1" value="' + esc(editDraft.qty) + '" oninput="editDraft.qty=this.value;recomputeEditSub()"></td>' +
+          '<td><input class="eprice" type="number" step="any" min="0" value="' + esc(editDraft.price) + '" oninput="editDraft.price=this.value;recomputeEditSub()"></td>' +
+          '<td id="edsub">' + (r.subtotal != null ? fmtMoney(r.subtotal) : "—") + '</td>' +
+          '<td><select class="ereason" onchange="editDraft.reason=this.value;toggleEditDetail()">' + reasonOptions(editDraft.reason) + '</select>' +
+          '<input class="ereasonDetail" id="eddetail" type="text" placeholder="其他原因說明（可空）" style="display:' + (editDraft.reason === '其他' ? 'block' : 'none') + ';margin-top:4px;" value="' + esc(editDraft.reasonDetail || '') + '" oninput="editDraft.reasonDetail=this.value"></td>' +
+          '<td>' + esc(r.remarks) + '</td>' +
+          '<td style="white-space:nowrap;"><button class="del" onclick="saveEditedRecord(' + p.i + ')">儲存</button> <button class="del" onclick="cancelEdit()">取消</button></td></tr>';
+      } else {
+        html += '<tr><td style="white-space:nowrap;">' + esc(r.order || "—") + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td class="prodcol">' + prod + '</td><td>' + qty + '</td>' +
+          '<td>' + (r.price != null ? fmtMoney(r.price) : "—") + '</td>' +
+          '<td>' + (r.subtotal != null ? fmtMoney(r.subtotal) : "—") + '</td>' +
+          '<td>' + (r.reason ? esc(r.reason) : "—") + '</td>' +
+          '<td>' + esc(r.remarks) + '</td>' +
+          '<td style="white-space:nowrap;"><button class="del" onclick="editRecord(' + p.i + ')">編輯</button> <button class="del" onclick="deleteRecord(' + p.i + ')">刪除</button></td></tr>';
+      }
+    });
+  }
+  document.getElementById("recordsBody").innerHTML = html;
+}
+function exportRecords(){
+  if (typeof XLSX === "undefined") { alert("匯出功能載入唔到，請檢查網絡後重新整理再試。"); return; }
+  var pairs = lastShownPairs || [];
+  if (!pairs.length) { alert("暫時未有記錄可以匯出。"); return; }
+  var rows = pairs.map(function(p){
+    var r = p.r, rt = splitRecordTime(r.time);
+    return {
+      "訂單編號": r.order || "",
+      "記錄日期": rt.date === "—" ? "" : rt.date,
+      "記錄時間": rt.time === "—" ? "" : rt.time,
+      "取貨門店": r.store || "",
+      "產品": (r.product !== undefined) ? r.product : (r.items || ""),
+      "數量": (r.qty !== undefined && r.qty !== null && r.qty !== "") ? Number(r.qty) : "",
+      "單價": (r.price != null && r.price !== "") ? Number(r.price) : "",
+      "總金額": (r.subtotal != null && r.subtotal !== "") ? Number(r.subtotal) : "",
+      "改價原因": r.reason || "",
+      "備註": r.remarks || ""
+    };
+  });
+  var ws = XLSX.utils.json_to_sheet(rows);
+  ws["!cols"] = [{wch:16},{wch:12},{wch:10},{wch:12},{wch:30},{wch:8},{wch:10},{wch:10},{wch:12},{wch:20}];
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "訂單記錄");
+  var d = new Date();
+  function p2(n){ return (n < 10 ? "0" : "") + n; }
+  var fname = "BETTEREAT訂單記錄_" + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + ".xlsx";
+  XLSX.writeFile(wb, fname);
+}
+function splitRecordTime(t){
+  t = (t == null ? "" : String(t)).trim();
+  if (!t) return { date: "—", time: "—" };
+  var m = t.match(/^(\d{4})[-\/](\d{1,2})[-\/](\d{1,2})[,\s]+(.+)$/);
+  if (m) {
+    var p2 = function(n){ n = String(n); return n.length < 2 ? "0" + n : n; };
+    return { date: m[1] + "-" + p2(m[2]) + "-" + p2(m[3]), time: m[4] };
+  }
+  var parts = t.split(/\s+/);
+  if (parts.length >= 2) return { date: parts[0].replace(/,$/, ""), time: parts.slice(1).join(" ") };
+  return { date: t, time: "—" };
+}
+function fmtMoney(n){
+  var r = Math.round(n * 100) / 100;
+  return "$" + (r % 1 === 0 ? r : String(r));
+}
+function validPrice(v){ return isFinite(v) && v >= 0; }
+function validQty(v){ return isFinite(v) && v >= 1 && Math.floor(v) === v; }
+function reasonOptions(current){
+  var opts = ['', '外觀不良', '到期', '其他'];
+  var labels = { '': '請選擇原因', '外觀不良': '外觀不良', '到期': '到期', '其他': '其他' };
+  return opts.map(function(o){ return '<option value="' + o + '"' + (o === current ? ' selected' : '') + '>' + labels[o] + '</option>'; }).join('');
+}
+function storedReason(reason, detail){
+  if (reason === '其他' && detail && detail.trim()) return '其他：' + detail.trim();
+  return reason || '';
+}
+function parseReason(stored){
+  if (stored === '外觀不良' || stored === '到期' || stored === '其他') return { reason: stored, detail: '' };
+  if (stored && stored.indexOf('其他：') === 0) return { reason: '其他', detail: stored.slice(3) };
+  if (stored) return { reason: '其他', detail: stored };
+  return { reason: '', detail: '' };
+}
+function toggleEditDetail(){
+  var el = document.getElementById('eddetail');
+  if (el && editDraft) el.style.display = (editDraft.reason === '其他') ? 'block' : 'none';
+}
+var editingIndex = -1;
+var editDraft = null;
+var SALES_WORKER_URL = "https://bettereat-sales-proxy.yan-lam.workers.dev";
+// 一行本地記錄轉做 Worker 收嘅 line 格式；唔合規格返 null（提交／編輯同步共用）
+function recordToLine(r){
+  if (!r) return null;
+  var rt = splitRecordTime(r.time);
+  if (!r.order || !/^B\d{8}-\d{3}$/.test(r.order)) return null;
+  if (!rt.date || rt.date === "—" || !/^\d{4}-\d{2}-\d{2}$/.test(rt.date)) return null;
+  var q = parseInt(r.qty, 10);
+  var p = parseFloat(r.price), s = parseFloat(r.subtotal);
+  if (!validQty(q) || !validPrice(p) || !validPrice(s)) return null;
+  return {
+    order: r.order,
+    recordDate: rt.date,
+    recordTime: (rt.time && rt.time !== "—") ? String(rt.time).slice(0, 5) : "",
+    store: r.store,
+    product: String(r.product || ""),
+    qty: q,
+    price: p,
+    subtotal: s,
+    reason: r.reason || "",
+    remarks: r.remarks || ""
+  };
+}
+// 編輯記錄之後（改價／改數量／改原因），將改好嗰行即刻 POST 去 Worker 更新飛書「銷售紀錄」嗰行。
+// 本地記錄一定先存好，同步失敗唔會影響本地記錄；下次再編輯同一行會再試同步一次。
+// 如果飛書嗰邊搵唔到嗰行（例如原本提交嗰陣同步失敗），Worker 會補返成行。
+function syncEditToFeishu(r){
+  var st = document.getElementById("recordsStatus");
+  var line = recordToLine(r);
+  if (!line) {
+    if (st) { st.textContent = "更新未能同步去飛書（記錄資料不完整）。"; st.className = "status err"; }
+    return;
+  }
+  if (st) { st.textContent = "已更新本地記錄，同步緊去飛書…"; st.className = "status"; }
+  var ctrl = null, timer = null;
+  try { ctrl = new AbortController(); timer = setTimeout(function(){ try { ctrl.abort(); } catch (e) {} }, 20000); } catch (e) { ctrl = null; }
+  var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "update", line: line }) };
+  if (ctrl) opts.signal = ctrl.signal;
+  fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
+    if (timer) clearTimeout(timer);
+    if (!st) return;
+    if (j && j.ok) {
+      st.textContent = j.created ? "已同步更新去飛書「銷售紀錄」（原本冇嗰行，已經補返）。" : "已同步更新去飛書「銷售紀錄」。";
+      st.className = "status ok";
+    } else {
+      st.textContent = "更新未能同步去飛書（記錄已存喺呢部裝置）。";
+      st.className = "status err";
+    }
+  }).catch(function(){
+    if (timer) clearTimeout(timer);
+    if (st) { st.textContent = "更新未能同步去飛書（記錄已存喺呢部裝置）。"; st.className = "status err"; }
+  });
+}
+// 刪除一行記錄之後，將飛書「銷售紀錄」嗰行刪埋。飛書本來已經冇嗰行都算成功。
+// 注意：成個記錄表「清空」唔會同步——嗰個只係清呢部裝置嘅記錄，唔係刪除飛書數據。
+function syncDeleteToFeishu(order, product, store){
+  var st = document.getElementById("recordsStatus");
+  if (st) { st.textContent = "已刪除本地記錄，同步緊去飛書…"; st.className = "status"; }
+  var ctrl = null, timer = null;
+  try { ctrl = new AbortController(); timer = setTimeout(function(){ try { ctrl.abort(); } catch (e) {} }, 20000); } catch (e) { ctrl = null; }
+  var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete", order: order, product: product, store: store || "" }) };
+  if (ctrl) opts.signal = ctrl.signal;
+  fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
+    if (timer) clearTimeout(timer);
+    if (!st) return;
+    if (j && j.ok) {
+      st.textContent = j.deleted ? "已同步刪除飛書「銷售紀錄」嗰行。" : "飛書嗰邊本來已經冇嗰行，本地記錄已刪除。";
+      st.className = "status ok";
+    } else {
+      st.textContent = "刪除未能同步去飛書（本地記錄已刪除）。";
+      st.className = "status err";
+    }
+  }).catch(function(){
+    if (timer) clearTimeout(timer);
+    if (st) { st.textContent = "刪除未能同步去飛書（本地記錄已刪除）。"; st.className = "status err"; }
+  });
+}
+function editRecord(i){
+  var arr = loadRecords();
+  var r = arr[i];
+  if (!r) return;
+  editingIndex = i;
+  var parsed = parseReason(r.reason);
+  editDraft = { price: (r.price == null ? "" : r.price), qty: r.qty, reason: parsed.reason, reasonDetail: parsed.detail };
+  renderRecords();
+}
+function cancelEdit(){
+  editingIndex = -1; editDraft = null;
+  renderRecords();
+}
+function recomputeEditSub(){
+  var cell = document.getElementById("edsub");
+  if (!cell || !editDraft) return;
+  var p = parseFloat(editDraft.price), q = parseFloat(editDraft.qty);
+  cell.textContent = (validPrice(p) && validQty(q)) ? fmtMoney(p * q) : "—";
+}
+function recomputeOrderTotal(orderNo, arr){
+  if (!orderNo) return;
+  var rows = arr.filter(function(r){ return r.order === orderNo; });
+  var allPriced = rows.length > 0 && rows.every(function(r){ return r.price != null && r.price !== "" && isFinite(parseFloat(r.price)) && r.qty != null && isFinite(parseFloat(r.qty)); });
+  var total = null;
+  if (allPriced) {
+    total = 0;
+    rows.forEach(function(r){ total += parseFloat(r.price) * parseFloat(r.qty); });
+    total = Math.round(total * 100) / 100;
+  }
+  rows.forEach(function(r){ r.orderTotal = total; });
+}
+function saveEditedRecord(i){
+  var arr = loadRecords();
+  var r = arr[i];
+  if (!r || !editDraft) return;
+  var p = parseFloat(editDraft.price), q = parseFloat(editDraft.qty);
+  if (!validPrice(p)) { alert("請輸入有效嘅單價。"); return; }
+  if (!validQty(q)) { alert("數量要係大過 0 嘅整數。"); return; }
+  var reason = storedReason(editDraft.reason, editDraft.reasonDetail);
+  var priceChanged = (r.price != null && r.price !== "" && p !== parseFloat(r.price));
+  var qtyChanged = (r.qty != null && q !== parseFloat(r.qty));
+  if ((priceChanged || qtyChanged) && !reason) { alert("金額有改動，請選擇改價原因。"); return; }
+  r.price = p; r.qty = q; r.subtotal = Math.round(p * q * 100) / 100; r.reason = reason;
+  recomputeOrderTotal(r.order, arr);
+  saveRecords(arr);
+  editingIndex = -1; editDraft = null;
+  renderRecords();
+  syncEditToFeishu(r);
+}
+function deleteRecord(i){
+  var arr = loadRecords();
+  var r = arr[i];
+  if (!r) return;
+  var order = r.order, product = r.product, store = r.store;
+  arr.splice(i, 1);
+  saveRecords(arr);
+  editingIndex = -1; editDraft = null;
+  renderRecords();
+  syncDeleteToFeishu(order, product, store);
+}
+function clearRecords(){
+  var shop = getRecordsShop();
+  if (shop) {
+    if (!confirm("確定清空「" + shop + "」的記錄？其他店嘅記錄唔會受影響。")) return;
+    saveRecords(loadRecords().filter(function(r){ return r.store !== shop; }));
+  } else {
+    if (!confirm("確定清空全部店舖的記錄？")) return;
+    saveRecords([]);
+  }
+  editingIndex = -1; editDraft = null;
+  renderRecords();
+}
+// ===== 呢頁專用：登出（清登入狀態，返訂購頁） =====
+function logout(){
+  try { localStorage.removeItem(LOGIN_KEY); } catch (e) {}
+  location.replace("bettereat-order.html");
+}
+
+// ===== 入口：未登入就返訂購頁登入；登入後顯示身份，管理員先見到「主頁」掣 =====
+(function(){
+  var s = getLoginSession();
+  if (!s) { location.replace("bettereat-order.html"); return; }
+  var who = document.getElementById("loginWho");
+  var barEl = document.getElementById("loginBar");
+  var homeBtn = document.getElementById("homeBtn");
+  if (s.role === "admin") {
+    if (who) who.textContent = "已登入：管理員（可自由轉店）";
+    if (homeBtn) homeBtn.style.display = "";
+    applyRecordsShopFromUrl(); // 管理員可用 ?shop= 連結預選一間店，否則睇晒全部
+  } else {
+    if (who) who.textContent = "已登入：" + s.shop;
+    setRecordsShop(s.shop); // 門店登入後，間店固定
+  }
+  if (barEl) barEl.style.display = "flex";
+  renderRecords();
+})();
+
+</script>
+</body>
+</html>

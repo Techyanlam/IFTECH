@@ -165,7 +165,7 @@
   <div class="controls">
     <input type="text" id="searchInput" placeholder="搜尋產品名稱／編號">
   </div>
-  <div class="note">撳產品圖就加 1 件；左邊「已選訂單」會即時見到揀咗咩同總金額。已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。如果飛書改咗價，撳頂部「🔄 價格更新」就會即時讀取最新價錢，唔使重新載入成頁。訂單會記落你登入嗰間店；揀好產品之後，下面會直接出「核實金額」表，確認之後「訂單記錄」就會生成記錄，一個產品一行。</div>
+  <div class="note">撳產品圖就加 1 件；左邊「已選訂單」會即時見到揀咗咩同總金額。已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。如果飛書改咗價，撳頂部「🔄 價格更新」就會即時讀取最新價錢，唔使重新載入成頁。訂單會記落你登入嗰間店；揀好產品之後，下面會直接出「核實金額」表，確認之後記錄會生成（一個產品一行），去「📋 訂單記錄」嗰頁睇同改。</div>
   <div class="main">
     <aside class="side" id="cartPanel">
       <h2 class="sec" id="cartTitle" style="margin-top:0;">🛒 已選訂單</h2>
@@ -196,33 +196,11 @@
     </div>
   </div>
   <div class="foot">數據來源：BETTEREAT 飛書系統 · 餐牌以飛書產品主檔為準<br>產品相片陸續補上，現時未有相片嘅產品會顯示圖示。</div>
-  <h2 class="sec" id="recordsSection">訂單記錄</h2>
-  <div class="status" id="recordsStatus"></div>
-  <div style="display:flex;gap:8px;margin-top:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
-    <label style="font-size:14px;color:#6d6152;">睇邊間店嘅記錄：</label>
-    <select id="recordsShopFilter" onchange="setRecordsShop(this.value);renderRecords()" style="padding:8px 10px;border:1px solid #d8cbb6;border-radius:8px;background:#fff;font-size:14px;">
-      <option value="">全部店舖</option>
-      <option value="謝斐 (MJF)">謝斐</option>
-      <option value="淘大 (MAP)">淘大</option>
-      <option value="Aeon (MKH)">Aeon</option>
-      <option value="將軍澳 (MMCP)">將軍澳</option>
-    </select>
-    <label style="font-size:14px;color:#6d6152;">記錄日期：</label>
-    <input type="date" id="recordsDateFilter" onchange="setRecordsDate(this.value);renderRecords()" style="padding:8px 10px;border:1px solid #d8cbb6;border-radius:8px;background:#fff;font-size:14px;">
-    <button class="xbtn" onclick="clearRecordsDate()">清除日期</button>
-    <button class="xbtn" id="exportBtn" onclick="exportRecords()">匯出 Excel</button>
-    <span id="recordsCount" style="font-size:13px;color:#8a7f70;"></span>
+  <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;align-items:center;">
+    <a class="xbtn primary" href="bettereat-order-records.html" target="_blank" rel="noopener" style="text-decoration:none;">📋 訂單記錄（新分頁開）</a>
+    <span style="font-size:13px;color:#8a7f70;">訂單記錄而家喺另一頁睇同改，撳掣會開新分頁。</span>
   </div>
-  <div style="overflow-x:auto;">
-    <table class="rectable" id="recordsTable">
-      <thead><tr><th>訂單編號</th><th>記錄日期</th><th>記錄時間</th><th>取貨門店</th><th class="prodcol">產品</th><th>數量</th><th>單價</th><th>總金額</th><th>改價原因</th><th>備註</th><th></th></tr></thead>
-      <tbody id="recordsBody"></tbody>
-    </table>
-  </div>
-  <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
-    <button class="xbtn" id="clearRecordsBtn" onclick="clearRecords()">清空全部記錄</button>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">確認提交嗰下，呢張單會記低喺呢度，一個產品一行，同一次提交嘅各行會共用同一個訂單編號，同時即刻傳送去飛書「銷售紀錄」表。記錄可以撳「編輯」改單價、數量同原因；改動原有數字要揀原因（外觀不良／到期／其他）。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示、獨立清空。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；傳送去飛書失敗嗰陣，記錄仍然會存喺呢部裝置。提交後再喺度改記錄，唔會同步去飛書。登入嗰陣揀邊間店，記錄就睇邊間店；管理員登入可以睇晒全部店。</div>
-  </div>
+  <div class="status" id="submitStatus"></div>
     </div>
   </div>
 </div>
@@ -264,7 +242,6 @@
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_sold_data.json";
 var PRODUCTS_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_products.json";
@@ -435,15 +412,6 @@ function getRecordsShop(){
 function setRecordsShop(v){
   try { localStorage.setItem(RECORDS_SHOP_KEY, v); } catch (e) {}
 }
-var recordsDateFilter = "";
-var lastShownPairs = [];
-function setRecordsDate(v){ recordsDateFilter = v || ""; }
-function clearRecordsDate(){
-  recordsDateFilter = "";
-  var el = document.getElementById("recordsDateFilter");
-  if (el) el.value = "";
-  renderRecords();
-}
 function applyRecordsShopFromUrl(){
   try {
     var m = window.location.search.match(/[?&]shop=([^&]*)/);
@@ -464,7 +432,6 @@ function selectShop(shop){
   var _sess = getLoginSession();
   if (_sess && _sess.role === "shop") return; // 門店登入後，間店固定，唔可以轉
   setRecordsShop(shop);
-  renderRecords();
   if (verifyLines) renderVerify();
 }
 function syncShopButtons(){
@@ -592,7 +559,6 @@ function unlockPage(){
     setRecordsShop(s.shop);
   }
   if (barEl) barEl.style.display = "flex";
-  renderRecords();
   if (verifyLines) renderVerify();
 }
 function showLogin(){
@@ -710,86 +676,6 @@ function loadRecords(){
 function saveRecords(arr){
   try { localStorage.setItem(RECORDS_KEY, JSON.stringify(arr)); } catch (e) {}
 }
-function renderRecords(){
-  var arr = loadRecords();
-  var shop = getRecordsShop();
-  var sel = document.getElementById("recordsShopFilter");
-  if (sel) sel.value = shop;
-  syncShopButtons();
-  var dateEl = document.getElementById("recordsDateFilter");
-  if (dateEl) dateEl.value = recordsDateFilter;
-  var btn = document.getElementById("clearRecordsBtn");
-  if (btn) btn.textContent = shop ? "清空「" + shop + "」記錄" : "清空全部記錄";
-  var pairs = arr.map(function(r, i){ return { r: r, i: i }; });
-  if (shop) pairs = pairs.filter(function(p){ return p.r.store === shop; });
-  if (recordsDateFilter) pairs = pairs.filter(function(p){ return splitRecordTime(p.r.time).date === recordsDateFilter; });
-  lastShownPairs = pairs;
-  var cnt = document.getElementById("recordsCount");
-  if (cnt) cnt.textContent = (shop ? shop : "全部店舖") + (recordsDateFilter ? "｜" + recordsDateFilter : "") + "：共 " + pairs.length + " 行";
-  var exBtn = document.getElementById("exportBtn");
-  if (exBtn) exBtn.disabled = !pairs.length;
-  var html = "";
-  if (!pairs.length) {
-    var emptyMsg = "暫時未有記錄";
-    if (shop && recordsDateFilter) emptyMsg = "呢間店呢個日期暫時未有記錄";
-    else if (shop) emptyMsg = "呢間店暫時未有記錄";
-    else if (recordsDateFilter) emptyMsg = "呢個日期暫時未有記錄";
-    html = '<tr><td colspan="11" style="color:#8a7f70;text-align:center;">' + emptyMsg + '</td></tr>';
-  } else {
-    pairs.forEach(function(p){
-      var r = p.r;
-      var prod = (r.product !== undefined) ? esc(r.product) : esc(r.items || "");
-      var qty = (r.qty !== undefined) ? esc(r.qty) : "—";
-      var rt = splitRecordTime(r.time);
-      if (p.i === editingIndex && editDraft) {
-        html += '<tr><td style="white-space:nowrap;">' + esc(r.order || "—") + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td class="prodcol">' + prod + '</td>' +
-          '<td><input class="eqty" type="number" step="1" min="1" value="' + esc(editDraft.qty) + '" oninput="editDraft.qty=this.value;recomputeEditSub()"></td>' +
-          '<td><input class="eprice" type="number" step="any" min="0" value="' + esc(editDraft.price) + '" oninput="editDraft.price=this.value;recomputeEditSub()"></td>' +
-          '<td id="edsub">' + (r.subtotal != null ? fmtMoney(r.subtotal) : "—") + '</td>' +
-          '<td><select class="ereason" onchange="editDraft.reason=this.value;toggleEditDetail()">' + reasonOptions(editDraft.reason) + '</select>' +
-          '<input class="ereasonDetail" id="eddetail" type="text" placeholder="其他原因說明（可空）" style="display:' + (editDraft.reason === '其他' ? 'block' : 'none') + ';margin-top:4px;" value="' + esc(editDraft.reasonDetail || '') + '" oninput="editDraft.reasonDetail=this.value"></td>' +
-          '<td>' + esc(r.remarks) + '</td>' +
-          '<td style="white-space:nowrap;"><button class="del" onclick="saveEditedRecord(' + p.i + ')">儲存</button> <button class="del" onclick="cancelEdit()">取消</button></td></tr>';
-      } else {
-        html += '<tr><td style="white-space:nowrap;">' + esc(r.order || "—") + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td class="prodcol">' + prod + '</td><td>' + qty + '</td>' +
-          '<td>' + (r.price != null ? fmtMoney(r.price) : "—") + '</td>' +
-          '<td>' + (r.subtotal != null ? fmtMoney(r.subtotal) : "—") + '</td>' +
-          '<td>' + (r.reason ? esc(r.reason) : "—") + '</td>' +
-          '<td>' + esc(r.remarks) + '</td>' +
-          '<td style="white-space:nowrap;"><button class="del" onclick="editRecord(' + p.i + ')">編輯</button> <button class="del" onclick="deleteRecord(' + p.i + ')">刪除</button></td></tr>';
-      }
-    });
-  }
-  document.getElementById("recordsBody").innerHTML = html;
-}
-function exportRecords(){
-  if (typeof XLSX === "undefined") { alert("匯出功能載入唔到，請檢查網絡後重新整理再試。"); return; }
-  var pairs = lastShownPairs || [];
-  if (!pairs.length) { alert("暫時未有記錄可以匯出。"); return; }
-  var rows = pairs.map(function(p){
-    var r = p.r, rt = splitRecordTime(r.time);
-    return {
-      "訂單編號": r.order || "",
-      "記錄日期": rt.date === "—" ? "" : rt.date,
-      "記錄時間": rt.time === "—" ? "" : rt.time,
-      "取貨門店": r.store || "",
-      "產品": (r.product !== undefined) ? r.product : (r.items || ""),
-      "數量": (r.qty !== undefined && r.qty !== null && r.qty !== "") ? Number(r.qty) : "",
-      "單價": (r.price != null && r.price !== "") ? Number(r.price) : "",
-      "總金額": (r.subtotal != null && r.subtotal !== "") ? Number(r.subtotal) : "",
-      "改價原因": r.reason || "",
-      "備註": r.remarks || ""
-    };
-  });
-  var ws = XLSX.utils.json_to_sheet(rows);
-  ws["!cols"] = [{wch:16},{wch:12},{wch:10},{wch:12},{wch:30},{wch:8},{wch:10},{wch:10},{wch:12},{wch:20}];
-  var wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "訂單記錄");
-  var d = new Date();
-  function p2(n){ return (n < 10 ? "0" : "") + n; }
-  var fname = "BETTEREAT訂單記錄_" + d.getFullYear() + p2(d.getMonth() + 1) + p2(d.getDate()) + ".xlsx";
-  XLSX.writeFile(wb, fname);
-}
 function splitRecordTime(t){
   t = (t == null ? "" : String(t)).trim();
   if (!t) return { date: "—", time: "—" };
@@ -817,24 +703,12 @@ function storedReason(reason, detail){
   if (reason === '其他' && detail && detail.trim()) return '其他：' + detail.trim();
   return reason || '';
 }
-function parseReason(stored){
-  if (stored === '外觀不良' || stored === '到期' || stored === '其他') return { reason: stored, detail: '' };
-  if (stored && stored.indexOf('其他：') === 0) return { reason: '其他', detail: stored.slice(3) };
-  if (stored) return { reason: '其他', detail: stored };
-  return { reason: '', detail: '' };
-}
 function toggleVerifyDetail(i){
   var el = document.getElementById('vdetail' + i);
   if (el && verifyLines && verifyLines[i]) el.style.display = (verifyLines[i].reason === '其他') ? 'block' : 'none';
 }
-function toggleEditDetail(){
-  var el = document.getElementById('eddetail');
-  if (el && editDraft) el.style.display = (editDraft.reason === '其他') ? 'block' : 'none';
-}
 var verifyLines = null;
 var verifyOrig = null;
-var editingIndex = -1;
-var editDraft = null;
 function buildVerifyLines(){
   var items = cartItems();
   var prev = {};
@@ -951,57 +825,8 @@ function syncSalesToFeishu(rows, statusEl){
 // 編輯記錄之後（改價／改數量／改原因），將改好嗰行即刻 POST 去 Worker 更新飛書「銷售紀錄」嗰行。
 // 本地記錄一定先存好，同步失敗唔會影響本地記錄；下次再編輯同一行會再試同步一次。
 // 如果飛書嗰邊搵唔到嗰行（例如原本提交嗰陣同步失敗），Worker 會補返成行。
-function syncEditToFeishu(r){
-  var st = document.getElementById("recordsStatus");
-  var line = recordToLine(r);
-  if (!line) {
-    if (st) { st.textContent = "更新未能同步去飛書（記錄資料不完整）。"; st.className = "status err"; }
-    return;
-  }
-  if (st) { st.textContent = "已更新本地記錄，同步緊去飛書…"; st.className = "status"; }
-  var ctrl = null, timer = null;
-  try { ctrl = new AbortController(); timer = setTimeout(function(){ try { ctrl.abort(); } catch (e) {} }, 20000); } catch (e) { ctrl = null; }
-  var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "update", line: line }) };
-  if (ctrl) opts.signal = ctrl.signal;
-  fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
-    if (timer) clearTimeout(timer);
-    if (!st) return;
-    if (j && j.ok) {
-      st.textContent = j.created ? "已同步更新去飛書「銷售紀錄」（原本冇嗰行，已經補返）。" : "已同步更新去飛書「銷售紀錄」。";
-      st.className = "status ok";
-    } else {
-      st.textContent = "更新未能同步去飛書（記錄已存喺呢部裝置）。";
-      st.className = "status err";
-    }
-  }).catch(function(){
-    if (timer) clearTimeout(timer);
-    if (st) { st.textContent = "更新未能同步去飛書（記錄已存喺呢部裝置）。"; st.className = "status err"; }
-  });
-}
 // 刪除一行記錄之後，將飛書「銷售紀錄」嗰行刪埋。飛書本來已經冇嗰行都算成功。
 // 注意：成個記錄表「清空」唔會同步——嗰個只係清呢部裝置嘅記錄，唔係刪除飛書數據。
-function syncDeleteToFeishu(order, product){
-  var st = document.getElementById("recordsStatus");
-  if (st) { st.textContent = "已刪除本地記錄，同步緊去飛書…"; st.className = "status"; }
-  var ctrl = null, timer = null;
-  try { ctrl = new AbortController(); timer = setTimeout(function(){ try { ctrl.abort(); } catch (e) {} }, 20000); } catch (e) { ctrl = null; }
-  var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete", order: order, product: product }) };
-  if (ctrl) opts.signal = ctrl.signal;
-  fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
-    if (timer) clearTimeout(timer);
-    if (!st) return;
-    if (j && j.ok) {
-      st.textContent = j.deleted ? "已同步刪除飛書「銷售紀錄」嗰行。" : "飛書嗰邊本來已經冇嗰行，本地記錄已刪除。";
-      st.className = "status ok";
-    } else {
-      st.textContent = "刪除未能同步去飛書（本地記錄已刪除）。";
-      st.className = "status err";
-    }
-  }).catch(function(){
-    if (timer) clearTimeout(timer);
-    if (st) { st.textContent = "刪除未能同步去飛書（本地記錄已刪除）。"; st.className = "status err"; }
-  });
-}
 function confirmVerifiedSubmit(){
   if (!verifyLines || !verifyLines.length) return;
   if (!getRecordsShop()) { alert("請先喺上面揀邊間店"); return; }
@@ -1034,16 +859,14 @@ function confirmVerifiedSubmit(){
     return { order: orderNo, time: meta.time, store: meta.store, name: meta.name, phone: meta.phone, date: meta.date, time2: meta.time2, product: l.name, qty: l.qty, price: l.price, subtotal: l.subtotal, orderTotal: total, reason: l.reason, remarks: meta.remarks };
   });
   saveRecords(rows.concat(loadRecords()));
-  renderRecords();
   clearCart();
   verifyLines = null; verifyOrig = null;
   var sec = document.getElementById("verifySection");
   if (sec) sec.style.display = "none";
-  var st = document.getElementById("recordsStatus");
+  var st = document.getElementById("submitStatus");
   if (st) { st.textContent = "已提交：新增 " + rows.length + " 行記錄（一個產品一行），訂單編號：" + orderNo + "，訂單總金額：" + fmtMoney(total) + "。"; st.className = "status ok"; }
   syncSalesToFeishu(rows, st);
-  var rs = document.getElementById("recordsSection");
-  if (rs && rs.scrollIntoView) rs.scrollIntoView();
+  if (st && st.scrollIntoView) st.scrollIntoView();
 }
 function cancelVerify(){
   verifyLines = null; verifyOrig = null;
@@ -1057,78 +880,6 @@ function submitOrderRecord(){
   var sec = document.getElementById("verifySection");
   if (sec) sec.style.display = "block";
   if (sec && sec.scrollIntoView) sec.scrollIntoView();
-}
-function editRecord(i){
-  var arr = loadRecords();
-  var r = arr[i];
-  if (!r) return;
-  editingIndex = i;
-  var parsed = parseReason(r.reason);
-  editDraft = { price: (r.price == null ? "" : r.price), qty: r.qty, reason: parsed.reason, reasonDetail: parsed.detail };
-  renderRecords();
-}
-function cancelEdit(){
-  editingIndex = -1; editDraft = null;
-  renderRecords();
-}
-function recomputeEditSub(){
-  var cell = document.getElementById("edsub");
-  if (!cell || !editDraft) return;
-  var p = parseFloat(editDraft.price), q = parseFloat(editDraft.qty);
-  cell.textContent = (validPrice(p) && validQty(q)) ? fmtMoney(p * q) : "—";
-}
-function recomputeOrderTotal(orderNo, arr){
-  if (!orderNo) return;
-  var rows = arr.filter(function(r){ return r.order === orderNo; });
-  var allPriced = rows.length > 0 && rows.every(function(r){ return r.price != null && r.price !== "" && isFinite(parseFloat(r.price)) && r.qty != null && isFinite(parseFloat(r.qty)); });
-  var total = null;
-  if (allPriced) {
-    total = 0;
-    rows.forEach(function(r){ total += parseFloat(r.price) * parseFloat(r.qty); });
-    total = Math.round(total * 100) / 100;
-  }
-  rows.forEach(function(r){ r.orderTotal = total; });
-}
-function saveEditedRecord(i){
-  var arr = loadRecords();
-  var r = arr[i];
-  if (!r || !editDraft) return;
-  var p = parseFloat(editDraft.price), q = parseFloat(editDraft.qty);
-  if (!validPrice(p)) { alert("請輸入有效嘅單價。"); return; }
-  if (!validQty(q)) { alert("數量要係大過 0 嘅整數。"); return; }
-  var reason = storedReason(editDraft.reason, editDraft.reasonDetail);
-  var priceChanged = (r.price != null && r.price !== "" && p !== parseFloat(r.price));
-  var qtyChanged = (r.qty != null && q !== parseFloat(r.qty));
-  if ((priceChanged || qtyChanged) && !reason) { alert("金額有改動，請選擇改價原因。"); return; }
-  r.price = p; r.qty = q; r.subtotal = Math.round(p * q * 100) / 100; r.reason = reason;
-  recomputeOrderTotal(r.order, arr);
-  saveRecords(arr);
-  editingIndex = -1; editDraft = null;
-  renderRecords();
-  syncEditToFeishu(r);
-}
-function deleteRecord(i){
-  var arr = loadRecords();
-  var r = arr[i];
-  if (!r) return;
-  var order = r.order, product = r.product;
-  arr.splice(i, 1);
-  saveRecords(arr);
-  editingIndex = -1; editDraft = null;
-  renderRecords();
-  syncDeleteToFeishu(order, product);
-}
-function clearRecords(){
-  var shop = getRecordsShop();
-  if (shop) {
-    if (!confirm("確定清空「" + shop + "」的記錄？其他店嘅記錄唔會受影響。")) return;
-    saveRecords(loadRecords().filter(function(r){ return r.store !== shop; }));
-  } else {
-    if (!confirm("確定清空全部店舖的記錄？")) return;
-    saveRecords([]);
-  }
-  editingIndex = -1; editDraft = null;
-  renderRecords();
 }
 document.getElementById("searchInput").addEventListener("input", function(){
   searchText = this.value.trim().toLowerCase();
