@@ -86,14 +86,39 @@
   .foot { color: #a2937f; font-size: 12px; margin-top: 16px; text-align: center; line-height: 1.8; }
   @media (max-width: 820px) { .grid { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 560px) { .grid { grid-template-columns: repeat(2, 1fr); } .cartbar { flex-wrap: wrap; } .checkout .fields { grid-template-columns: 1fr; } }
+  .loginbox { max-width: 420px; margin: 60px auto 0; background: #fff; border-radius: 16px; padding: 28px 24px; box-shadow: 0 4px 20px rgba(60,45,20,.10); text-align: center; }
+  .loginbox h1 { font-size: 22px; margin: 0 0 4px; }
+  .loginbox .sub { color: #8a7f70; font-size: 14px; margin-bottom: 18px; }
+  .loginshop { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 14px; }
+  .loginshop .shopbtn { font-size: 15px; padding: 10px 16px; }
+  .loginbox input[type="password"] { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #d8cfc0; border-radius: 10px; margin-bottom: 12px; background: #fff; }
+  .loginerr { color: #b3402e; font-size: 14px; min-height: 20px; margin-bottom: 8px; }
+  .loginbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #fff8ea; border: 1px solid #ecd9ac; border-radius: 10px; padding: 8px 12px; margin: 14px 0; font-size: 14px; }
+  .loginbar .who { font-weight: 700; }
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="loginbox" id="loginScreen" style="display:none;">
+  <h1>🍰 BETTEREAT 訂購</h1>
+  <div class="sub">請登入你嗰間店</div>
+  <div class="loginshop">
+    <button class="shopbtn" id="loginBtn-MJF" onclick="selectLoginShop('MJF')">謝斐</button>
+    <button class="shopbtn" id="loginBtn-MAP" onclick="selectLoginShop('MAP')">淘大</button>
+    <button class="shopbtn" id="loginBtn-MKH" onclick="selectLoginShop('MKH')">Aeon</button>
+    <button class="shopbtn" id="loginBtn-MMCP" onclick="selectLoginShop('MMCP')">將軍澳</button>
+    <button class="shopbtn" id="loginBtn-ADMIN" onclick="selectLoginShop('ADMIN')">管理員</button>
+  </div>
+  <input type="password" id="loginPw" placeholder="輸入密碼" autocomplete="off" onkeydown="if(event.key==='Enter')doLogin()">
+  <div class="loginerr" id="loginErr"></div>
+  <button class="xbtn primary" style="width:100%;padding:12px;font-size:16px;" onclick="doLogin()">登入</button>
+</div>
+<div class="wrap" id="mainWrap" style="display:none;">
   <header class="top">
     <div class="brand">🍰 BETTEREAT <span>訂購</span></div>
     <button class="cartbtn" onclick="scrollToCart()">🛒 已選 <span id="cartCountTop">0</span> 件</button>
   </header>
+
+  <div class="loginbar" id="loginBar" style="display:none;"><span class="who" id="loginWho"></span><button class="xbtn" onclick="logout()">登出</button></div>
 
   <div class="meta" id="metaLine">載入餐牌中…</div>
 
@@ -110,7 +135,7 @@
     <input type="text" id="searchInput" placeholder="搜尋產品名稱／編號">
     <button class="xbtn primary" onclick="refreshPrices()">🔄 價格更新</button>
   </div>
-  <div class="note">撳產品圖就加 1 件；已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。如果飛書改咗價，撳上面「🔄 價格更新」就會即時讀取最新價錢，唔使重新載入成頁。記得先喺上面揀邊間店；揀好產品之後，下面會直接出「核實金額」表，確認之後「訂單記錄」就會生成記錄，一個產品一行。</div>
+  <div class="note">撳產品圖就加 1 件；已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。如果飛書改咗價，撳上面「🔄 價格更新」就會即時讀取最新價錢，唔使重新載入成頁。訂單會記落你登入嗰間店；揀好產品之後，下面會直接出「核實金額」表，確認之後「訂單記錄」就會生成記錄，一個產品一行。</div>
   <div class="grid" id="grid"></div>
 
   <h2 class="sec" id="cartTitle">🛒 已選訂單</h2>
@@ -164,11 +189,11 @@
   </div>
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
     <button class="xbtn" id="clearRecordsBtn" onclick="clearRecords()">清空全部記錄</button>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">確認提交嗰下，呢張單會記低喺呢度，一個產品一行，同一次提交嘅各行會共用同一個訂單編號，同時即刻傳送去飛書「銷售紀錄」表。記錄可以撳「編輯」改單價、數量同原因；改動原有數字要揀原因（外觀不良／到期／其他）。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示、獨立清空。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；傳送去飛書失敗嗰陣，記錄仍然會存喺呢部裝置。提交後再喺度改記錄，唔會同步去飛書。每間店可以用自己嘅連結入嚟（網址後面加 ?shop=MJF／MAP／MKH／MMCP），一入嚟就自動揀好嗰間店。</div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">確認提交嗰下，呢張單會記低喺呢度，一個產品一行，同一次提交嘅各行會共用同一個訂單編號，同時即刻傳送去飛書「銷售紀錄」表。記錄可以撳「編輯」改單價、數量同原因；改動原有數字要揀原因（外觀不良／到期／其他）。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示、獨立清空。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；傳送去飛書失敗嗰陣，記錄仍然會存喺呢部裝置。提交後再喺度改記錄，唔會同步去飛書。登入嗰陣揀邊間店，記錄就睇邊間店；管理員登入可以睇晒全部店。</div>
   </div>
 </div>
 
-<div class="cartbar">
+<div class="cartbar" id="mainCartbar" style="display:none;">
   <div class="info"><span id="cartInfo">未揀任何產品</span></div>
   <div class="btns">
     <button class="clear" onclick="clearCart()">清空</button>
@@ -181,6 +206,12 @@
 var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_sold_data.json";
 var PRODUCTS_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_products.json";
 var products = [], cart = {}, searchText = "";
+
+// ===== 門店登入密碼（改密碼：喺呢度改，改完 commit，1–2 分鐘後生效；店員要重新載入頁面） =====
+// 注意：密碼寫喺呢個公開網頁檔案入面，識睇網頁原始碼嘅人睇得到，只係頁面級鎖，唔係真正帳號系統。
+var SHOP_PASSWORDS = { "MJF": "MJF123", "MAP": "MAP123", "MKH": "MKH123", "MMCP": "MMCP123" };
+var ADMIN_PASSWORD = "admin123";
+var LOGIN_KEY = "bettereat_order_login";
 
 function esc(s){ return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 function loadData(){
@@ -341,6 +372,8 @@ var SHOP_LABELS = ["謝斐 (MJF)", "淘大 (MAP)", "Aeon (MKH)", "將軍澳 (MMC
 var SHOP_CODES = { "謝斐 (MJF)": "MJF", "淘大 (MAP)": "MAP", "Aeon (MKH)": "MKH", "將軍澳 (MMCP)": "MMCP" };
 function selectShop(shop){
   if (SHOP_LABELS.indexOf(shop) < 0) return;
+  var _sess = getLoginSession();
+  if (_sess && _sess.role === "shop") return; // 門店登入後，間店固定，唔可以轉
   setRecordsShop(shop);
   renderRecords();
   if (verifyLines) renderVerify();
@@ -351,6 +384,93 @@ function syncShopButtons(){
     var el = document.getElementById("shopBtn-" + SHOP_CODES[s]);
     if (el) el.className = "shopbtn" + (s === shop ? " active" : "");
   });
+}
+// ===== 每店登入 =====
+function getLoginSession(){
+  try {
+    var raw = localStorage.getItem(LOGIN_KEY);
+    if (!raw) return null;
+    var s = JSON.parse(raw);
+    if (s && s.role === "admin") return s;
+    if (s && s.role === "shop" && SHOP_LABELS.indexOf(s.shop) >= 0) return s;
+    return null;
+  } catch (e) { return null; }
+}
+var loginShopChoice = "";
+function selectLoginShop(code){
+  loginShopChoice = code;
+  ["MJF", "MAP", "MKH", "MMCP", "ADMIN"].forEach(function(c){
+    var el = document.getElementById("loginBtn-" + c);
+    if (el) el.className = "shopbtn" + (c === code ? " active" : "");
+  });
+  var err = document.getElementById("loginErr");
+  if (err) err.textContent = "";
+}
+function doLogin(){
+  var pwEl = document.getElementById("loginPw");
+  var pw = pwEl ? pwEl.value : "";
+  var err = document.getElementById("loginErr");
+  function fail(msg){ if (err) err.textContent = msg; if (pwEl) pwEl.value = ""; }
+  if (!loginShopChoice) { fail("請先揀邊間店（或者管理員）。"); return; }
+  if (!pw) { fail("請輸入密碼。"); return; }
+  if (loginShopChoice === "ADMIN") {
+    if (pw !== ADMIN_PASSWORD) { fail("密碼唔啱，請再試。"); return; }
+    try { localStorage.setItem(LOGIN_KEY, JSON.stringify({ role: "admin" })); } catch (e) {}
+    unlockPage();
+    return;
+  }
+  if (pw !== SHOP_PASSWORDS[loginShopChoice]) { fail("密碼唔啱，請再試。"); return; }
+  var label = SHOP_LABELS.filter(function(s){ return SHOP_CODES[s] === loginShopChoice; })[0];
+  try { localStorage.setItem(LOGIN_KEY, JSON.stringify({ role: "shop", shop: label })); } catch (e) {}
+  unlockPage();
+}
+function unlockPage(){
+  var s = getLoginSession();
+  if (!s) { showLogin(); return; }
+  var loginEl = document.getElementById("loginScreen");
+  if (loginEl) loginEl.style.display = "none";
+  var wrap = document.getElementById("mainWrap");
+  if (wrap) wrap.style.display = "block";
+  var bar = document.getElementById("mainCartbar");
+  if (bar) bar.style.display = "flex";
+  var who = document.getElementById("loginWho");
+  var barEl = document.getElementById("loginBar");
+  var shopBtns = document.getElementById("shopBtns");
+  if (s.role === "admin") {
+    if (who) who.textContent = "已登入：管理員（可自由轉店）";
+    if (shopBtns) shopBtns.style.display = "";
+    applyRecordsShopFromUrl(); // 管理員可用 ?shop= 連結預選一間店，否則睇晒全部
+  } else {
+    if (who) who.textContent = "已登入：" + s.shop;
+    if (shopBtns) shopBtns.style.display = "none";
+    setRecordsShop(s.shop);
+  }
+  if (barEl) barEl.style.display = "flex";
+  renderRecords();
+  if (verifyLines) renderVerify();
+}
+function showLogin(){
+  var loginEl = document.getElementById("loginScreen");
+  if (loginEl) loginEl.style.display = "block";
+  var wrap = document.getElementById("mainWrap");
+  if (wrap) wrap.style.display = "none";
+  var bar = document.getElementById("mainCartbar");
+  if (bar) bar.style.display = "none";
+}
+function logout(){
+  try { localStorage.removeItem(LOGIN_KEY); } catch (e) {}
+  cart = {};
+  loginShopChoice = "";
+  var pwEl = document.getElementById("loginPw");
+  if (pwEl) pwEl.value = "";
+  var err = document.getElementById("loginErr");
+  if (err) err.textContent = "";
+  ["MJF", "MAP", "MKH", "MMCP", "ADMIN"].forEach(function(c){
+    var el = document.getElementById("loginBtn-" + c);
+    if (el) el.className = "shopbtn";
+  });
+  updateCart();
+  showLogin();
 }
 function loadRecords(){
   try {
@@ -725,8 +845,7 @@ document.getElementById("searchInput").addEventListener("input", function(){
 document.getElementById("goFormBtn").onclick = submitOrderRecord;
 document.getElementById("goFormBtnBar").onclick = submitOrderRecord;
 loadData();
-applyRecordsShopFromUrl();
-renderRecords();
+if (getLoginSession()) unlockPage(); else showLogin();
 </script>
 </body>
 </html>
