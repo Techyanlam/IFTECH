@@ -159,6 +159,8 @@
       .picker-item:last-child { border-bottom: 0; }
       .picker-item .pname { font-weight: 700; }
       .picker-item .pmeta { font-size: 13px; color: var(--dim); }
+      .picker-item .fs-collapsed { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .picker-item .fs-detail { display: block; }
       .picker-item.selected { background: var(--accent-soft); }
       .picker-note { font-size: 13px; color: var(--dim); margin-top: 6px; }
       .selected-chip { display: none; margin-top: 8px; background: var(--accent-soft); border: 1px solid var(--accent); border-radius: var(--radius); padding: 9px 12px; font-size: 15px; }
@@ -645,6 +647,7 @@
       var feishuReceipts = [];
       var feishuReceivedSession = {};
       var fsRcvFetching = false;
+      var fsRcvExpandedKey = null;
       var fsAutoTimer = null;
       function allocRowHtml(loc, qty) {
         return '<div class="alloc-row row">' +
@@ -741,8 +744,18 @@
         document.getElementById("fsRcvList").addEventListener("click", function (e) {
           var b = e.target.closest("[data-fsrcv]");
           if (!b) return;
-          var rc = feishuReceipts[parseInt(b.getAttribute("data-fsrcv"), 10)];
-          if (rc) fsApplyReceipt(rc);
+          var idx = parseInt(b.getAttribute("data-fsrcv"), 10);
+          var rc = feishuReceipts[idx];
+          if (!rc) return;
+          var key = rc.recordId || rc.grNo || ("row" + idx);
+          if (fsRcvExpandedKey === key) {
+            fsRcvExpandedKey = null;
+            fsRcvRenderList();
+            return;
+          }
+          fsRcvExpandedKey = key;
+          fsRcvRenderList();
+          fsApplyReceipt(rc);
         });
         document.getElementById("btnFetchFsRcv").addEventListener("click", fsRcvFetch);
         fsRcvFetch();
@@ -849,19 +862,32 @@
           if (a.warehouseAssigned !== b.warehouseAssigned) return a.warehouseAssigned ? 1 : -1;
           return (b.created || "").localeCompare(a.created || "");
         });
+        var scroller = wrap.querySelector(".picker-results");
+        var scrollTop = scroller ? scroller.scrollTop : 0;
         wrap.innerHTML = '<div class="picker-results">' + sorted.map(function (rc) {
           var origIdx = feishuReceipts.indexOf(rc);
+          var key = rc.recordId || rc.grNo || ("row" + origIdx);
+          var expanded = fsRcvExpandedKey !== null && fsRcvExpandedKey === key;
+          var warn = rc.warehouseAssigned ? "" : ' <span class="pmeta" style="color:var(--warn);font-weight:700">未入倉</span>';
+          var collapsedLabel = rc.part
+            ? esc(rc.part) + (rc.qty != null ? " × " + esc(rc.qty) + (rc.unit ? " " + esc(rc.unit) : "") : "")
+            : esc(rc.grNo || rc.recordId || "飛書收貨單");
           var meta = [
             rc.supplier ? "供應商：" + rc.supplier : "",
             rc.part ? "貨品：" + rc.part : "",
             rc.qty != null ? "數量：" + rc.qty + (rc.unit ? " " + rc.unit : "") : "",
             rc.created ? "建立：" + rc.created : ""
           ].filter(Boolean).join(" · ");
-          return '<button type="button" class="picker-item" data-fsrcv="' + origIdx + '">' +
-            '<span class="pname">' + esc(rc.grNo || rc.recordId || "飛書收貨單") + "</span>" +
-            (rc.warehouseAssigned ? "" : ' <span class="pmeta" style="color:var(--warn);font-weight:700">未入倉</span>') +
-            '<span class="pmeta"> ' + esc(meta) + "</span></button>";
+          var detail = '<span class="pname">' + esc(rc.grNo || rc.recordId || "飛書收貨單") + "</span>" + warn + ' <span class="pmeta">▾</span>' +
+            '<span class="pmeta"> ' + esc(meta) + "</span>";
+          return '<button type="button" class="picker-item' + (expanded ? " selected" : "") + '" data-fsrcv="' + origIdx + '">' +
+            (expanded
+              ? '<span class="fs-detail">' + detail + "</span>"
+              : '<span class="fs-collapsed"><span class="pname">' + collapsedLabel + "</span>" + warn + ' <span class="pmeta">▸</span></span>') +
+            "</button>";
         }).join("") + "</div>";
+        var scroller2 = wrap.querySelector(".picker-results");
+        if (scroller2) scroller2.scrollTop = scrollTop;
       }
       function fsRcvStampUpdated() {
         var el = document.getElementById("fsRcvUpdated");
