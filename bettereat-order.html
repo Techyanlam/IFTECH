@@ -163,7 +163,7 @@
   </div>
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
     <button class="xbtn" id="clearRecordsBtn" onclick="clearRecords()">清空全部記錄</button>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">確認提交嗰下，呢張單會記低喺呢度，一個產品一行，同一次提交嘅各行會共用同一個訂單編號。記錄可以撳「編輯」改單價、數量同原因；改動原有數字要揀原因（外觀不良／到期／其他）。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示、獨立清空。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；提交後訂單唔會入飛書表。每間店可以用自己嘅連結入嚟（網址後面加 ?shop=MJF／MAP／MKH／MMCP），一入嚟就自動揀好嗰間店。</div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">確認提交嗰下，呢張單會記低喺呢度，一個產品一行，同一次提交嘅各行會共用同一個訂單編號，同時即刻傳送去飛書「銷售紀錄」表。記錄可以撳「編輯」改單價、數量同原因；改動原有數字要揀原因（外觀不良／到期／其他）。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示、獨立清空。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；傳送去飛書失敗嗰陣，記錄仍然會存喺呢部裝置。提交後再喺度改記錄，唔會同步去飛書。每間店可以用自己嘅連結入嚟（網址後面加 ?shop=MJF／MAP／MKH／MMCP），一入嚟就自動揀好嗰間店。</div>
   </div>
 </div>
 
@@ -536,6 +536,52 @@ function cartMatchesVerify(){
   items.forEach(function(it){ map[it.code] = it.qty; });
   return verifyOrig.every(function(o){ return map[o.code] === o.qty; });
 }
+var SALES_WORKER_URL = "https://bettereat-sales-proxy.yan-lam.workers.dev";
+// 確認提交嗰下，將呢張單嘅行即刻 POST 去 Cloudflare Worker，寫入飛書「銷售紀錄」表。
+// localStorage 記錄一定先存好，同步失敗唔會影響本地記錄；Worker 未加 FEISHU_APP_SECRET 之前一定失敗（屬正常）。
+function syncSalesToFeishu(rows, statusEl){
+  if (!rows || !rows.length) return;
+  var lines = [];
+  for (var i = 0; i < rows.length; i++) {
+    var r = rows[i];
+    var rt = splitRecordTime(r.time);
+    if (!r.order || !/^B\d{8}-\d{3}$/.test(r.order)) continue;
+    if (!rt.date || rt.date === "—" || !/^\d{4}-\d{2}-\d{2}$/.test(rt.date)) continue;
+    var q = parseInt(r.qty, 10);
+    var p = parseFloat(r.price), s = parseFloat(r.subtotal);
+    if (!validQty(q) || !validPrice(p) || !validPrice(s)) continue;
+    lines.push({
+      order: r.order,
+      recordDate: rt.date,
+      recordTime: (rt.time && rt.time !== "—") ? String(rt.time).slice(0, 5) : "",
+      store: r.store,
+      product: String(r.product || ""),
+      qty: q,
+      price: p,
+      subtotal: s,
+      reason: r.reason || "",
+      remarks: r.remarks || ""
+    });
+  }
+  if (!lines.length) return;
+  var done = false;
+  function finish(msg){
+    if (done) return; done = true;
+    if (statusEl) statusEl.textContent += msg;
+  }
+  var ctrl = null, timer = null;
+  try { ctrl = new AbortController(); timer = setTimeout(function(){ try { ctrl.abort(); } catch (e) {} }, 20000); } catch (e) { ctrl = null; }
+  var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lines: lines }) };
+  if (ctrl) opts.signal = ctrl.signal;
+  fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
+    if (timer) clearTimeout(timer);
+    if (j && j.ok) finish("已同步去飛書「銷售紀錄」（" + lines.length + " 行）。");
+    else finish("未能同步去飛書（記錄已存喺呢部裝置），稍後可再提交。");
+  }).catch(function(){
+    if (timer) clearTimeout(timer);
+    finish("未能同步去飛書（記錄已存喺呢部裝置），稍後可再提交。");
+  });
+}
 function confirmVerifiedSubmit(){
   if (!verifyLines || !verifyLines.length) return;
   if (!getRecordsShop()) { alert("請先喺上面揀邊間店"); return; }
@@ -575,6 +621,7 @@ function confirmVerifiedSubmit(){
   if (sec) sec.style.display = "none";
   var st = document.getElementById("recordsStatus");
   if (st) { st.textContent = "已提交：新增 " + rows.length + " 行記錄（一個產品一行），訂單編號：" + orderNo + "，訂單總金額：" + fmtMoney(total) + "。"; st.className = "status ok"; }
+  syncSalesToFeishu(rows, st);
   var rs = document.getElementById("recordsSection");
   if (rs && rs.scrollIntoView) rs.scrollIntoView();
 }
