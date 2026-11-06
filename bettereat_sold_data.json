@@ -1,7 +1,7 @@
 {
   "source": "BETTEREAT-Feishu-Base",
   "date": "2026-11-06",
-  "generated_at": "2026-11-06T12:34:24+08:00",
+  "generated_at": "2026-11-06T14:16:48+08:00",
   "records": [
     {
       "store": "MAP",
@@ -232,16 +232,6 @@
       "no_of_pcs": null,
       "remaining_pcs": 0.0,
       "sold_pcs": 10
-    },
-    {
-      "store": "MAP",
-      "product_code": "P-058",
-      "product_name": "3.6牛奶燉蛋白(淨底)",
-      "unit": "件",
-      "allocated_pans": 8.0,
-      "no_of_pcs": null,
-      "remaining_pcs": 0.0,
-      "sold_pcs": 8
     },
     {
       "store": "MJF",
@@ -572,16 +562,6 @@
       "no_of_pcs": null,
       "remaining_pcs": 0.0,
       "sold_pcs": 10
-    },
-    {
-      "store": "MJF",
-      "product_code": "P-058",
-      "product_name": "3.6牛奶燉蛋白(淨底)",
-      "unit": "件",
-      "allocated_pans": 12.0,
-      "no_of_pcs": null,
-      "remaining_pcs": 0.0,
-      "sold_pcs": 12
     },
     {
       "store": "MKH",
@@ -952,16 +932,6 @@
       "no_of_pcs": null,
       "remaining_pcs": 0.0,
       "sold_pcs": 10
-    },
-    {
-      "store": "MKH",
-      "product_code": "P-058",
-      "product_name": "3.6牛奶燉蛋白(淨底)",
-      "unit": "件",
-      "allocated_pans": 8.0,
-      "no_of_pcs": null,
-      "remaining_pcs": 0.0,
-      "sold_pcs": 8
     }
   ],
   "history": {
@@ -14595,16 +14565,6 @@
         "sold_pcs": 10
       },
       {
-        "store": "MAP",
-        "product_code": "P-058",
-        "product_name": "3.6牛奶燉蛋白(淨底)",
-        "unit": "件",
-        "allocated_pans": 8.0,
-        "no_of_pcs": null,
-        "remaining_pcs": 0.0,
-        "sold_pcs": 8
-      },
-      {
         "store": "MJF",
         "product_code": "P-001",
         "product_name": "驢打滾",
@@ -14933,16 +14893,6 @@
         "no_of_pcs": null,
         "remaining_pcs": 0.0,
         "sold_pcs": 10
-      },
-      {
-        "store": "MJF",
-        "product_code": "P-058",
-        "product_name": "3.6牛奶燉蛋白(淨底)",
-        "unit": "件",
-        "allocated_pans": 12.0,
-        "no_of_pcs": null,
-        "remaining_pcs": 0.0,
-        "sold_pcs": 12
       },
       {
         "store": "MKH",
@@ -15313,16 +15263,6 @@
         "no_of_pcs": null,
         "remaining_pcs": 0.0,
         "sold_pcs": 10
-      },
-      {
-        "store": "MKH",
-        "product_code": "P-058",
-        "product_name": "3.6牛奶燉蛋白(淨底)",
-        "unit": "件",
-        "allocated_pans": 8.0,
-        "no_of_pcs": null,
-        "remaining_pcs": 0.0,
-        "sold_pcs": 8
       }
     ]
   }

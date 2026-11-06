@@ -1,7 +1,7 @@
 {
   "source": "BETTEREAT-Feishu-Base-T1",
-  "generated_at": "2026-11-06T12:34:12+08:00",
-  "count": 59,
+  "generated_at": "2026-11-06T14:16:31+08:00",
+  "count": 58,
   "products": [
     {
       "product_code": "P-001",
@@ -734,19 +734,6 @@
     {
       "product_code": "P-057",
       "product_name": "芒果布甸(淨底)",
-      "category": "涼粉+布甸",
-      "subcategory": "布甸",
-      "cabinet": "飲品櫃",
-      "unit": "件",
-      "no_of_pcs": 1,
-      "standard_price": 6,
-      "sku": "",
-      "status": "啟用",
-      "remarks": ""
-    },
-    {
-      "product_code": "P-058",
-      "product_name": "3.6牛奶燉蛋白(淨底)",
       "category": "涼粉+布甸",
       "subcategory": "布甸",
       "cabinet": "飲品櫃",
