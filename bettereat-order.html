@@ -144,6 +144,7 @@
     <div class="brand">🍰 BETTEREAT <span>訂購</span></div>
     <div style="display:flex;gap:8px;">
       <button class="cartbtn" onclick="openChangePw()">🔑 改密碼</button>
+      <button class="cartbtn" onclick="refreshPrices()">🔄 價格更新</button>
       <button class="cartbtn" onclick="scrollToCart()">🛒 已選 <span id="cartCountTop">0</span> 件</button>
     </div>
   </header>
@@ -163,9 +164,8 @@
   <h2 class="sec">撳一下就加 1 件</h2>
   <div class="controls">
     <input type="text" id="searchInput" placeholder="搜尋產品名稱／編號">
-    <button class="xbtn primary" onclick="refreshPrices()">🔄 價格更新</button>
   </div>
-  <div class="note">撳產品圖就加 1 件；左邊「已選訂單」會即時見到揀咗咩同總金額。已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。如果飛書改咗價，撳上面「🔄 價格更新」就會即時讀取最新價錢，唔使重新載入成頁。訂單會記落你登入嗰間店；揀好產品之後，下面會直接出「核實金額」表，確認之後「訂單記錄」就會生成記錄，一個產品一行。</div>
+  <div class="note">撳產品圖就加 1 件；左邊「已選訂單」會即時見到揀咗咩同總金額。已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。如果飛書改咗價，撳頂部「🔄 價格更新」就會即時讀取最新價錢，唔使重新載入成頁。訂單會記落你登入嗰間店；揀好產品之後，下面會直接出「核實金額」表，確認之後「訂單記錄」就會生成記錄，一個產品一行。</div>
   <div class="main">
     <aside class="side" id="cartPanel">
       <h2 class="sec" id="cartTitle" style="margin-top:0;">🛒 已選訂單</h2>
