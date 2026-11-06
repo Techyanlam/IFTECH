@@ -491,14 +491,14 @@
         return '<input type="text" class="input picker-search" id="' + idPrefix + 'Search" placeholder="' + esc(placeholder || "輸入名稱／型號／品牌／花名搜尋") + '" autocomplete="off" />' +
           '<div class="selected-chip" id="' + idPrefix + 'Chip"></div>' +
           '<div class="picker-results hidden" id="' + idPrefix + 'Results"></div>' +
-          '<div class="picker-note" id="' + idPrefix + 'Note"></div>';
+          '<div class="picker-note" id="' + idPrefix + 'PickerNote"></div>';
       }
       function attachPicker(idPrefix, opts) {
         opts = opts || {};
         var input = document.getElementById(idPrefix + "Search");
         var results = document.getElementById(idPrefix + "Results");
         var chip = document.getElementById(idPrefix + "Chip");
-        var note = document.getElementById(idPrefix + "Note");
+        var note = document.getElementById(idPrefix + "PickerNote");
         var state = { selectedId: null };
         function pool() {
           if (opts.onlyStockedAt && opts.stock) {
