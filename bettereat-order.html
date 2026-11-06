@@ -244,7 +244,7 @@ function renderGrid(){
       '<div class="imgwrap"><img src="images/products/' + esc(p.code) + '.jpg" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><div class="ph" style="display:none;">🍰</div></div>' +
       '<div class="body"><div class="name">' + esc(p.name) + '</div>' +
       '<div class="sub">' + esc(p.code) + ' · 單位：' + esc(p.unit) + '</div>' +
-      (p.price !== undefined && p.price !== null && p.price !== "" ? '<div class="price">標準售價：$' + esc(p.price) + '</div>' : '') +
+      (p.price !== undefined && p.price !== null && p.price !== "" ? '<div class="price">標準售價：$' + esc(p.price) + (p.unit ? "/" + esc(p.unit) : "") + '</div>' : '') +
       '<div class="step">' + step + '</div></div></div>';
   });
   document.getElementById("grid").innerHTML = html || '<div style="color:#8a7f70;padding:20px;">冇符合條件嘅產品</div>';
