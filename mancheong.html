@@ -100,6 +100,7 @@
       }
       @media (min-width: 760px) { .nav-btn { text-align: left; padding: 11px 14px; background: transparent; } }
       .nav-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+      .nav-btn.nav-link { display: block; text-decoration: none; }
       .nav-tools { margin-top: 14px; border-top: 1px solid var(--sidebar-alt); padding-top: 12px; display: none; }
       @media (min-width: 760px) { .nav-tools { display: block; margin-top: auto; } }
       .nav-tools .tlabel { font-size: 12px; color: var(--sidebar-dim); padding: 0 8px 6px; }
@@ -460,6 +461,7 @@
       navGrid.innerHTML = TABS.map(function (t) {
         return '<button type="button" class="nav-btn" data-tab="' + t.key + '" aria-pressed="false">' + t.label + "</button>";
       }).join("");
+      navGrid.querySelector('[data-tab="receive"]').insertAdjacentHTML("afterend", '<a class="nav-btn nav-link" href="https://fcnnkklc0uhr.feishu.cn/share/base/form/shrcnMKZHnQNveeWzHUrFc9hdYc" target="_blank" rel="noopener">AI拍照收貨</a>');
       navGrid.addEventListener("click", function (e) {
         var b = e.target.closest("[data-tab]");
         if (!b) return;
