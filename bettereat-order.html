@@ -266,11 +266,10 @@ function loadData(){
     if (pj && pj.products) pj.products.forEach(function(p){
       if (p.product_code) map[p.product_code] = { code: p.product_code, name: p.product_name, unit: p.unit, price: p.standard_price };
     });
-    // 銷售記錄補齊：已售出但未入主檔嘅產品繼續顯示，唔會消失；主檔名／單位為空嗰陣用銷售記錄補返
+    // 銷售記錄補齊：只補返主檔已有產品嘅名／單位；銷售記錄有、主檔冇嘅產品（已喺 T1 刪除）唔再出餐牌，唔會留低冇價錢嘅卡
     recs.forEach(function(r){
       if (!r.product_code) return;
-      if (!map[r.product_code]) { map[r.product_code] = { code: r.product_code, name: r.product_name, unit: r.unit }; }
-      else {
+      if (map[r.product_code]) {
         if (!map[r.product_code].name && r.product_name) map[r.product_code].name = r.product_name;
         if (!map[r.product_code].unit && r.unit) map[r.product_code].unit = r.unit;
       }
