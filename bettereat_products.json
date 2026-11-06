@@ -1,7 +1,7 @@
 {
   "source": "BETTEREAT-Feishu-Base-T1",
-  "generated_at": "2026-11-06T14:22:21+08:00",
-  "count": 58,
+  "generated_at": "2026-11-06T14:22:47+08:00",
+  "count": 57,
   "products": [
     {
       "product_code": "P-001",
@@ -743,19 +743,6 @@
       "sku": "",
       "status": "啟用",
       "remarks": ""
-    },
-    {
-      "product_code": "P-059",
-      "product_name": "斑蘭椰汁千層糕",
-      "category": "蒸糕",
-      "subcategory": "泰式",
-      "cabinet": "常溫",
-      "unit": "盤",
-      "no_of_pcs": 49,
-      "standard_price": 6,
-      "sku": "",
-      "status": "啟用",
-      "remarks": "左欄數字：8"
     }
   ]
 }
