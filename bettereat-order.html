@@ -13,10 +13,12 @@
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f6f4ef; color: #2b2620; padding-bottom: 110px; }
   .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 16px 32px; }
-  header.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 14px 0; background: rgba(246,244,239,.96); border-bottom: 1px solid #e8e0d2; }
+  header.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; row-gap: 8px; padding: 14px 0; background: rgba(246,244,239,.96); border-bottom: 1px solid #e8e0d2; }
   header.top .brand { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
   header.top .brand span { color: #c98a2d; }
   header.top .cartbtn { font-size: 14px; color: #a06a14; border: 1px solid #c98a2d; background: #fdf8ef; padding: 6px 14px; border-radius: 20px; cursor: pointer; }
+  header.top .shopbtns { margin-bottom: 0; }
+  header.top .shopbtn { padding: 6px 14px; font-size: 14px; }
   .meta { color: #8a7f70; font-size: 13px; margin: 14px 0; line-height: 1.6; }
   h2.sec { font-size: 16px; margin: 22px 0 10px; padding-left: 10px; border-left: 4px solid #c98a2d; }
   .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
@@ -102,7 +104,7 @@
   .cartbar button:disabled { opacity: .45; cursor: not-allowed; }
   .foot { color: #a2937f; font-size: 12px; margin-top: 16px; text-align: center; line-height: 1.8; }
   @media (max-width: 1180px) { .grid { grid-template-columns: repeat(3, 1fr); } }
-  @media (max-width: 860px) { .grid { grid-template-columns: repeat(2, 1fr); } .side { width: 260px; flex-basis: 260px; } }
+  @media (max-width: 860px) { .grid { grid-template-columns: repeat(2, 1fr); } .side { width: 260px; flex-basis: 260px; top: 112px; } }
   @media (max-width: 640px) { .main { flex-direction: column; } .side { width: 100%; flex: none; position: static; } }
   @media (max-width: 560px) { .cartbar { flex-wrap: wrap; } .checkout .fields { grid-template-columns: 1fr; } }
   .loginbox { max-width: 420px; margin: 60px auto 0; background: #fff; border-radius: 16px; padding: 28px 24px; box-shadow: 0 4px 20px rgba(60,45,20,.10); text-align: center; }
@@ -142,7 +144,13 @@
 <div class="wrap" id="mainWrap" style="display:none;">
   <header class="top">
     <div class="brand">🍰 BETTEREAT <span>訂購</span></div>
-    <div style="display:flex;gap:8px;">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <div class="shopbtns" id="shopBtns">
+        <button class="shopbtn" id="shopBtn-MJF" onclick="selectShop('謝斐 (MJF)')">謝斐</button>
+        <button class="shopbtn" id="shopBtn-MAP" onclick="selectShop('淘大 (MAP)')">淘大</button>
+        <button class="shopbtn" id="shopBtn-MKH" onclick="selectShop('Aeon (MKH)')">Aeon</button>
+        <button class="shopbtn" id="shopBtn-MMCP" onclick="selectShop('將軍澳 (MMCP)')">將軍澳</button>
+      </div>
       <button class="cartbtn" onclick="openChangePw()">🔑 改密碼</button>
       <button class="cartbtn" onclick="refreshPrices()">🔄 價格更新</button>
       <button class="cartbtn" onclick="scrollToCart()">🛒 已選 <span id="cartCountTop">0</span> 件</button>
@@ -152,14 +160,6 @@
   <div class="loginbar" id="loginBar" style="display:none;"><span class="who" id="loginWho"></span><button class="xbtn" onclick="logout()">登出</button></div>
 
   <div class="meta" id="metaLine">載入餐牌中…</div>
-
-  <div class="shopbtns" id="shopBtns">
-    <span style="font-size:14px;color:#6d6152;">揀邊間店：</span>
-    <button class="shopbtn" id="shopBtn-MJF" onclick="selectShop('謝斐 (MJF)')">謝斐</button>
-    <button class="shopbtn" id="shopBtn-MAP" onclick="selectShop('淘大 (MAP)')">淘大</button>
-    <button class="shopbtn" id="shopBtn-MKH" onclick="selectShop('Aeon (MKH)')">Aeon</button>
-    <button class="shopbtn" id="shopBtn-MMCP" onclick="selectShop('將軍澳 (MMCP)')">將軍澳</button>
-  </div>
 
   <h2 class="sec">撳一下就加 1 件</h2>
   <div class="controls">
