@@ -1,6 +1,6 @@
 {
   "source": "BETTEREAT-Feishu-Base-T1",
-  "generated_at": "2026-11-06T15:55:18+08:00",
+  "generated_at": "2026-11-07T04:30:26+08:00",
   "count": 49,
   "products": [
     {
@@ -14,7 +14,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：1"
+      "remarks": ""
     },
     {
       "product_code": "P-002",
@@ -27,7 +27,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：3"
+      "remarks": ""
     },
     {
       "product_code": "P-003",
@@ -40,7 +40,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：4"
+      "remarks": ""
     },
     {
       "product_code": "P-004",
@@ -53,7 +53,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：2"
+      "remarks": ""
     },
     {
       "product_code": "P-005",
@@ -66,7 +66,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：4"
+      "remarks": ""
     },
     {
       "product_code": "P-006",
@@ -79,7 +79,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：5"
+      "remarks": ""
     },
     {
       "product_code": "P-007",
@@ -92,7 +92,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：3"
+      "remarks": ""
     },
     {
       "product_code": "P-008",
@@ -105,7 +105,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：5"
+      "remarks": ""
     },
     {
       "product_code": "P-009",
@@ -118,7 +118,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：6"
+      "remarks": ""
     },
     {
       "product_code": "P-010",
@@ -131,7 +131,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：4"
+      "remarks": ""
     },
     {
       "product_code": "P-011",
@@ -144,7 +144,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：6"
+      "remarks": ""
     },
     {
       "product_code": "P-012",
@@ -157,7 +157,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：7"
+      "remarks": ""
     },
     {
       "product_code": "P-013",
@@ -170,7 +170,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：5"
+      "remarks": ""
     },
     {
       "product_code": "P-014",
@@ -183,7 +183,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：7"
+      "remarks": ""
     },
     {
       "product_code": "P-015",
@@ -196,7 +196,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：8"
+      "remarks": ""
     },
     {
       "product_code": "P-016",
@@ -209,7 +209,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：6"
+      "remarks": ""
     },
     {
       "product_code": "P-017",
@@ -222,7 +222,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：8"
+      "remarks": ""
     },
     {
       "product_code": "P-018",
@@ -235,7 +235,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：9"
+      "remarks": ""
     },
     {
       "product_code": "P-019",
@@ -248,7 +248,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：7"
+      "remarks": ""
     },
     {
       "product_code": "P-020",
@@ -261,7 +261,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：9"
+      "remarks": ""
     },
     {
       "product_code": "P-021",
@@ -274,7 +274,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "左欄數字：10"
+      "remarks": ""
     },
     {
       "product_code": "P-022",
@@ -521,7 +521,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "單位待確認"
+      "remarks": ""
     },
     {
       "product_code": "P-041",
@@ -534,7 +534,7 @@
       "standard_price": 11,
       "sku": "",
       "status": "啟用",
-      "remarks": "單位待確認"
+      "remarks": ""
     },
     {
       "product_code": "P-042",
