@@ -397,14 +397,21 @@ var ORDER_SEQ_KEY = "bettereat_order_seq";
 function nextOrderNo(){
   var d = new Date();
   var ymd = d.getFullYear() + ("0" + (d.getMonth() + 1)).slice(-2) + ("0" + d.getDate()).slice(-2);
+  // 訂單編號跟店名＋日期出：B + 店代碼 + 日期 + 序號（例如 BMJF20261106-002）。
+  // 序號按店＋日期獨立計，唔同店唔會再撞號（舊格式 B20261106-002 係全店共用序號，
+  // 每部裝置各自計，撞號先搞到飛書改價會掂埋其他店嗰行）。舊格式嘅記錄照舊可以編輯／刪除。
+  // ⚠️ 同一間店用多部裝置嗰陣，序號仍然係每部裝置各自計，同一日同一間店仍有可能撞號；
+  // 要完全杜絕就要 Worker 派號（伺服器計數），嗰個改動大啲，未做。
+  var shop = getRecordsShop();
+  var code = (shop && SHOP_CODES[shop]) ? SHOP_CODES[shop] : "";
   var seq = 1;
   try {
     var raw = localStorage.getItem(ORDER_SEQ_KEY);
     var obj = raw ? JSON.parse(raw) : null;
-    if (obj && obj.date === ymd && obj.seq) seq = obj.seq + 1;
-    localStorage.setItem(ORDER_SEQ_KEY, JSON.stringify({ date: ymd, seq: seq }));
+    if (obj && obj.date === ymd && obj.shop === code && obj.seq) seq = obj.seq + 1;
+    localStorage.setItem(ORDER_SEQ_KEY, JSON.stringify({ date: ymd, shop: code, seq: seq }));
   } catch (e) {}
-  return "B" + ymd + "-" + ("00" + seq).slice(-3);
+  return "B" + code + ymd + "-" + ("00" + seq).slice(-3);
 }
 function getRecordsShop(){
   try { return localStorage.getItem(RECORDS_SHOP_KEY) || ""; } catch (e) { return ""; }
