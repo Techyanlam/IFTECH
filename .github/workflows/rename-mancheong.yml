@@ -1,0 +1,22 @@
+name: Rename temp ManCheong file to mancheong.html
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move temp ManCheong HTML to mancheong.html
+        run: |
+          git config user.name "Techyanlam"
+          git config user.email "Techyanlam@users.noreply.github.com"
+          rm -f mancheong.html
+          git mv mancheong-temp-upload-20261106-182400/mancheong.html mancheong.html
+          git add -A
+          git commit -m "ManCheong: fix transfer/ship confirm (picker note id collision)"
+          git push
