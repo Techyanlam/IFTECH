@@ -1,0 +1,19 @@
+name: Rename warehouse file to man-cheong.html
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rename warehouse HTML to man-cheong.html
+        run: |
+          git config user.name "Techyanlam"
+          git config user.email "Techyanlam@users.noreply.github.com"
+          rm -f man-cheong.html
+          git mv wan-chang-cang-ku-guan-li-shi-yong-xi-tong-du-li-ban.html man-cheong.html
+          git add -A
+          git commit -m "ManCheong: auto-show Feishu pending invoices on receiving page"
+          git push
