@@ -198,6 +198,27 @@
       .modal-box { background: var(--surface); color: var(--text); width: 100%; max-width: 560px; max-height: 88vh; overflow: auto; border-radius: 14px 14px 0 0; padding: 20px; }
       @media (min-width: 760px) { .modal-box { border-radius: 14px; } }
       .modal-box h3 { margin-top: 0; font-size: 18px; }
+      /* 通知彈窗（取代行內橫幅）：文字＋一個「確認」掣 */
+      .notice-back { z-index: 70; }
+      .notice-back .modal-box { border-top: 4px solid var(--ok); }
+      .notice-back.notice-err .modal-box { border-top-color: var(--bad); }
+      .notice-back.notice-warn .modal-box { border-top-color: var(--warn); }
+      #noticeText { font-size: 16px; line-height: 1.6; word-break: break-word; }
+      #noticeText a { font-weight: 700; }
+      /* 手機漢堡選單：窄屏先出 ☰，闊屏維持原有導覽格 */
+      #btnMenu { display: none; }
+      @media (max-width: 759px) {
+        .nav-grid { display: none; }
+        .brand { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 6px; }
+        #btnMenu { display: block; border: 0; border-radius: var(--radius); background: var(--sidebar-alt); color: var(--sidebar-text); font-size: 22px; line-height: 1; padding: 8px 12px; }
+      }
+      .menu-back { position: fixed; inset: 0; background: rgba(6, 20, 24, .55); z-index: 55; display: none; }
+      .menu-back.show { display: block; }
+      .menu-panel { position: absolute; top: 0; left: 0; bottom: 0; width: min(300px, 85vw); background: var(--sidebar); color: var(--sidebar-text); padding: 14px 12px; overflow-y: auto; box-shadow: 2px 0 12px rgba(0, 0, 0, .4); }
+      .menu-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 0 4px; }
+      .menu-head span { font-size: 18px; font-weight: 800; color: #fff; }
+      #btnMenuClose { border: 0; background: transparent; color: var(--sidebar-text); font-size: 20px; padding: 4px 8px; }
+      .menu-panel .nav-btn { display: block; width: 100%; text-align: left; padding: 11px 14px; margin-bottom: 6px; }
       .diff-table { width: 100%; border-collapse: collapse; font-size: 14.5px; margin: 10px 0; }
       .diff-table th, .diff-table td { border: 1px solid var(--grid); padding: 7px 9px; text-align: left; }
       .diff-table td.num { text-align: right; }
@@ -212,8 +233,11 @@
     <div class="layout">
       <nav class="main-nav" aria-label="主要功能">
         <div class="brand">
-          <div class="name">ManCheong</div>
-          <div class="sub">萬昌倉庫管理 · 獨立版</div>
+          <div>
+            <div class="name">ManCheong</div>
+            <div class="sub">萬昌倉庫管理 · 獨立版</div>
+          </div>
+          <button type="button" id="btnMenu" aria-label="打開選單" aria-expanded="false">☰</button>
         </div>
         <div class="nav-grid" id="navGrid"></div>
         <div class="nav-tools">
@@ -243,6 +267,22 @@
           <button type="button" class="btn" id="modalCancel">取消</button>
           <button type="button" class="btn primary" id="modalOk">確認</button>
         </div>
+      </div>
+    </div>
+
+    <div class="modal-back notice-back" id="noticeBack">
+      <div class="modal-box" role="dialog" aria-modal="true">
+        <div id="noticeText"></div>
+        <div class="btn-row">
+          <button type="button" class="btn primary" id="noticeOk">確認</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="menu-back" id="menuBack">
+      <div class="menu-panel">
+        <div class="menu-head"><span>選單</span><button type="button" id="btnMenuClose" aria-label="關閉選單">✕</button></div>
+        <div id="menuList"></div>
       </div>
     </div>
 
@@ -412,12 +452,17 @@
 
       /* ============ 通知／彈窗／下載 ============ */
       var noticeEl = document.getElementById("notice");
+      var noticeBack = document.getElementById("noticeBack");
+      var noticeTextEl = document.getElementById("noticeText");
       function setNotice(msg, type, linkHtml) {
-        noticeEl.className = "notice show " + (type || "ok");
-        noticeEl.innerHTML = esc(msg) + (linkHtml ? " " + linkHtml : "");
-        noticeEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+        noticeTextEl.innerHTML = esc(msg) + (linkHtml ? " " + linkHtml : "");
+        noticeBack.classList.remove("notice-ok", "notice-err", "notice-warn");
+        noticeBack.classList.add("notice-" + (type || "ok"));
+        noticeBack.classList.add("show");
       }
-      function clearNotice() { noticeEl.className = "notice"; noticeEl.innerHTML = ""; }
+      function hideNotice() { noticeBack.classList.remove("show"); }
+      document.getElementById("noticeOk").addEventListener("click", hideNotice);
+      function clearNotice() { noticeEl.className = "notice"; noticeEl.innerHTML = ""; hideNotice(); }
       var modalOkHandler = null;
       function showModal(title, bodyHtml, okLabel, onOk) {
         document.getElementById("modalTitle").textContent = title;
@@ -467,6 +512,30 @@
         if (!b) return;
         tab = b.getAttribute("data-tab");
         render();
+      });
+
+      /* ============ 手機漢堡選單 ============ */
+      var menuBack = document.getElementById("menuBack");
+      var menuList = document.getElementById("menuList");
+      var btnMenu = document.getElementById("btnMenu");
+      function openMenu() {
+        menuList.innerHTML = navGrid.innerHTML;
+        menuBack.classList.add("show");
+        btnMenu.setAttribute("aria-expanded", "true");
+      }
+      function closeMenu() {
+        menuBack.classList.remove("show");
+        btnMenu.setAttribute("aria-expanded", "false");
+      }
+      btnMenu.addEventListener("click", function () {
+        if (menuBack.classList.contains("show")) closeMenu(); else openMenu();
+      });
+      document.getElementById("btnMenuClose").addEventListener("click", closeMenu);
+      menuBack.addEventListener("click", function (e) { if (e.target === menuBack) closeMenu(); });
+      menuList.addEventListener("click", function (e) {
+        var b = e.target.closest("[data-tab]");
+        if (b) { tab = b.getAttribute("data-tab"); render(); closeMenu(); return; }
+        if (e.target.closest("a")) closeMenu();
       });
       var view = document.getElementById("view");
       function render() {
@@ -656,10 +725,16 @@
             if (e.target.checked) {
               var nameInput = card.querySelector(".np-name");
               var searchInput = card.querySelector(".picker-search");
-              if (nameInput && searchInput && !nameInput.value && searchInput.value.trim()) {
+              if (nameInput && searchInput && !nameInput.value && searchInput.value.trim() && !card.getAttribute("data-name-touched")) {
                 nameInput.value = searchInput.value;
               }
             }
+          }
+        });
+        view.querySelector("#rcvItems").addEventListener("input", function (e) {
+          if (e.target.classList.contains("np-name")) {
+            var card = e.target.closest("[data-item]");
+            if (card) card.setAttribute("data-name-touched", "1");
           }
         });
         document.getElementById("btnSaveReceive").addEventListener("click", saveReceive);
