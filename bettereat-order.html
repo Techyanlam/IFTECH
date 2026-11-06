@@ -898,31 +898,36 @@ function cartMatchesVerify(){
   return verifyOrig.every(function(o){ return map[o.code] === o.qty; });
 }
 var SALES_WORKER_URL = "https://bettereat-sales-proxy.yan-lam.workers.dev";
+// 一行本地記錄轉做 Worker 收嘅 line 格式；唔合規格返 null（提交／編輯同步共用）
+function recordToLine(r){
+  if (!r) return null;
+  var rt = splitRecordTime(r.time);
+  if (!r.order || !/^B\d{8}-\d{3}$/.test(r.order)) return null;
+  if (!rt.date || rt.date === "—" || !/^\d{4}-\d{2}-\d{2}$/.test(rt.date)) return null;
+  var q = parseInt(r.qty, 10);
+  var p = parseFloat(r.price), s = parseFloat(r.subtotal);
+  if (!validQty(q) || !validPrice(p) || !validPrice(s)) return null;
+  return {
+    order: r.order,
+    recordDate: rt.date,
+    recordTime: (rt.time && rt.time !== "—") ? String(rt.time).slice(0, 5) : "",
+    store: r.store,
+    product: String(r.product || ""),
+    qty: q,
+    price: p,
+    subtotal: s,
+    reason: r.reason || "",
+    remarks: r.remarks || ""
+  };
+}
 // 確認提交嗰下，將呢張單嘅行即刻 POST 去 Cloudflare Worker，寫入飛書「銷售紀錄」表。
 // localStorage 記錄一定先存好，同步失敗唔會影響本地記錄；Worker 未加 FEISHU_APP_SECRET 之前一定失敗（屬正常）。
 function syncSalesToFeishu(rows, statusEl){
   if (!rows || !rows.length) return;
   var lines = [];
   for (var i = 0; i < rows.length; i++) {
-    var r = rows[i];
-    var rt = splitRecordTime(r.time);
-    if (!r.order || !/^B\d{8}-\d{3}$/.test(r.order)) continue;
-    if (!rt.date || rt.date === "—" || !/^\d{4}-\d{2}-\d{2}$/.test(rt.date)) continue;
-    var q = parseInt(r.qty, 10);
-    var p = parseFloat(r.price), s = parseFloat(r.subtotal);
-    if (!validQty(q) || !validPrice(p) || !validPrice(s)) continue;
-    lines.push({
-      order: r.order,
-      recordDate: rt.date,
-      recordTime: (rt.time && rt.time !== "—") ? String(rt.time).slice(0, 5) : "",
-      store: r.store,
-      product: String(r.product || ""),
-      qty: q,
-      price: p,
-      subtotal: s,
-      reason: r.reason || "",
-      remarks: r.remarks || ""
-    });
+    var line = recordToLine(rows[i]);
+    if (line) lines.push(line);
   }
   if (!lines.length) return;
   var done = false;
@@ -941,6 +946,60 @@ function syncSalesToFeishu(rows, statusEl){
   }).catch(function(){
     if (timer) clearTimeout(timer);
     finish("未能同步去飛書（記錄已存喺呢部裝置），稍後可再提交。");
+  });
+}
+// 編輯記錄之後（改價／改數量／改原因），將改好嗰行即刻 POST 去 Worker 更新飛書「銷售紀錄」嗰行。
+// 本地記錄一定先存好，同步失敗唔會影響本地記錄；下次再編輯同一行會再試同步一次。
+// 如果飛書嗰邊搵唔到嗰行（例如原本提交嗰陣同步失敗），Worker 會補返成行。
+function syncEditToFeishu(r){
+  var st = document.getElementById("recordsStatus");
+  var line = recordToLine(r);
+  if (!line) {
+    if (st) { st.textContent = "更新未能同步去飛書（記錄資料不完整）。"; st.className = "status err"; }
+    return;
+  }
+  if (st) { st.textContent = "已更新本地記錄，同步緊去飛書…"; st.className = "status"; }
+  var ctrl = null, timer = null;
+  try { ctrl = new AbortController(); timer = setTimeout(function(){ try { ctrl.abort(); } catch (e) {} }, 20000); } catch (e) { ctrl = null; }
+  var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "update", line: line }) };
+  if (ctrl) opts.signal = ctrl.signal;
+  fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
+    if (timer) clearTimeout(timer);
+    if (!st) return;
+    if (j && j.ok) {
+      st.textContent = j.created ? "已同步更新去飛書「銷售紀錄」（原本冇嗰行，已經補返）。" : "已同步更新去飛書「銷售紀錄」。";
+      st.className = "status ok";
+    } else {
+      st.textContent = "更新未能同步去飛書（記錄已存喺呢部裝置）。";
+      st.className = "status err";
+    }
+  }).catch(function(){
+    if (timer) clearTimeout(timer);
+    if (st) { st.textContent = "更新未能同步去飛書（記錄已存喺呢部裝置）。"; st.className = "status err"; }
+  });
+}
+// 刪除一行記錄之後，將飛書「銷售紀錄」嗰行刪埋。飛書本來已經冇嗰行都算成功。
+// 注意：成個記錄表「清空」唔會同步——嗰個只係清呢部裝置嘅記錄，唔係刪除飛書數據。
+function syncDeleteToFeishu(order, product){
+  var st = document.getElementById("recordsStatus");
+  if (st) { st.textContent = "已刪除本地記錄，同步緊去飛書…"; st.className = "status"; }
+  var ctrl = null, timer = null;
+  try { ctrl = new AbortController(); timer = setTimeout(function(){ try { ctrl.abort(); } catch (e) {} }, 20000); } catch (e) { ctrl = null; }
+  var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete", order: order, product: product }) };
+  if (ctrl) opts.signal = ctrl.signal;
+  fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
+    if (timer) clearTimeout(timer);
+    if (!st) return;
+    if (j && j.ok) {
+      st.textContent = j.deleted ? "已同步刪除飛書「銷售紀錄」嗰行。" : "飛書嗰邊本來已經冇嗰行，本地記錄已刪除。";
+      st.className = "status ok";
+    } else {
+      st.textContent = "刪除未能同步去飛書（本地記錄已刪除）。";
+      st.className = "status err";
+    }
+  }).catch(function(){
+    if (timer) clearTimeout(timer);
+    if (st) { st.textContent = "刪除未能同步去飛書（本地記錄已刪除）。"; st.className = "status err"; }
   });
 }
 function confirmVerifiedSubmit(){
@@ -1046,13 +1105,18 @@ function saveEditedRecord(i){
   saveRecords(arr);
   editingIndex = -1; editDraft = null;
   renderRecords();
+  syncEditToFeishu(r);
 }
 function deleteRecord(i){
   var arr = loadRecords();
+  var r = arr[i];
+  if (!r) return;
+  var order = r.order, product = r.product;
   arr.splice(i, 1);
   saveRecords(arr);
   editingIndex = -1; editDraft = null;
   renderRecords();
+  syncDeleteToFeishu(order, product);
 }
 function clearRecords(){
   var shop = getRecordsShop();
