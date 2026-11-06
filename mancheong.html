@@ -653,6 +653,13 @@
           if (e.target.classList.contains("is-new")) {
             var card = e.target.closest("[data-item]");
             card.querySelector(".new-fields").classList.toggle("hidden", !e.target.checked);
+            if (e.target.checked) {
+              var nameInput = card.querySelector(".np-name");
+              var searchInput = card.querySelector(".picker-search");
+              if (nameInput && searchInput && !nameInput.value && searchInput.value.trim()) {
+                nameInput.value = searchInput.value;
+              }
+            }
           }
         });
         document.getElementById("btnSaveReceive").addEventListener("click", saveReceive);
