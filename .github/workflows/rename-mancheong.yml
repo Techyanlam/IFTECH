@@ -13,8 +13,10 @@ jobs:
       - uses: actions/checkout@v4
       - name: Move temp upload over mancheong.html
         run: |
-          git config user.name "Techyanlam"
-          git config user.email "techyanlam@users.noreply.github.com"
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          rm -f mancheong.html
           git mv mancheong-temp-upload-20261106-215500/mancheong.html mancheong.html
           git add -A
           git commit -m "ManCheong: write back warehouse to Feishu on receipt confirm" || echo "nothing to commit"
