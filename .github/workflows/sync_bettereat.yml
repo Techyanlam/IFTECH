@@ -3,6 +3,8 @@ on:
   schedule:
     - cron: "30 14 * * *"  # 22:30 HKT nightly (Yan's stated intent 2026-10-24; see note below)
   workflow_dispatch:
+  repository_dispatch:
+    types: [sync_bettereat]
 permissions:
   contents: write
 jobs:
