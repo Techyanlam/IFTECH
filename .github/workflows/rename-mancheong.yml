@@ -1,0 +1,22 @@
+name: Rename mancheong temp file
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move temp file over mancheong.html
+        run: |
+          git config user.name "Techyanlam"
+          git config user.email "Techyanlam@users.noreply.github.com"
+          rm -f mancheong.html
+          git mv tmp-mancheong-replace-20261107/mancheong.html mancheong.html
+          git status --short
+          git commit -m "ManCheong: remove packaging photo recognition from receiving page"
+          git push
