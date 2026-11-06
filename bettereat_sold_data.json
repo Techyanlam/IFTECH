@@ -1,7 +1,7 @@
 {
   "source": "BETTEREAT-Feishu-Base",
   "date": "2026-11-06",
-  "generated_at": "2026-11-06T15:45:44+08:00",
+  "generated_at": "2026-11-06T15:55:44+08:00",
   "records": [
     {
       "store": "MAP",
@@ -41,7 +41,7 @@
       "allocated_pans": 10.0,
       "no_of_pcs": null,
       "remaining_pcs": 0.0,
-      "sold_pcs": 490
+      "sold_pcs": 10
     },
     {
       "store": "MAP",
@@ -51,7 +51,7 @@
       "allocated_pans": 10.0,
       "no_of_pcs": null,
       "remaining_pcs": 0.0,
-      "sold_pcs": 490
+      "sold_pcs": 10
     },
     {
       "store": "MAP",
@@ -61,7 +61,7 @@
       "allocated_pans": 10.0,
       "no_of_pcs": null,
       "remaining_pcs": 0.0,
-      "sold_pcs": 490
+      "sold_pcs": 10
     },
     {
       "store": "MAP",
@@ -71,7 +71,7 @@
       "allocated_pans": 10.0,
       "no_of_pcs": null,
       "remaining_pcs": 0.0,
-      "sold_pcs": 490
+      "sold_pcs": 10
     },
     {
       "store": "MAP",
@@ -151,7 +151,7 @@
       "allocated_pans": 12.0,
       "no_of_pcs": null,
       "remaining_pcs": 0.0,
-      "sold_pcs": 588
+      "sold_pcs": 12
     },
     {
       "store": "MJF",
@@ -161,7 +161,7 @@
       "allocated_pans": 10.0,
       "no_of_pcs": null,
       "remaining_pcs": 0.0,
-      "sold_pcs": 490
+      "sold_pcs": 10
     },
     {
       "store": "MJF",
@@ -171,7 +171,7 @@
       "allocated_pans": 20.0,
       "no_of_pcs": null,
       "remaining_pcs": 0.0,
-      "sold_pcs": 980
+      "sold_pcs": 20
     },
     {
       "store": "MJF",
@@ -251,7 +251,7 @@
       "allocated_pans": 12.0,
       "no_of_pcs": null,
       "remaining_pcs": 0.0,
-      "sold_pcs": 588
+      "sold_pcs": 12
     },
     {
       "store": "MKH",
@@ -261,7 +261,7 @@
       "allocated_pans": 10.0,
       "no_of_pcs": null,
       "remaining_pcs": 0.0,
-      "sold_pcs": 490
+      "sold_pcs": 10
     },
     {
       "store": "MKH",
@@ -271,7 +271,7 @@
       "allocated_pans": 15.0,
       "no_of_pcs": null,
       "remaining_pcs": 0.0,
-      "sold_pcs": 735
+      "sold_pcs": 15
     },
     {
       "store": "MKH",
@@ -281,7 +281,7 @@
       "allocated_pans": 10.0,
       "no_of_pcs": null,
       "remaining_pcs": 0.0,
-      "sold_pcs": 490
+      "sold_pcs": 10
     },
     {
       "store": "MKH",
@@ -291,7 +291,7 @@
       "allocated_pans": 20.0,
       "no_of_pcs": null,
       "remaining_pcs": 0.0,
-      "sold_pcs": 980
+      "sold_pcs": 20
     },
     {
       "store": "MKH",
@@ -13762,7 +13762,7 @@
         "allocated_pans": 10.0,
         "no_of_pcs": null,
         "remaining_pcs": 0.0,
-        "sold_pcs": 490
+        "sold_pcs": 10
       },
       {
         "store": "MAP",
@@ -13772,7 +13772,7 @@
         "allocated_pans": 10.0,
         "no_of_pcs": null,
         "remaining_pcs": 0.0,
-        "sold_pcs": 490
+        "sold_pcs": 10
       },
       {
         "store": "MAP",
@@ -13782,7 +13782,7 @@
         "allocated_pans": 10.0,
         "no_of_pcs": null,
         "remaining_pcs": 0.0,
-        "sold_pcs": 490
+        "sold_pcs": 10
       },
       {
         "store": "MAP",
@@ -13792,7 +13792,7 @@
         "allocated_pans": 10.0,
         "no_of_pcs": null,
         "remaining_pcs": 0.0,
-        "sold_pcs": 490
+        "sold_pcs": 10
       },
       {
         "store": "MAP",
@@ -13872,7 +13872,7 @@
         "allocated_pans": 12.0,
         "no_of_pcs": null,
         "remaining_pcs": 0.0,
-        "sold_pcs": 588
+        "sold_pcs": 12
       },
       {
         "store": "MJF",
@@ -13882,7 +13882,7 @@
         "allocated_pans": 10.0,
         "no_of_pcs": null,
         "remaining_pcs": 0.0,
-        "sold_pcs": 490
+        "sold_pcs": 10
       },
       {
         "store": "MJF",
@@ -13892,7 +13892,7 @@
         "allocated_pans": 20.0,
         "no_of_pcs": null,
         "remaining_pcs": 0.0,
-        "sold_pcs": 980
+        "sold_pcs": 20
       },
       {
         "store": "MJF",
@@ -13972,7 +13972,7 @@
         "allocated_pans": 12.0,
         "no_of_pcs": null,
         "remaining_pcs": 0.0,
-        "sold_pcs": 588
+        "sold_pcs": 12
       },
       {
         "store": "MKH",
@@ -13982,7 +13982,7 @@
         "allocated_pans": 10.0,
         "no_of_pcs": null,
         "remaining_pcs": 0.0,
-        "sold_pcs": 490
+        "sold_pcs": 10
       },
       {
         "store": "MKH",
@@ -13992,7 +13992,7 @@
         "allocated_pans": 15.0,
         "no_of_pcs": null,
         "remaining_pcs": 0.0,
-        "sold_pcs": 735
+        "sold_pcs": 15
       },
       {
         "store": "MKH",
@@ -14002,7 +14002,7 @@
         "allocated_pans": 10.0,
         "no_of_pcs": null,
         "remaining_pcs": 0.0,
-        "sold_pcs": 490
+        "sold_pcs": 10
       },
       {
         "store": "MKH",
@@ -14012,7 +14012,7 @@
         "allocated_pans": 20.0,
         "no_of_pcs": null,
         "remaining_pcs": 0.0,
-        "sold_pcs": 980
+        "sold_pcs": 20
       },
       {
         "store": "MKH",
