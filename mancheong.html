@@ -577,6 +577,7 @@
       var receivePickers = [];
       var receiveItemCount = 1;
       var feishuReceipts = [];
+      var feishuReceivedSession = {};
       var fsRcvFetching = false;
       var fsAutoTimer = null;
       function allocRowHtml(loc, qty) {
@@ -611,7 +612,7 @@
           '<p class="page-sub">影低包裝相、核對產品同數量，確認先入庫存；同一批貨可以逐項加，每項可拆去多個倉位。</p>' +
           '<div class="card">' +
           '<h3 style="margin-top:0">飛書收貨單</h3>' +
-          '<div class="small">下面係飛書收貨表入面嘅收貨行（最新先排未入倉嘅）；撳其中一行，就會將貨品同數量填入下面收貨卡片，你核對完、揀好入倉位置，先撳「確認收貨」入庫存。呢度只係讀取，唔會寫返入飛書。</div>' +
+          '<div class="small">下面係飛書收貨表入面嘅收貨行（最新先排未入倉嘅）；撳其中一行，就會將貨品同數量填入下面收貨卡片，你核對完、揀好入倉位置，先撳「確認收貨」入庫存。確認收貨嗰陣，會將第一個入倉位置寫返去飛書嗰張單嘅入倉欄。</div>' +
           '<div class="btn-row"><button type="button" class="btn primary" id="btnFetchFsRcv">由飛書攞最新收貨單</button></div>' +
           '<div class="small mt8" id="fsRcvStatus"></div>' +
           '<div id="fsRcvList"></div>' +
@@ -705,6 +706,10 @@
           var card = cards[cards.length - 1];
           if (!card) return;
           var idx = parseInt(card.getAttribute("data-item"), 10);
+          if (inv.origin && inv.origin.recordId) {
+            card.setAttribute("data-origin-record", inv.origin.recordId);
+            if (inv.origin.grNo) card.setAttribute("data-origin-grno", inv.origin.grNo);
+          }
           var pid = it.part ? matchProduct({ partNumber: it.part, productName: it.part }) : null;
           var note = document.createElement("div");
           note.className = "picker-note";
@@ -735,11 +740,21 @@
         else setNotice("已將" + kindWord + tag + "填入下面，共 " + matched + " 項。請逐項揀入倉位置，核對後撳「確認收貨」。", "ok");
       }
       function fsApplyReceipt(rc) {
+        if (rc.recordId) {
+          var cards = view.querySelectorAll("[data-item]");
+          for (var i = 0; i < cards.length; i++) {
+            if (cards[i].getAttribute("data-origin-record") === rc.recordId) {
+              setNotice((rc.grNo || "呢張飛書收貨單") + " 已經填好喺下面。", "warn");
+              return;
+            }
+          }
+        }
         fsApplyInvoice({
           docNo: rc.grNo || rc.recordId,
           supplier: rc.supplier,
           kindWord: "飛書收貨單",
-          items: [{ part: rc.part, qty: rc.qty }]
+          items: [{ part: rc.part, qty: rc.qty }],
+          origin: rc.recordId ? { recordId: rc.recordId, grNo: rc.grNo || "" } : null
         });
       }
       function fsRcvSetStatus(msg) {
@@ -763,11 +778,15 @@
           warehouseAssigned: raw.warehouse_assigned === true || raw.warehouseAssigned === true
         };
       }
+      function fsRcvVisibleList() {
+        return feishuReceipts.filter(function (rc) { return !(rc.recordId && feishuReceivedSession[rc.recordId]); });
+      }
       function fsRcvRenderList() {
         var wrap = document.getElementById("fsRcvList");
         if (!wrap) return;
-        if (!feishuReceipts.length) { wrap.innerHTML = ""; return; }
-        var sorted = feishuReceipts.slice().sort(function (a, b) {
+        var visible = fsRcvVisibleList();
+        if (!visible.length) { wrap.innerHTML = ""; return; }
+        var sorted = visible.slice().sort(function (a, b) {
           if (a.warehouseAssigned !== b.warehouseAssigned) return a.warehouseAssigned ? 1 : -1;
           return (b.created || "").localeCompare(a.created || "");
         });
@@ -791,6 +810,27 @@
         var now = new Date();
         function p2(n) { return String(n).padStart(2, "0"); }
         el.textContent = "上次更新 " + p2(now.getHours()) + ":" + p2(now.getMinutes()) + ":" + p2(now.getSeconds());
+      }
+      function fsAssignWarehouse(recordId, warehouse) {
+        var controller = null, timeoutId = null;
+        var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ record_id: recordId, warehouse: warehouse }) };
+        if (window.AbortController) {
+          controller = new AbortController();
+          opts.signal = controller.signal;
+          timeoutId = setTimeout(function () { try { controller.abort(); } catch (e) {} }, 60000);
+        }
+        return fetch("https://man-cheong-feishu-sync.yan-lam.workers.dev/assign", opts).then(function (resp) {
+          return resp.json().catch(function () { return null; }).then(function (data) {
+            return { ok: resp.ok, data: data };
+          });
+        }).then(function (r) {
+          if (timeoutId) clearTimeout(timeoutId);
+          if (!r.ok) return false;
+          if (!r.data) return false;
+          if (r.data.error) return false;
+          if (r.data.ok === false) return false;
+          return true;
+        }).catch(function () { if (timeoutId) clearTimeout(timeoutId); return false; });
       }
       function fsRcvFetch() {
         if (fsRcvFetching) return;
@@ -836,8 +876,9 @@
           feishuReceipts = list.map(fsNormReceipt).filter(Boolean);
           fsRcvRenderList();
           fsRcvStampUpdated();
-          if (!feishuReceipts.length) fsRcvSetStatus("飛書已回覆：暫時冇收貨單。");
-          else fsRcvSetStatus("攞到 " + feishuReceipts.length + " 張收貨單，未入倉嘅排先；撳其中一張就會將貨品同數量填入下面收貨卡片。");
+          var visibleCount = fsRcvVisibleList().length;
+          if (!visibleCount) fsRcvSetStatus("飛書已回覆：暫時冇收貨單。");
+          else fsRcvSetStatus("攞到 " + visibleCount + " 張收貨單，未入倉嘅排先；撳其中一張就會將貨品同數量填入下面收貨卡片。");
         }).catch(function (err) {
           if (timeoutId) clearTimeout(timeoutId);
           fsRcvFetching = false;
@@ -933,6 +974,8 @@
           var idx = parseInt(card.getAttribute("data-item"), 10);
           var isNew = card.querySelector(".is-new").checked;
           var item = { allocations: [] };
+          var orec = card.getAttribute("data-origin-record");
+          if (orec) item.origin = { recordId: orec, grNo: card.getAttribute("data-origin-grno") || "" };
           if (isNew) {
             item.newProduct = {
               name: card.querySelector(".np-name").value.trim(),
@@ -989,7 +1032,33 @@
         });
         rebuildMaps();
         receivePhoto = null;
-        setNotice("收貨完成：" + grs.join("、") + "，共 " + items.length + " 項，已入庫存。記得匯出備份 JSON 保存今次更改。");
+        var baseMsg = "收貨完成：" + grs.join("、") + "，共 " + items.length + " 項，已入庫存。記得匯出備份 JSON 保存今次更改。";
+        setNotice(baseMsg);
+        var origins = [];
+        var seenRec = {};
+        items.forEach(function (item) {
+          if (item.origin && item.origin.recordId && !seenRec[item.origin.recordId]) {
+            seenRec[item.origin.recordId] = true;
+            origins.push({ recordId: item.origin.recordId, grNo: item.origin.grNo || "", warehouse: (item.allocations && item.allocations.length) ? item.allocations[0].location : "" });
+          }
+        });
+        if (origins.length) {
+          origins.forEach(function (o) { feishuReceivedSession[o.recordId] = true; });
+          render();
+          var toAssign = origins.filter(function (o) { return !!o.warehouse; });
+          var noAlloc = origins.filter(function (o) { return !o.warehouse; });
+          Promise.all(toAssign.map(function (o) {
+            return fsAssignWarehouse(o.recordId, o.warehouse).then(function (ok) { return { o: o, ok: ok }; });
+          })).then(function (results) {
+            var failed = results.filter(function (r) { return !r.ok; }).map(function (r) { return r.o.grNo || r.o.recordId; });
+            var okGrNos = results.filter(function (r) { return r.ok; }).map(function (r) { return r.o.grNo || r.o.recordId; });
+            var failedAll = failed.concat(noAlloc.map(function (o) { return o.grNo || o.recordId; }));
+            if (tab === "receive") fsRcvFetch();
+            if (!failedAll.length) setNotice(baseMsg + " 已同步標示飛書入倉：" + okGrNos.join("、") + "。", "ok");
+            else setNotice(baseMsg + " 本地收貨已存，但同步飛書入倉失敗（" + failedAll.join("、") + "），請喺飛書手動揀入倉。", "warn");
+          });
+          return;
+        }
         render();
       }
       function saveReceive() {
