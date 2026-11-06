@@ -108,8 +108,9 @@
   <h2 class="sec">撳一下就加 1 件</h2>
   <div class="controls">
     <input type="text" id="searchInput" placeholder="搜尋產品名稱／編號">
+    <button class="xbtn primary" onclick="refreshPrices()">🔄 價格更新</button>
   </div>
-  <div class="note">撳產品圖就加 1 件；已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。記得先喺上面揀邊間店；揀好產品之後，下面會直接出「核實金額」表，確認之後「訂單記錄」就會生成記錄，一個產品一行。</div>
+  <div class="note">撳產品圖就加 1 件；已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。如果飛書改咗價，撳上面「🔄 價格更新」就會即時讀取最新價錢，唔使重新載入成頁。記得先喺上面揀邊間店；揀好產品之後，下面會直接出「核實金額」表，確認之後「訂單記錄」就會生成記錄，一個產品一行。</div>
   <div class="grid" id="grid"></div>
 
   <h2 class="sec" id="cartTitle">🛒 已選訂單</h2>
@@ -185,7 +186,7 @@ function esc(s){ return String(s == null ? "" : s).replace(/&/g, "&amp;").replac
 function loadData(){
   var soldP = fetch(DATA_URL + "?t=" + Date.now()).then(function(r){ return r.json(); });
   var prodP = fetch(PRODUCTS_URL + "?t=" + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; });
-  Promise.all([soldP, prodP]).then(function(res){
+  return Promise.all([soldP, prodP]).then(function(res){
     var j = res[0], pj = res[1];
     var recs = j.records || [];
     if ((!recs || !recs.length) && j.history && j.date) recs = j.history[j.date] || [];
@@ -210,6 +211,18 @@ function loadData(){
     updateCart();
   }).catch(function(){
     document.getElementById("metaLine").textContent = "暫時讀取唔到餐牌，請稍後重新整理。";
+  });
+}
+// 「🔄 價格更新」掣：即時重新讀取飛書最新價錢，唔使重新載入成頁；已喺核實面板改過嘅價錢會保留
+function refreshPrices(){
+  var p = loadData();
+  var m = document.getElementById("metaLine");
+  if (m) m.textContent = "更新緊價錢…";
+  if (p && p.then) p.then(function(){
+    var m2 = document.getElementById("metaLine");
+    var d = new Date();
+    function p2(n){ return (n < 10 ? "0" : "") + n; }
+    if (m2 && m2.textContent.indexOf("餐牌更新") === 0) m2.textContent += " ｜ 已於 " + p2(d.getHours()) + ":" + p2(d.getMinutes()) + " 更新價格";
   });
 }
 function visibleProducts(){
