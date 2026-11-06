@@ -697,8 +697,39 @@
           s.onerror = function () { finish("識別工具載入失敗。請直接喺下面人手揀產品同入數量。"); };
           document.head.appendChild(s);
         }
+        function compressImageForAi(dataUrl, callback) {
+          try {
+            var img = new Image();
+            img.onload = function () {
+              try {
+                var w = img.naturalWidth || img.width;
+                var h = img.naturalHeight || img.height;
+                if (!w || !h) { callback(dataUrl); return; }
+                var maxEdge = 1280;
+                var scale = Math.min(1, maxEdge / Math.max(w, h));
+                if (scale >= 1 && dataUrl.length < 800000) { callback(dataUrl); return; }
+                var cw = Math.max(1, Math.round(w * scale));
+                var ch = Math.max(1, Math.round(h * scale));
+                var canvas = document.createElement("canvas");
+                canvas.width = cw;
+                canvas.height = ch;
+                var ctx = canvas.getContext("2d");
+                if (!ctx) { callback(dataUrl); return; }
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(0, 0, cw, ch);
+                ctx.drawImage(img, 0, 0, cw, ch);
+                var out = "";
+                try { out = canvas.toDataURL("image/jpeg", 0.7); } catch (e2) { out = ""; }
+                callback(out || dataUrl);
+              } catch (e) { callback(dataUrl); }
+            };
+            img.onerror = function () { callback(dataUrl); };
+            img.src = dataUrl;
+          } catch (e) { callback(dataUrl); }
+        }
         function fallbackToLocal(msg) {
           status.textContent = msg;
+          setNotice(msg, "warn");
           setTimeout(startLocalOcr, 500);
         }
         function matchAiItem(it) {
@@ -735,22 +766,27 @@
           return prod;
         }
         function tryAi() {
+          status.textContent = "正在縮細相片（最長邊 1280px）後傳去 AI 識別…";
+          compressImageForAi(receivePhoto.dataUrl, function (aiImage) {
+          status.textContent = "正在用 AI 識別相片（最長等候 180 秒）…";
           var controller = null;
           var timeoutId = null;
+          var timedOut = false;
           var fetchOpts = {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ image: receivePhoto.dataUrl })
+            body: JSON.stringify({ image: aiImage })
           };
           if (window.AbortController) {
             controller = new AbortController();
             fetchOpts.signal = controller.signal;
-            timeoutId = setTimeout(function () { try { controller.abort(); } catch (e) {} }, 60000);
+            timeoutId = setTimeout(function () { timedOut = true; try { controller.abort(); } catch (e) {} }, 180000);
           }
           fetch("https://man-cheong-ai-proxy.yan-lam.workers.dev", fetchOpts).then(function (resp) {
             if (timeoutId) clearTimeout(timeoutId);
+            if (!resp.ok) { fallbackToLocal("AI 識別出錯，現改用本機識別。"); return; }
             return resp.json().catch(function () { return null; }).then(function (data) {
-              if (!data || data.error) { fallbackToLocal("AI 識別唔到，現改用本機識別…"); return; }
+              if (!data || data.error) { fallbackToLocal("AI 識別出錯，現改用本機識別。"); return; }
               var items = Array.isArray(data.items) ? data.items : [];
               var supplierVal = null;
               items.forEach(function (it) {
@@ -774,13 +810,15 @@
                 }
                 found.push({ productId: prod.id, qty: qty });
               });
-              if (!found.length) { fallbackToLocal("AI 識別完成：未配對到主檔型號，現改用本機識別…"); return; }
+              if (!found.length) { fallbackToLocal("AI 識別完成，但未配對到主檔產品，現改用本機識別再試。"); return; }
               fillFoundCards(found);
               finish("AI 識別完成：配對到 " + found.length + " 項產品，已填入下面卡片，請逐項核對數量同入倉位置。");
             });
-          }).catch(function () {
+          }).catch(function (err) {
             if (timeoutId) clearTimeout(timeoutId);
-            fallbackToLocal("AI 識別唔到，現改用本機識別…");
+            if (timedOut || (err && err.name === "AbortError")) { fallbackToLocal("AI 識別逾時，現改用本機識別。"); return; }
+            fallbackToLocal("AI 識別出錯，現改用本機識別。");
+          });
           });
         }
         function start() {
