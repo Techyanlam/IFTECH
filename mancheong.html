@@ -276,8 +276,8 @@
         var out = {
           locations: (d.locations || []).map(function (l) {
             return Array.isArray(l)
-              ? { id: l[0], name: l[1], kind: l[2] || null, sortOrder: l[3] || 0 }
-              : { id: l.id, name: l.name, kind: l.kind || null, sortOrder: l.sortOrder || 0 };
+              ? { id: l[0], name: l[1], kind: l[2] || null, sortOrder: l[3] || 0, fsId: l[4] || null }
+              : { id: l.id, name: l.name, kind: l.kind || null, sortOrder: l.sortOrder || 0, fsId: l.fsId || null };
           }),
           products: (d.products || []).map(function (p) {
             return Array.isArray(p)
@@ -942,6 +942,76 @@
           if (!r.ok || !r.data || r.data.error || r.data.ok === false) return false;
           return true;
         }).catch(function () { if (timeoutId) clearTimeout(timeoutId); return false; });
+      }
+      // 倉位雙向同步：飛書 倉庫主檔 <-> 本地位置清單。
+      // fsId = 飛書 record_id（備份 JSON 會一齊存返，restore 嗰陣經 normalizeData 保留）。
+      var fsLocCacheAt = 0;
+      var fsLocPromise = null;
+      function fsLocPost(body) {
+        // POST /location-write；成功就傳回 Worker 嘅 data（帶 record_id），失敗就 false。
+        var controller = null, timeoutId = null;
+        var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+        if (window.AbortController) {
+          controller = new AbortController();
+          opts.signal = controller.signal;
+          timeoutId = setTimeout(function () { try { controller.abort(); } catch (e) {} }, 60000);
+        }
+        return fetch(FS_SYNC_BASE + "/location-write", opts).then(function (resp) {
+          return resp.json().catch(function () { return null; }).then(function (data) {
+            return { ok: resp.ok, data: data };
+          });
+        }).then(function (r) {
+          if (timeoutId) clearTimeout(timeoutId);
+          if (!r.ok || !r.data || r.data.error || r.data.ok === false) return false;
+          return r.data;
+        }).catch(function () { if (timeoutId) clearTimeout(timeoutId); return false; });
+      }
+      function fsLocFetch() {
+        // GET /locations，合併入 DB.locations；有變動就傳回 true。
+        // 5 分鐘內唔重複攞。飛書嗰邊空晒就當攞唔到，唔好誤刪本地位置。
+        if (Date.now() - fsLocCacheAt < 300000) return Promise.resolve(false);
+        if (fsLocPromise) return fsLocPromise;
+        fsLocPromise = fetch(FS_SYNC_BASE + "/locations").then(function (resp) {
+          return resp.json().catch(function () { return null; });
+        }).then(function (data) {
+          if (!data || !Array.isArray(data.locations) || data.locations.length === 0) return false;
+          fsLocCacheAt = Date.now();
+          var changed = false;
+          var seen = {};
+          data.locations.forEach(function (w) {
+            if (!w || !w.name) return;
+            seen[w.record_id] = true;
+            var loc = DB.locations.find(function (l) { return l.name === w.name; });
+            if (loc) {
+              if (loc.fsId !== w.record_id) { loc.fsId = w.record_id; changed = true; }
+            } else {
+              var maxSort = DB.locations.reduce(function (m, l) { return Math.max(m, l.sortOrder); }, 0);
+              DB.locations.push({ id: nextId(DB.locations), name: w.name, kind: (w.type === "倉庫" || w.type === "門市") ? w.type : "區域", sortOrder: maxSort + 1, fsId: w.record_id });
+              changed = true;
+            }
+          });
+          // 飛書刪咗、本地仲有 fsId、又無存貨嘅位置，本地一齊刪。
+          var stock = computeStock();
+          var kept = DB.locations.filter(function (l) {
+            if (!l.fsId || seen[l.fsId]) return true;
+            var st = locationStats(stock)[l.name] || { kinds: 0, qty: 0 };
+            if (st.kinds > 0) return true;
+            changed = true;
+            return false;
+          });
+          if (kept.length !== DB.locations.length) DB.locations = kept;
+          if (changed) { DB.locations.sort(function (a, b) { return a.sortOrder - b.sortOrder || a.id - b.id; }); rebuildMaps(); }
+          return changed;
+        }).catch(function () { return false; }).then(function (changed) { fsLocPromise = null; return changed; });
+        return fsLocPromise;
+      }
+      function fsLocSyncLocal() {
+        // 本地有、飛書未有（無 fsId）嘅位置，補寫去飛書（例如之前寫入失敗嗰陣留低嘅）。
+        DB.locations.filter(function (l) { return !l.fsId; }).forEach(function (l) {
+          fsLocPost({ action: "add", name: l.name, kind: l.kind || "" }).then(function (r) {
+            if (r && r.ok && r.record_id) l.fsId = r.record_id;
+          });
+        });
       }
       // 新產品寫入飛書商品信息表（POST /add-product）；成功或已存在都算 ok。
       function fsProductPost(np) {
@@ -1645,6 +1715,12 @@
       function renderLocations() {
         var stock = computeStock();
         var stats = locationStats(stock);
+        fsLocFetch().then(function (changed) {
+          if (!changed) return;
+          var ae = document.activeElement;
+          if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.tagName === "SELECT")) return;
+          render();
+        });
         var html =
           '<h1 class="page-title">倉位管理</h1>' +
           '<p class="page-sub">現有 ' + DB.locations.length + ' 個位置。新增、改名、刪除都喺呢頁做；改名會同步更新所有記錄，刪除只限完全無存貨嘅位置。</p>' +
@@ -1687,7 +1763,16 @@
           if (!name) { setNotice("請填位置名稱。", "err"); return; }
           if (locationNames().indexOf(name) !== -1) { setNotice("已經有位置叫「" + name + "」，唔可以重複。", "err"); return; }
           var maxSort = DB.locations.reduce(function (m, l) { return Math.max(m, l.sortOrder); }, 0);
-          DB.locations.push({ id: nextId(DB.locations), name: name, kind: kind, sortOrder: maxSort + 1 });
+          var newLoc = { id: nextId(DB.locations), name: name, kind: kind, sortOrder: maxSort + 1, fsId: null };
+          DB.locations.push(newLoc);
+          fsLocPost({ action: "add", name: name, kind: kind }).then(function (r) {
+            if (r && r.ok) {
+              if (r.record_id) newLoc.fsId = r.record_id;
+              setNotice("已新增位置「" + name + "」，收貨／轉位／出貨／庫存即刻可以用。已同步去飛書倉庫主檔。");
+            } else {
+              setNotice("已新增位置「" + name + "」，收貨／轉位／出貨／庫存即刻可以用。但寫入飛書倉庫主檔失敗，請喺飛書手動補返。", "warn");
+            }
+          });
           setNotice("已新增位置「" + name + "」，收貨／轉位／出貨／庫存即刻可以用。");
           render();
         });
@@ -1704,15 +1789,34 @@
           if (!newName) { setNotice("位置名稱唔可以空白。", "err"); return; }
           if (newName !== oldName && locationNames().indexOf(newName) !== -1) { setNotice("已經有位置叫「" + newName + "」，改名被拒絕。", "err"); return; }
           var loc = DB.locations.find(function (l) { return l.name === oldName; });
-          loc.name = newName; loc.kind = newKind;
-          if (newName !== oldName) {
-            DB.allocations.forEach(function (a) { if (a.location === oldName) a.location = newName; });
-            DB.transfers.forEach(function (t) { if (t.fromLocation === oldName) t.fromLocation = newName; if (t.toLocation === oldName) t.toLocation = newName; });
-            DB.shipments.forEach(function (s) { if (s.fromLocation === oldName) s.fromLocation = newName; });
-          }
-          locDetail = newName;
-          setNotice("位置已改名做「" + newName + "」，所有記錄同庫存已同步跟新名。");
-          render();
+          // 先搵返飛書 record_id（未改名之前用舊名對得上），再改本地＋寫回飛書。
+          var finish = function (fsId) {
+            loc.name = newName; loc.kind = newKind;
+            if (newName !== oldName) {
+              DB.allocations.forEach(function (a) { if (a.location === oldName) a.location = newName; });
+              DB.transfers.forEach(function (t) { if (t.fromLocation === oldName) t.fromLocation = newName; if (t.toLocation === oldName) t.toLocation = newName; });
+              DB.shipments.forEach(function (s) { if (s.fromLocation === oldName) s.fromLocation = newName; });
+            }
+            locDetail = newName;
+            setNotice("位置已改名做「" + newName + "」，所有記錄同庫存已同步跟新名。");
+            render();
+            if (fsId) {
+              fsLocPost({ action: "rename", record_id: fsId, name: newName, kind: newKind }).then(function (r) {
+                if (r && r.ok) setNotice("位置已改名做「" + newName + "」，所有記錄同庫存已同步跟新名。已同步去飛書倉庫主檔。");
+                else setNotice("位置已改名做「" + newName + "」，所有記錄同庫存已同步跟新名。但寫入飛書倉庫主檔失敗，請喺飛書手動改返。", "warn");
+              });
+            } else {
+              // 飛書嗰邊未有呢個位置（之前寫入失敗），改用新增補返。
+              fsLocPost({ action: "add", name: newName, kind: newKind }).then(function (r) {
+                if (r && r.ok) {
+                  if (r.record_id) loc.fsId = r.record_id;
+                  setNotice("位置已改名做「" + newName + "」，所有記錄同庫存已同步跟新名。已同步去飛書倉庫主檔。");
+                } else setNotice("位置已改名做「" + newName + "」，所有記錄同庫存已同步跟新名。但寫入飛書倉庫主檔失敗，請喺飛書手動補返。", "warn");
+              });
+            }
+          };
+          if (loc.fsId) finish(loc.fsId);
+          else fsLocFetch().then(function () { finish(loc.fsId || null); });
         });
         var del = document.getElementById("btnDeleteLoc");
         if (del) del.addEventListener("click", function () {
@@ -1721,10 +1825,17 @@
           if (DB.locations.length <= 1) { setNotice("最少要保留一個位置，唔可以刪除。", "err"); return; }
           if (st.kinds > 0) { setNotice("「" + name + "」仲有 " + st.kinds + " 款產品、共 " + fmtQty(st.qty) + " 件存貨，唔可以刪除；請先轉走或出貨清晒。", "err"); return; }
           showModal("刪除位置", "<p>確定要刪除位置「" + esc(name) + "」？歷史記錄入面嘅文字會保留，但位置清單會移除。</p>", "確定刪除", function () {
+            var fsId = (DB.locations.find(function (l) { return l.name === name; }) || {}).fsId;
             DB.locations = DB.locations.filter(function (l) { return l.name !== name; });
             locDetail = null;
             setNotice("已刪除位置「" + name + "」。");
             render();
+            if (fsId) {
+              fsLocPost({ action: "delete", record_id: fsId }).then(function (r) {
+                if (r && r.ok) setNotice("已刪除位置「" + name + "」。已同步去飛書倉庫主檔。");
+                else setNotice("已刪除位置「" + name + "」。但飛書嗰邊刪除失敗，請喺飛書手動刪返。", "warn");
+              });
+            }
           });
         });
       }
@@ -1845,6 +1956,9 @@
       ["btnResetSide", "btnResetM"].forEach(function (id) { document.getElementById(id).addEventListener("click", doReset); });
 
       render();
+      // 開頁嗰陣靜靜攞一次飛書倉位，合併入位置清單（之後轉頁就見到）；
+      // 本地有、飛書未有嘅位置就補寫去飛書。
+      fsLocFetch().then(function () { fsLocSyncLocal(); });
 </script>
 </body>
 </html>
