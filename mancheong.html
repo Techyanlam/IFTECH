@@ -1205,7 +1205,7 @@
           grs.push("GR-" + rid);
         });
         rebuildMaps();
-        var baseMsg = "收貨完成：" + grs.join("、") + "，共 " + items.length + " 項，已入庫存。記得匯出備份 JSON 保存今次更改。";
+        var baseMsg = "收貨完成：" + grs.join("、") + "，共 " + items.length + " 項，已入庫存。";
         setNotice(baseMsg);
         var syncPromise = Promise.all(syncItems.map(function (si) {
           return fsSyncReceiptLines(si.rec, supplier, si.product, si.allocs, si.srcGr);
@@ -1316,7 +1316,7 @@
           var trec = { id: nextId(DB.transfers), productId: pid, fromLocation: from, toLocation: to, qty: qty, note: document.getElementById("tfNote").value.trim() || null, createdAt: Date.now(), syncId: newSyncId() };
           DB.transfers.push(trec);
           tfState.qty = ""; tfState.note = "";
-          var tfBaseMsg = "轉位完成：" + productLabel(productMap[pid]) + "，" + fmtQty(qty) + " 由「" + from + "」轉去「" + to + "」。記得匯出備份 JSON 保存今次更改。";
+          var tfBaseMsg = "轉位完成：" + productLabel(productMap[pid]) + "，" + fmtQty(qty) + " 由「" + from + "」轉去「" + to + "」。";
           setNotice(tfBaseMsg);
           fsSyncTransferLine(trec).then(function (ok) {
             if (ok) setNotice(tfBaseMsg + " 已同步去飛書。", "ok");
@@ -1370,7 +1370,7 @@
           var srec = { id: nextId(DB.shipments), productId: pid, fromLocation: from, qty: qty, shipmentNumber: number, note: document.getElementById("shNote").value.trim() || null, createdAt: Date.now(), syncId: newSyncId() };
           DB.shipments.push(srec);
           shState.qty = ""; shState.note = "";
-          var shBaseMsg = "出貨完成：單號 " + number + "，" + productLabel(productMap[pid]) + " 由「" + from + "」出 " + fmtQty(qty) + "。記得匯出備份 JSON 保存今次更改。";
+          var shBaseMsg = "出貨完成：單號 " + number + "，" + productLabel(productMap[pid]) + " 由「" + from + "」出 " + fmtQty(qty) + "。";
           setNotice(shBaseMsg);
           fsSyncShipmentLine(srec).then(function (ok) {
             if (ok) setNotice(shBaseMsg + " 已同步去飛書。", "ok");
@@ -1651,7 +1651,7 @@
           if (locationNames().indexOf(name) !== -1) { setNotice("已經有位置叫「" + name + "」，唔可以重複。", "err"); return; }
           var maxSort = DB.locations.reduce(function (m, l) { return Math.max(m, l.sortOrder); }, 0);
           DB.locations.push({ id: nextId(DB.locations), name: name, kind: kind, sortOrder: maxSort + 1 });
-          setNotice("已新增位置「" + name + "」，收貨／轉位／出貨／庫存即刻可以用。記得匯出備份 JSON 保存今次更改。");
+          setNotice("已新增位置「" + name + "」，收貨／轉位／出貨／庫存即刻可以用。");
           render();
         });
         view.querySelectorAll("[data-loc-detail]").forEach(function (b) {
@@ -1674,7 +1674,7 @@
             DB.shipments.forEach(function (s) { if (s.fromLocation === oldName) s.fromLocation = newName; });
           }
           locDetail = newName;
-          setNotice("位置已改名做「" + newName + "」，所有記錄同庫存已同步跟新名。記得匯出備份 JSON 保存今次更改。");
+          setNotice("位置已改名做「" + newName + "」，所有記錄同庫存已同步跟新名。");
           render();
         });
         var del = document.getElementById("btnDeleteLoc");
@@ -1686,7 +1686,7 @@
           showModal("刪除位置", "<p>確定要刪除位置「" + esc(name) + "」？歷史記錄入面嘅文字會保留，但位置清單會移除。</p>", "確定刪除", function () {
             DB.locations = DB.locations.filter(function (l) { return l.name !== name; });
             locDetail = null;
-            setNotice("已刪除位置「" + name + "」。記得匯出備份 JSON 保存今次更改。");
+            setNotice("已刪除位置「" + name + "」。");
             render();
           });
         });
@@ -1732,11 +1732,11 @@
             var p = productMap[prodState.editingId];
             Object.assign(p, data);
             prodState.editingId = null;
-            setNotice("產品已更新：" + name + "。記得匯出備份 JSON 保存今次更改。");
+            setNotice("產品已更新：" + name + "。");
           } else {
             var np = Object.assign({ id: nextId(DB.products) }, data);
             DB.products.push(np);
-            setNotice("已新增產品：" + name + "。記得匯出備份 JSON 保存今次更改。");
+            setNotice("已新增產品：" + name + "。");
           }
           rebuildMaps();
           render();
