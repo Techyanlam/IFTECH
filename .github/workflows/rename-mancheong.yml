@@ -1,0 +1,21 @@
+name: Rename mancheong
+
+on:
+  workflow_dispatch:
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move temp mancheong.html into place
+        run: |
+          test -f tmp-mancheong-loc-20261108/mancheong.html
+          rm -f mancheong.html
+          git mv tmp-mancheong-loc-20261108/mancheong.html mancheong.html
+          ls -l mancheong.html
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Replace mancheong.html with location-sync version"
+          git push
