@@ -948,7 +948,7 @@
         var jobs = lines.map(function (a, i) {
           return fsSyncPost({
             sync_key: rec.syncId + "#" + i,
-            record_no: "GR-" + rec.id,
+            record_no: srcGrNo || ("GR-" + rec.id),
             kind: "收貨",
             date: fmtDate(rec.createdAt), time: fmtTime(rec.createdAt),
             supplier: supplier || "",
@@ -1051,7 +1051,7 @@
             if (!isNaN(t)) ts = t;
           }
           var qty = (typeof fr.qty === "number") ? fr.qty : (parseFloat(fr.qty) || 0);
-          var no = "飛書 " + (fr.record_no || "");
+          var no = "飛書 " + ((kind === "receipts" && fr.src_gr) ? fr.src_gr : (fr.record_no || ""));
           var name = fr.name || "", part = fr.part || "";
           if (kind === "receipts") {
             var alloc = (fr.to_loc || "") + (fr.to_loc ? " " : "") + fmtQty(qty);
@@ -1192,7 +1192,7 @@
           var rid = nextId(DB.receipts);
           var rec = {
             id: rid, productId: pid, supplier: supplier, totalQty: item.totalQty,
-            note: note, createdAt: now + i,
+            note: note, createdAt: now + i, srcGr: (item.origin && item.origin.grNo) || "",
             photo: null,
             ai: item.labelQty != null ? { qty: item.labelQty } : null,
             syncId: newSyncId()
@@ -1202,7 +1202,7 @@
             DB.allocations.push({ receiptId: rid, location: a.location, qty: a.qty });
           });
           syncItems.push({ rec: rec, product: prod, allocs: item.allocations, srcGr: (item.origin && item.origin.grNo) || "" });
-          grs.push("GR-" + rid);
+          grs.push((item.origin && item.origin.grNo) || ("GR-" + rid));
         });
         rebuildMaps();
         var baseMsg = "收貨完成：" + grs.join("、") + "，共 " + items.length + " 項，已入庫存。";
@@ -1396,11 +1396,12 @@
           DB.receipts.forEach(function (r) {
             var p = productMap[r.productId] || { name: "(產品已刪)", partNumber: null, unit: "件" };
             var allocs = (allocByReceipt[r.id] || []).map(function (a) { return a.location + " " + fmtQty(a.qty); }).join("；");
+            var grNo = r.srcGr || ("GR-" + r.id);
             rows.push({
               id: r.id, ts: r.createdAt, product: p, qty: r.totalQty,
-              cells: ["GR-" + r.id, fmtDate(r.createdAt), fmtTime(r.createdAt), p.name, p.partNumber || "", fmtQty(r.totalQty), p.unit, allocs, r.supplier || "", r.note || "", r.photo ? "有" : ""],
+              cells: [grNo, fmtDate(r.createdAt), fmtTime(r.createdAt), p.name, p.partNumber || "", fmtQty(r.totalQty), p.unit, allocs, r.supplier || "", r.note || "", r.photo ? "有" : ""],
               photo: r.photo,
-              search: ["GR-" + r.id, p.name, p.partNumber || "", r.supplier || "", allocs].join(" ").toLowerCase()
+              search: [grNo, p.name, p.partNumber || "", r.supplier || "", allocs].join(" ").toLowerCase()
             });
           });
         } else if (kind === "transfers") {
