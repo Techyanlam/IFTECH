@@ -1,0 +1,27 @@
+name: Rename mancheong (one-off)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace mancheong.html with temp upload
+        run: |
+          test -f tmp-mancheong-grno-20261107/mancheong.html
+          rm -f mancheong.html
+          git mv tmp-mancheong-grno-20261107/mancheong.html mancheong.html
+          rmdir tmp-mancheong-grno-20261107 || true
+          git status --short
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Replace mancheong.html with Feishu GR number version" || echo "nothing to commit"
+          git push
