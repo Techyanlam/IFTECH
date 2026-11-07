@@ -943,6 +943,25 @@
           return true;
         }).catch(function () { if (timeoutId) clearTimeout(timeoutId); return false; });
       }
+      // 新產品寫入飛書商品信息表（POST /add-product）；成功或已存在都算 ok。
+      function fsProductPost(np) {
+        var controller = null, timeoutId = null;
+        var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ part: np.partNumber || "", name: np.name || "", brand: np.brand || "", alias: np.aliases || "" }) };
+        if (window.AbortController) {
+          controller = new AbortController();
+          opts.signal = controller.signal;
+          timeoutId = setTimeout(function () { try { controller.abort(); } catch (e) {} }, 60000);
+        }
+        return fetch(FS_SYNC_BASE + "/add-product", opts).then(function (resp) {
+          return resp.json().catch(function () { return null; }).then(function (data) {
+            return { ok: resp.ok, data: data };
+          });
+        }).then(function (r) {
+          if (timeoutId) clearTimeout(timeoutId);
+          if (!r.ok || !r.data || r.data.error || r.data.ok === false) return false;
+          return true;
+        }).catch(function () { if (timeoutId) clearTimeout(timeoutId); return false; });
+      }
       function fsSyncReceiptLines(rec, supplier, product, allocs, srcGrNo) {
         var lines = (allocs && allocs.length) ? allocs : [{ location: "", qty: rec.totalQty }];
         var jobs = lines.map(function (a, i) {
@@ -1178,6 +1197,7 @@
         var now = Date.now();
         var grs = [];
         var syncItems = [];
+        var newProds = [];
         items.forEach(function (item, i) {
           var pid = item.productId;
           var prod = null;
@@ -1185,6 +1205,7 @@
             pid = nextId(DB.products);
             var np = { id: pid, name: item.newProduct.name, partNumber: item.newProduct.partNumber, brand: item.newProduct.brand, aliases: item.newProduct.aliases, unit: item.newProduct.unit };
             DB.products.push(np);
+            newProds.push(np);
             prod = np;
           } else {
             prod = productMap[pid] || { name: "(產品已刪)", partNumber: null, unit: "件" };
@@ -1210,6 +1231,11 @@
         var syncPromise = Promise.all(syncItems.map(function (si) {
           return fsSyncReceiptLines(si.rec, supplier, si.product, si.allocs, si.srcGr);
         })).then(function (oks) { return oks.every(function (x) { return x; }); });
+        // 新產品：本地已存，另外寫一份去飛書商品信息表（有重複貨品編號就唔再寫）。
+        // 冇新產品就係 null（提示唔提呢樣）；全部寫好就係 true；有失敗就係 false。
+        var productPromise = newProds.length
+          ? Promise.all(newProds.map(function (np) { return fsProductPost(np); })).then(function (oks) { return oks.every(function (x) { return x; }); })
+          : Promise.resolve(null);
         var origins = [];
         var seenRec = {};
         items.forEach(function (item) {
@@ -1227,10 +1253,12 @@
             Promise.all(toAssign.map(function (o) {
               return fsAssignWarehouse(o.recordId, o.warehouse).then(function (ok) { return { o: o, ok: ok }; });
             })),
-            syncPromise
+            syncPromise,
+            productPromise
           ]).then(function (all) {
             var results = all[0];
             var syncOk = all[1];
+            var productOk = all[2];
             var failed = results.filter(function (r) { return !r.ok; }).map(function (r) { return r.o.grNo || r.o.recordId; });
             var okGrNos = results.filter(function (r) { return r.ok; }).map(function (r) { return r.o.grNo || r.o.recordId; });
             var failedAll = failed.concat(noAlloc.map(function (o) { return o.grNo || o.recordId; }));
@@ -1240,14 +1268,22 @@
             else msg += " 本地收貨已存，但同步飛書入倉失敗（" + failedAll.join("、") + "），請喺飛書手動揀入倉。";
             if (syncOk) msg += " 已同步去飛書。";
             else msg += " 本地已存，但寫入飛書同步表失敗（" + grs.join("、") + "），請稍後再試。";
-            setNotice(msg, (!failedAll.length && syncOk) ? "ok" : "warn");
+            if (productOk === true) msg += " 新產品已寫入飛書商品信息表。";
+            else if (productOk === false) msg += " 新產品未能寫入飛書商品信息表，請喺飛書手動補返。";
+            setNotice(msg, (!failedAll.length && syncOk && productOk !== false) ? "ok" : "warn");
           });
           return;
         }
         render();
-        syncPromise.then(function (syncOk) {
-          if (syncOk) setNotice(baseMsg + " 已同步去飛書。", "ok");
-          else setNotice(baseMsg + " 本地已存，但寫入飛書同步表失敗（" + grs.join("、") + "），請稍後再試。", "warn");
+        Promise.all([syncPromise, productPromise]).then(function (all) {
+          var syncOk = all[0];
+          var productOk = all[1];
+          var msg = baseMsg;
+          if (syncOk) msg += " 已同步去飛書。";
+          else msg += " 本地已存，但寫入飛書同步表失敗（" + grs.join("、") + "），請稍後再試。";
+          if (productOk === true) msg += " 新產品已寫入飛書商品信息表。";
+          else if (productOk === false) msg += " 新產品未能寫入飛書商品信息表，請喺飛書手動補返。";
+          setNotice(msg, (syncOk && productOk !== false) ? "ok" : "warn");
         });
       }
       function saveReceive() {
