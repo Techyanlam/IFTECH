@@ -648,6 +648,7 @@
       var feishuReceivedSession = {};
       var fsRcvFetching = false;
       var fsRcvExpandedKey = null;
+      var fsRcvShowAssigned = false; // 預設隱藏已入倉嘅飛書收貨單；撳卡頂嗰行先顯示，狀態喺 5 分鐘自動更新後仍然保留
       var fsAutoTimer = null;
       function allocRowHtml(loc, qty) {
         return '<div class="alloc-row row">' +
@@ -742,6 +743,11 @@
         });
         document.getElementById("btnSaveReceive").addEventListener("click", saveReceive);
         document.getElementById("fsRcvList").addEventListener("click", function (e) {
+          if (e.target.closest("#fsRcvToggleAssigned")) {
+            fsRcvShowAssigned = !fsRcvShowAssigned;
+            fsRcvRenderList();
+            return;
+          }
           var b = e.target.closest("[data-fsrcv]");
           if (!b) return;
           var idx = parseInt(b.getAttribute("data-fsrcv"), 10);
@@ -858,13 +864,25 @@
         if (!wrap) return;
         var visible = fsRcvVisibleList();
         if (!visible.length) { wrap.innerHTML = ""; return; }
-        var sorted = visible.slice().sort(function (a, b) {
+        // 已入倉嘅行預設唔顯示；有已入倉嘅行先出 toggle 行（撳嚟顯示／隱藏）。
+        var assignedCount = visible.filter(function (rc) { return rc.warehouseAssigned; }).length;
+        var toggleHtml = "";
+        if (assignedCount) {
+          toggleHtml = '<div class="mt8"><button type="button" class="btn small" id="fsRcvToggleAssigned">' +
+            (fsRcvShowAssigned
+              ? "已入倉 " + assignedCount + " 張顯示緊 · 撳呢度隱藏"
+              : "已入倉 " + assignedCount + " 張已隱藏 · 撳呢度顯示") +
+            "</button></div>";
+        }
+        var shown = fsRcvShowAssigned ? visible : visible.filter(function (rc) { return !rc.warehouseAssigned; });
+        if (!shown.length) { wrap.innerHTML = toggleHtml; return; } // 全部都係已入倉、又隱藏緊：淨係留返 toggle 行
+        var sorted = shown.slice().sort(function (a, b) {
           if (a.warehouseAssigned !== b.warehouseAssigned) return a.warehouseAssigned ? 1 : -1;
           return (b.created || "").localeCompare(a.created || "");
         });
         var scroller = wrap.querySelector(".picker-results");
         var scrollTop = scroller ? scroller.scrollTop : 0;
-        wrap.innerHTML = '<div class="picker-results">' + sorted.map(function (rc) {
+        wrap.innerHTML = toggleHtml + '<div class="picker-results">' + sorted.map(function (rc) {
           var origIdx = feishuReceipts.indexOf(rc);
           var key = rc.recordId || rc.grNo || ("row" + origIdx);
           var expanded = fsRcvExpandedKey !== null && fsRcvExpandedKey === key;
@@ -916,6 +934,169 @@
           if (r.data.ok === false) return false;
           return true;
         }).catch(function () { if (timeoutId) clearTimeout(timeoutId); return false; });
+      }
+      /* ============ 飛書記錄雙向同步（網頁記錄 ↔ 飛書同步表） ============ */
+      // 三張同步表（Worker 按 kind 分流）：收貨 網頁收貨記錄、轉位 網頁轉位記錄、出貨 網頁出貨記錄。
+      // 寫入：確認收貨／轉位／出貨嗰陣，每項一行 POST /sync-record（best-effort，唔會阻住本地儲存）。
+      // 讀取：記錄頁開嗰陣 GET /synced-records?kind=…，同本地記錄合併顯示；本地已有嘅（syncId 相同）唔會重複。
+      var FS_SYNC_BASE = "https://man-cheong-feishu-sync.yan-lam.workers.dev";
+      var FS_SYNC_KIND = { receipts: "收貨", transfers: "轉位", shipments: "出貨" };
+      var fsSyncCache = { receipts: null, transfers: null, shipments: null }; // {at, rows}
+      var fsSyncFetching = { receipts: false, transfers: false, shipments: false };
+      var fsSyncFailed = { receipts: false, transfers: false, shipments: false };
+      var fsSyncFailedAt = { receipts: 0, transfers: 0, shipments: 0 }; // 上次攞唔到嘅時間，30 秒內唔重試
+      function newSyncId() { return "W" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+      function fsSyncPost(body) {
+        var controller = null, timeoutId = null;
+        var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+        if (window.AbortController) {
+          controller = new AbortController();
+          opts.signal = controller.signal;
+          timeoutId = setTimeout(function () { try { controller.abort(); } catch (e) {} }, 60000);
+        }
+        return fetch(FS_SYNC_BASE + "/sync-record", opts).then(function (resp) {
+          return resp.json().catch(function () { return null; }).then(function (data) {
+            return { ok: resp.ok, data: data };
+          });
+        }).then(function (r) {
+          if (timeoutId) clearTimeout(timeoutId);
+          if (!r.ok || !r.data || r.data.error || r.data.ok === false) return false;
+          return true;
+        }).catch(function () { if (timeoutId) clearTimeout(timeoutId); return false; });
+      }
+      function fsSyncReceiptLines(rec, supplier, product, allocs, srcGrNo) {
+        var lines = (allocs && allocs.length) ? allocs : [{ location: "", qty: rec.totalQty }];
+        var jobs = lines.map(function (a, i) {
+          return fsSyncPost({
+            sync_key: rec.syncId + "#" + i,
+            record_no: "GR-" + rec.id,
+            kind: "收貨",
+            date: fmtDate(rec.createdAt), time: fmtTime(rec.createdAt),
+            supplier: supplier || "",
+            part: (product && product.partNumber) || "",
+            name: (product && product.name) || "",
+            qty: a.qty, unit: (product && product.unit) || "",
+            from_loc: "", to_loc: a.location || "",
+            ship_no: "", src_gr: srcGrNo || "", note: rec.note || ""
+          });
+        });
+        return Promise.all(jobs).then(function (oks) { return oks.every(function (x) { return x; }); });
+      }
+      function fsSyncTransferLine(rec) {
+        var p = productMap[rec.productId] || { name: "(產品已刪)", partNumber: null, unit: "件" };
+        return fsSyncPost({
+          sync_key: rec.syncId + "#0",
+          record_no: "TR-" + rec.id,
+          kind: "轉位",
+          date: fmtDate(rec.createdAt), time: fmtTime(rec.createdAt),
+          supplier: "",
+          part: p.partNumber || "",
+          name: p.name || "",
+          qty: rec.qty, unit: p.unit || "",
+          from_loc: rec.fromLocation || "", to_loc: rec.toLocation || "",
+          ship_no: "", src_gr: "", note: rec.note || ""
+        });
+      }
+      function fsSyncShipmentLine(rec) {
+        var p = productMap[rec.productId] || { name: "(產品已刪)", partNumber: null, unit: "件" };
+        return fsSyncPost({
+          sync_key: rec.syncId + "#0",
+          record_no: "SH-" + rec.id,
+          kind: "出貨",
+          date: fmtDate(rec.createdAt), time: fmtTime(rec.createdAt),
+          supplier: "",
+          part: p.partNumber || "",
+          name: p.name || "",
+          qty: rec.qty, unit: p.unit || "",
+          from_loc: rec.fromLocation || "",
+          to_loc: "",
+          ship_no: rec.shipmentNumber || "", src_gr: "", note: rec.note || ""
+        });
+      }
+      function fsSyncFetch(kind) {
+        var cached = fsSyncCache[kind];
+        if (cached && Date.now() - cached.at < 5 * 60 * 1000) return;
+        if (fsSyncFetching[kind]) return;
+        if (fsSyncFailed[kind] && Date.now() - fsSyncFailedAt[kind] < 30000) return; // 攞唔到就等 30 秒先再試，唔好不停重攞
+        fsSyncFetching[kind] = true;
+        fetch(FS_SYNC_BASE + "/synced-records?kind=" + encodeURIComponent(FS_SYNC_KIND[kind])).then(function (resp) {
+          return resp.json().catch(function () { return null; }).then(function (data) {
+            return { ok: resp.ok, data: data };
+          });
+        }).then(function (r) {
+          fsSyncFetching[kind] = false;
+          if (!r.ok || !r.data || r.data.error || !Array.isArray(r.data.records)) {
+            var wasFailed = fsSyncFailed[kind];
+            fsSyncFailed[kind] = true;
+            fsSyncFailedAt[kind] = Date.now();
+            // 只喺第一次失敗嗰陣重畫（等「未能載入」嗰句出現）；之後再失敗唔重畫，
+            // 否則重畫會再觸發 fsSyncFetch，變成無限重試。
+            if (tab === kind && !wasFailed) fsSyncRerender(kind);
+            return;
+          }
+          fsSyncFailed[kind] = false;
+          fsSyncCache[kind] = { at: Date.now(), rows: r.data.records };
+          if (tab === kind) fsSyncRerender(kind);
+        }).catch(function () {
+          fsSyncFetching[kind] = false;
+          var wasFailed2 = fsSyncFailed[kind];
+          fsSyncFailed[kind] = true;
+          fsSyncFailedAt[kind] = Date.now();
+          if (tab === kind && !wasFailed2) fsSyncRerender(kind);
+        });
+      }
+      function fsSyncRerender(kind) {
+        var qEl = document.getElementById("recQ");
+        var wasFocused = !!(qEl && document.activeElement === qEl);
+        var sel = wasFocused ? qEl.selectionStart : 0;
+        render();
+        if (wasFocused) {
+          var nq = document.getElementById("recQ");
+          if (nq) { nq.focus(); try { nq.setSelectionRange(sel, sel); } catch (e) {} }
+        }
+      }
+      // 將已攞返嘅飛書同步行轉做同本地記錄一樣格式嘅行；本地已有（syncId 相同）嘅跳過。
+      function fsSyncRows(kind) {
+        var cached = fsSyncCache[kind];
+        if (!cached || !cached.rows) return [];
+        var locals = kind === "receipts" ? DB.receipts : kind === "transfers" ? DB.transfers : DB.shipments;
+        var localIds = {};
+        locals.forEach(function (r) { if (r.syncId) localIds[r.syncId] = true; });
+        var out = [];
+        cached.rows.forEach(function (fr) {
+          var sid = String(fr.sync_key || "").split("#")[0];
+          if (sid && localIds[sid]) return;
+          var ts = 0;
+          if (fr.date) {
+            var t = Date.parse(fr.date + "T" + (fr.time || "00:00") + ":00+08:00");
+            if (!isNaN(t)) ts = t;
+          }
+          var qty = (typeof fr.qty === "number") ? fr.qty : (parseFloat(fr.qty) || 0);
+          var no = "飛書 " + (fr.record_no || "");
+          var name = fr.name || "", part = fr.part || "";
+          if (kind === "receipts") {
+            var alloc = (fr.to_loc || "") + (fr.to_loc ? " " : "") + fmtQty(qty);
+            out.push({
+              id: 0, ts: ts, product: { name: name, partNumber: part || null, unit: fr.unit || "件" }, qty: qty, fs: true,
+              cells: [no, fr.date || "", fr.time || "", name, part, fmtQty(qty), fr.unit || "", alloc, fr.supplier || "", fr.note || "", ""],
+              photo: null,
+              search: [no, name, part, fr.supplier || "", fr.to_loc || ""].join(" ").toLowerCase()
+            });
+          } else if (kind === "transfers") {
+            out.push({
+              id: 0, ts: ts, product: { name: name, partNumber: part || null, unit: fr.unit || "件" }, qty: qty, fs: true,
+              cells: [no, fr.date || "", fr.time || "", name, part, fmtQty(qty), fr.unit || "", fr.from_loc || "", fr.to_loc || "", fr.note || ""],
+              search: [no, name, part, fr.from_loc || "", fr.to_loc || ""].join(" ").toLowerCase()
+            });
+          } else {
+            out.push({
+              id: 0, ts: ts, product: { name: name, partNumber: part || null, unit: fr.unit || "件" }, qty: qty, fs: true,
+              cells: [no, fr.ship_no || "", fr.date || "", fr.time || "", name, part, fmtQty(qty), fr.unit || "", fr.from_loc || "", fr.note || ""],
+              search: [no, fr.ship_no || "", name, part, fr.from_loc || ""].join(" ").toLowerCase()
+            });
+          }
+        });
+        return out;
       }
       function fsRcvFetch() {
         if (fsRcvFetching) return;
@@ -1017,28 +1198,39 @@
         var note = document.getElementById("rcvNote").value.trim() || null;
         var now = Date.now();
         var grs = [];
+        var syncItems = [];
         items.forEach(function (item, i) {
           var pid = item.productId;
+          var prod = null;
           if (item.newProduct) {
             pid = nextId(DB.products);
             var np = { id: pid, name: item.newProduct.name, partNumber: item.newProduct.partNumber, brand: item.newProduct.brand, aliases: item.newProduct.aliases, unit: item.newProduct.unit };
             DB.products.push(np);
+            prod = np;
+          } else {
+            prod = productMap[pid] || { name: "(產品已刪)", partNumber: null, unit: "件" };
           }
           var rid = nextId(DB.receipts);
-          DB.receipts.push({
+          var rec = {
             id: rid, productId: pid, supplier: supplier, totalQty: item.totalQty,
             note: note, createdAt: now + i,
             photo: null,
-            ai: item.labelQty != null ? { qty: item.labelQty } : null
-          });
+            ai: item.labelQty != null ? { qty: item.labelQty } : null,
+            syncId: newSyncId()
+          };
+          DB.receipts.push(rec);
           item.allocations.forEach(function (a) {
             DB.allocations.push({ receiptId: rid, location: a.location, qty: a.qty });
           });
+          syncItems.push({ rec: rec, product: prod, allocs: item.allocations, srcGr: (item.origin && item.origin.grNo) || "" });
           grs.push("GR-" + rid);
         });
         rebuildMaps();
         var baseMsg = "收貨完成：" + grs.join("、") + "，共 " + items.length + " 項，已入庫存。記得匯出備份 JSON 保存今次更改。";
         setNotice(baseMsg);
+        var syncPromise = Promise.all(syncItems.map(function (si) {
+          return fsSyncReceiptLines(si.rec, supplier, si.product, si.allocs, si.srcGr);
+        })).then(function (oks) { return oks.every(function (x) { return x; }); });
         var origins = [];
         var seenRec = {};
         items.forEach(function (item) {
@@ -1052,19 +1244,32 @@
           render();
           var toAssign = origins.filter(function (o) { return !!o.warehouse; });
           var noAlloc = origins.filter(function (o) { return !o.warehouse; });
-          Promise.all(toAssign.map(function (o) {
-            return fsAssignWarehouse(o.recordId, o.warehouse).then(function (ok) { return { o: o, ok: ok }; });
-          })).then(function (results) {
+          Promise.all([
+            Promise.all(toAssign.map(function (o) {
+              return fsAssignWarehouse(o.recordId, o.warehouse).then(function (ok) { return { o: o, ok: ok }; });
+            })),
+            syncPromise
+          ]).then(function (all) {
+            var results = all[0];
+            var syncOk = all[1];
             var failed = results.filter(function (r) { return !r.ok; }).map(function (r) { return r.o.grNo || r.o.recordId; });
             var okGrNos = results.filter(function (r) { return r.ok; }).map(function (r) { return r.o.grNo || r.o.recordId; });
             var failedAll = failed.concat(noAlloc.map(function (o) { return o.grNo || o.recordId; }));
             if (tab === "receive") fsRcvFetch();
-            if (!failedAll.length) setNotice(baseMsg + " 已同步標示飛書入倉：" + okGrNos.join("、") + "。", "ok");
-            else setNotice(baseMsg + " 本地收貨已存，但同步飛書入倉失敗（" + failedAll.join("、") + "），請喺飛書手動揀入倉。", "warn");
+            var msg = baseMsg;
+            if (!failedAll.length) msg += " 已同步標示飛書入倉：" + okGrNos.join("、") + "。";
+            else msg += " 本地收貨已存，但同步飛書入倉失敗（" + failedAll.join("、") + "），請喺飛書手動揀入倉。";
+            if (syncOk) msg += " 已同步去飛書。";
+            else msg += " 本地已存，但寫入飛書同步表失敗（" + grs.join("、") + "），請稍後再試。";
+            setNotice(msg, (!failedAll.length && syncOk) ? "ok" : "warn");
           });
           return;
         }
         render();
+        syncPromise.then(function (syncOk) {
+          if (syncOk) setNotice(baseMsg + " 已同步去飛書。", "ok");
+          else setNotice(baseMsg + " 本地已存，但寫入飛書同步表失敗（" + grs.join("、") + "），請稍後再試。", "warn");
+        });
       }
       function saveReceive() {
         var got = gatherReceiveItems();
@@ -1129,9 +1334,15 @@
           if (!qty || qty <= 0) { setNotice("請填正確數量。", "err"); return; }
           var have = stockAt(computeStock(), pid, from);
           if (qty > have + 1e-9) { setNotice("「" + from + "」只有 " + fmtQty(have) + "，唔夠轉 " + fmtQty(qty) + "。", "err"); return; }
-          DB.transfers.push({ id: nextId(DB.transfers), productId: pid, fromLocation: from, toLocation: to, qty: qty, note: document.getElementById("tfNote").value.trim() || null, createdAt: Date.now() });
+          var trec = { id: nextId(DB.transfers), productId: pid, fromLocation: from, toLocation: to, qty: qty, note: document.getElementById("tfNote").value.trim() || null, createdAt: Date.now(), syncId: newSyncId() };
+          DB.transfers.push(trec);
           tfState.qty = ""; tfState.note = "";
-          setNotice("轉位完成：" + productLabel(productMap[pid]) + "，" + fmtQty(qty) + " 由「" + from + "」轉去「" + to + "」。記得匯出備份 JSON 保存今次更改。");
+          var tfBaseMsg = "轉位完成：" + productLabel(productMap[pid]) + "，" + fmtQty(qty) + " 由「" + from + "」轉去「" + to + "」。記得匯出備份 JSON 保存今次更改。";
+          setNotice(tfBaseMsg);
+          fsSyncTransferLine(trec).then(function (ok) {
+            if (ok) setNotice(tfBaseMsg + " 已同步去飛書。", "ok");
+            else setNotice(tfBaseMsg + " 本地已存，但寫入飛書同步表失敗（TR-" + trec.id + "），請稍後再試。", "warn");
+          });
           render();
         });
       }
@@ -1177,9 +1388,15 @@
           if (!qty || qty <= 0) { setNotice("請填正確數量。", "err"); return; }
           var have = stockAt(computeStock(), pid, from);
           if (qty > have + 1e-9) { setNotice("「" + from + "」只有 " + fmtQty(have) + "，唔夠出 " + fmtQty(qty) + "。", "err"); return; }
-          DB.shipments.push({ id: nextId(DB.shipments), productId: pid, fromLocation: from, qty: qty, shipmentNumber: number, note: document.getElementById("shNote").value.trim() || null, createdAt: Date.now() });
+          var srec = { id: nextId(DB.shipments), productId: pid, fromLocation: from, qty: qty, shipmentNumber: number, note: document.getElementById("shNote").value.trim() || null, createdAt: Date.now(), syncId: newSyncId() };
+          DB.shipments.push(srec);
           shState.qty = ""; shState.note = "";
-          setNotice("出貨完成：單號 " + number + "，" + productLabel(productMap[pid]) + " 由「" + from + "」出 " + fmtQty(qty) + "。記得匯出備份 JSON 保存今次更改。");
+          var shBaseMsg = "出貨完成：單號 " + number + "，" + productLabel(productMap[pid]) + " 由「" + from + "」出 " + fmtQty(qty) + "。記得匯出備份 JSON 保存今次更改。";
+          setNotice(shBaseMsg);
+          fsSyncShipmentLine(srec).then(function (ok) {
+            if (ok) setNotice(shBaseMsg + " 已同步去飛書。", "ok");
+            else setNotice(shBaseMsg + " 本地已存，但寫入飛書同步表失敗（SH-" + srec.id + "），請稍後再試。", "warn");
+          });
           render();
         });
       }
@@ -1226,6 +1443,7 @@
             });
           });
         }
+        rows.push.apply(rows, fsSyncRows(kind));
         rows.sort(function (a, b) { return b.ts - a.ts || b.id - a.id; });
         return rows;
       }
@@ -1248,10 +1466,12 @@
       function renderRecords(kind) {
         var def = RECORD_DEFS[kind];
         var f = recFilters[kind];
+        fsSyncFetch(kind); // 攞飛書同步記錄（5 分鐘內有 cache 就唔重攞）；本地記錄即刻顯示先
         var all = movementRows(kind);
         var shown = filteredRows(kind);
         var totalQty = shown.reduce(function (s, r) { return s + r.qty; }, 0);
         var dateErr = f.from && f.to && f.from > f.to;
+        var fsFailNote = (fsSyncFailed[kind] && !fsSyncCache[kind]) ? '<p class="small" style="color:var(--bad)">未能載入飛書記錄，只顯示本機記錄。</p>' : "";
         var body = shown.map(function (r) {
           var tds = r.cells.map(function (c, i) {
             if (i === def.qtyIdx) return '<td class="num">' + esc(c) + "</td>";
@@ -1267,7 +1487,7 @@
         }).join("");
         view.innerHTML =
           '<h1 class="page-title">' + def.title + "</h1>" +
-          '<p class="page-sub">顯示 ' + shown.length + " 筆（共 " + all.length + " 筆）</p>" +
+          '<p class="page-sub">顯示 ' + shown.length + " 筆（共 " + all.length + " 筆）</p>" + fsFailNote +
           '<div class="card">' +
           '<label class="flabel">搜尋</label><input type="text" class="input" id="recQ" value="' + esc(f.q) + '" placeholder="產品／型號／編號' + (kind === "shipments" ? "／出貨單號" : kind === "receipts" ? "／GR 編號／供應商" : "／位置") + '" />' +
           '<div class="row"><div><label class="flabel">由日期</label><input type="date" class="input" id="recFrom" value="' + esc(f.from) + '" /></div>' +
