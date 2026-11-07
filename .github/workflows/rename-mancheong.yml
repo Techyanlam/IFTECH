@@ -3,6 +3,9 @@ name: Rename mancheong
 on:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   rename:
     runs-on: ubuntu-latest
