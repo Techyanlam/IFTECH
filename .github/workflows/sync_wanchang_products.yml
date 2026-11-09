@@ -3,7 +3,11 @@ name: Sync Wanchang products (Feishu -> webpage)
 on:
   schedule:
     - cron: '0 18 * * *'   # 02:00 HKT daily
+
   workflow_dispatch:
+
+  repository_dispatch:
+    types: [sync-wanchang-products]
 
 permissions:
   contents: write
