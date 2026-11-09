@@ -1,11 +1,10 @@
-name: Sync Wanchang stock (Feishu -> 庫存 table)
+name: Sync Wanchang stock (Feishu -> 庫存總表)
 
 on:
   schedule:
     # Every 10 minutes — so a just-received item appears in the 庫存 table
     # (and on the webpage's 庫存 page) within ~10 min, not only at 02:15.
-    - cron: '*/10 * * * *'
-
+    - cron: '*/10 * * * *'  # Runs every 10 minutes
   workflow_dispatch:
   repository_dispatch:
     types: [sync-wanchang-stock]
@@ -27,8 +26,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Rebuild 庫存 table from movements
+      - name: Rebuild 庫存總表 from movements
         env:
           WANCHANG_APP_ID: ${{ secrets.WANCHANG_APP_ID }}
           WANCHANG_APP_SECRET: ${{ secrets.WANCHANG_APP_SECRET }}
-        run: python3 scripts/wanchang-sync-stock.py
+        run: python3 scripts/wanchang-sync-stock-summary.py
