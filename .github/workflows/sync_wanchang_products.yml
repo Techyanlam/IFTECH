@@ -1,0 +1,30 @@
+name: Sync Wanchang products (Feishu -> webpage)
+
+on:
+  schedule:
+    - cron: '0 18 * * *'   # 02:00 HKT daily
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Sync products from Feishu into mancheong.html
+        env:
+          WANCHANG_APP_ID: ${{ secrets.WANCHANG_APP_ID }}
+          WANCHANG_APP_SECRET: ${{ secrets.WANCHANG_APP_SECRET }}
+        run: python3 scripts/wanchang-sync-products.py
+      - name: Commit mancheong.html back if it changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add mancheong.html
+          git diff --cached --quiet || git commit -m "Sync Wanchang products from Feishu"
+          git push
