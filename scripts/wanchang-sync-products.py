@@ -12,7 +12,7 @@ the <script id="seed"> JSON of mancheong.html:
 - A local product with no Feishu match is dropped, EXCEPT when a seed
   receipt / transfer / shipment still references its productId (dropping it
   would break the record) — those are kept and warned about.
-- Feishu has no 單位 field, so new products get unit "件".
+- A Feishu row's 單位 is used when present, else new products get unit "件".
 
 Only the products array is touched; locations / receipts / allocations /
 transfers / shipments in the seed are left exactly as they are. The file is
