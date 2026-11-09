@@ -63,7 +63,11 @@ def get_token(app_id, app_secret):
 
 
 def list_records(token, table_id):
-    """Return all rows of a table as [(record_id, fields)] (max 5 pages).
+    """Return all rows of a table as [(record_id, fields)].
+
+    Pages through all results (up to 200 pages x 100 rows — the 產品 table
+    alone has 5,121 rows, so a 5-page cap silently dropped most products
+    and made them "unknown part" in run #3, 2026-11-09).
 
     Retries a page up to 3 times when the API returns a null items with a
     non-zero total. A table with genuinely 0 rows returns items null +
@@ -74,7 +78,7 @@ def list_records(token, table_id):
     """
     rows = []
     page_token = None
-    for _ in range(5):
+    for _ in range(200):  # 200 pages x 100 = 20,000 rows; 產品表有 5,121 行
         url = f"{API_BASE}/{table_id}/records?page_size=100"
         if page_token:
             url += "&page_token=" + page_token
