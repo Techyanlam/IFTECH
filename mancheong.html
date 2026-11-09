@@ -639,7 +639,7 @@
         return '<div class="item-card" data-item="' + idx + '">' +
           '<div class="item-head"><span class="t">貨品 ' + (idx + 1) + '</span><button type="button" class="btn small item-del">刪除此項</button></div>' +
           '<label class="flabel">搜尋現有產品</label>' + pickerHtml("rcv" + idx) +
-          '<label class="flabel"><input type="checkbox" class="is-new" /> 呢項係新產品（主檔未有）</label>' +
+          '<label class="flabel"><input type="checkbox" class="is-new" />  新產品（商品記錄同步更新）</label>' +
           '<div class="new-fields hidden">' +
           '<div class="row"><div><label class="flabel">產品名稱 *</label><input type="text" class="input np-name" /></div>' +
           '<div><label class="flabel">型號</label><input type="text" class="input np-part" /></div></div>' +
@@ -647,8 +647,8 @@
           '<div><label class="flabel">花名／英文名</label><input type="text" class="input np-alias" /></div>' +
           '<div><label class="flabel">單位</label><input type="text" class="input np-unit" value="件" /></div></div>' +
           "</div>" +
-          '<label class="flabel">相片／包裝標示數量（選填，用嚟同確認量核對）</label>' +
-          '<input type="number" class="input label-qty" min="0" step="any" placeholder="例如包裝寫住 50" />' +
+          '<label class="flabel">相片／包裝標示數量（選填， 確認量核對）</label>' +
+          '<input type="number" class="input label-qty" min="0" step="any" placeholder="數量" />' +
           '<label class="flabel">入倉分配（同一項可以拆去多個位置）</label>' +
           '<div class="alloc-list">' + allocRowHtml() + "</div>" +
           '<button type="button" class="btn small mt8 alloc-add">＋ 加多一個入倉位置</button>' +
