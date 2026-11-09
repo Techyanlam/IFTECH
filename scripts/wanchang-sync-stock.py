@@ -5,8 +5,15 @@ Stock is DERIVED from movements, never edited by hand in the 庫存 table
 (the rebuild overwrites it). One row per (product, warehouse):
 
 - 入庫數量: Feishu 收貨 rows with 入倉 set + webpage manual receipts
-  (網頁收貨記錄 rows with an empty 來源飛書單號; GR-card receipts are
-  counted via their GR row only, never double).
+  (網頁收貨記錄 rows with an empty 來源飛書單號). For a GR-card receipt
+  (a 網頁收貨記錄 row whose 來源飛書單號 matches the GR number), the
+  webpage-confirmed quantity and warehouse WIN over the GR row's AI-filled
+  values — Yan corrects quantities at receipt time, and the corrected
+  number is what must land in stock (2026-11-09: GR rows said 1, Yan
+  received 20, and the old GR-row-only count showed 2 instead of 40).
+  A GR row with no matching sync record still counts via the GR row itself.
+  Each GR is counted once, never double.
+- 出庫數量: Feishu 出貨 rows with 出倉 set + 網頁出貨記錄 rows.
 - 出庫數量: Feishu 出貨 rows with 出倉 set + 網頁出貨記錄 rows.
 - 轉入數量 / 轉出數量: 網頁轉位記錄 rows (to / from).
 - 調整數量: 調整庫存 rows (positive or negative).
@@ -211,10 +218,46 @@ def build_stock(gr_rows, outbound_rows, sync_receipt_rows, sync_transfer_rows,
     problems = {"unreadable_qty": [], "unknown_part": [],
                 "unknown_location": [], "missing_warehouse": []}
 
+    # Webpage-confirmed receipts, indexed by (GR number, part). A GR-card
+    # receipt's sync record carries the quantity and warehouse Yan actually
+    # confirmed at receipt time; it overrides the GR row's AI-filled values.
+    # (A GR received in several batches has several sync records — they sum.)
+    sync_by_gr = {}
+    for rec_id, f in sync_receipt_rows:
+        src = text(f.get("來源飛書單號"))
+        if not src:
+            continue
+        part = text(f.get("貨品編號"))
+        if not part:
+            continue
+        sync_by_gr.setdefault((src, part), []).append(
+            (parse_qty(f.get("數量")), text(f.get("轉入位置")),
+             text(f.get("記錄編號")) or rec_id))
+
     for rec_id, f in gr_rows:
         part = text(f.get("貨品編號"))
-        wh_id = link_ids(f.get("入倉"))
         gr_no = text(f.get("收貨單 編號")) or rec_id
+        synced = sync_by_gr.get((gr_no, part)) if part else None
+        if synced:
+            # Webpage-confirmed values win; the GR row itself is not counted,
+            # so this receipt is counted once, never double.
+            for qty, loc, rec_no in synced:
+                wh_id = warehouse_by_name.get(loc)
+                if qty is None:
+                    problems["unreadable_qty"].append(f"{rec_no} part={part}")
+                    continue
+                if wh_id is None:
+                    problems["unknown_location"].append(
+                        f"{rec_no} part={part} loc={loc or '?'}")
+                    continue
+                prod_id = product_by_part.get(part)
+                if prod_id is None:
+                    problems["unknown_part"].append(f"{rec_no} part={part}")
+                    continue
+                accumulate(stock, problems, prod_id, wh_id, part, loc,
+                           "in", qty)
+            continue
+        wh_id = link_ids(f.get("入倉"))
         if not part or not wh_id:
             problems["missing_warehouse"].append(f"{gr_no} part={part or '?'}")
             continue
@@ -222,7 +265,7 @@ def build_stock(gr_rows, outbound_rows, sync_receipt_rows, sync_transfer_rows,
         if prod_id is None:
             problems["unknown_part"].append(f"{gr_no} part={part}")
             continue
-        qty = f.get("數量 (Number)")
+        qty = parse_qty(f.get("數量 (Number)"))
         if qty is None:
             qty = parse_qty(f.get("數量"))
         if qty is None:
