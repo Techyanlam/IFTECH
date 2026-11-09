@@ -1,0 +1,31 @@
+name: Rename mancheong (one-off)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move uploaded file to root and verify md5
+        run: |
+          set -e
+          ls -l tmp-upload-mc-tf/mancheong.html
+          md5sum tmp-upload-mc-tf/mancheong.html
+          rm -f mancheong.html
+          git mv tmp-upload-mc-tf/mancheong.html mancheong.html
+          echo "MD5 after rename:"
+          md5sum mancheong.html
+          test "$(md5sum mancheong.html | awk '{print $1}')" = "bce7cc5b372e2cbe948ded0fe0a9f8f2"
+          ls -l mancheong.html
+          rmdir tmp-upload-mc-tf || true
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git status
+          git commit -m "Transfer/ship pickers read Feishu 庫存總表" || echo "nothing to commit"
+          git push
