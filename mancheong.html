@@ -661,8 +661,8 @@
           '<p class="page-sub">核對產品同數量，確認先入庫存；同一批貨可以逐項加，每項可拆去多個倉位。</p>' +
           '<div class="card">' +
           '<h3 style="margin-top:0">飛書收貨單</h3>' +
-          '<div class="small">下面係飛書收貨表入面嘅收貨行（最新先排未入倉嘅）；撳其中一行，就會將貨品同數量填入下面收貨卡片，你核對完、揀好入倉位置，先撳「確認收貨」入庫存。確認收貨嗰陣，會將第一個入倉位置寫返去飛書嗰張單嘅入倉欄。</div>' +
-          '<div class="btn-row"><button type="button" class="btn primary" id="btnFetchFsRcv">由飛書攞最新收貨單</button></div>' +
+          '<div class="small"> 飛書收貨表入面嘅收貨行；按其中一行，就會將貨品同數量填入下面收貨卡片，你核對完、揀好入倉位置，先按「確認收貨」入庫存。</div>' +
+          '<div class="btn-row"><button type="button" class="btn primary" id="btnFetchFsRcv">更新飛書收貨單</button></div>' +
           '<div class="small mt8" id="fsRcvStatus"></div>' +
           '<div id="fsRcvList"></div>' +
           '<div class="small mt8" id="fsRcvUpdated"></div>' +
@@ -773,12 +773,12 @@
           if (pid && receivePickers[idx]) {
             receivePickers[idx].setId(pid);
             matched++;
-            note.textContent = "飛書單項目：" + it.part + (it.qty != null ? " × " + it.qty : "") + "（已配對到主檔）";
+            note.textContent = "飛書單項目：" + it.part + (it.qty != null ? " × " + it.qty : "") + "（已配對到商品）";
           } else {
             unmatched++;
             var search = document.getElementById("rcv" + idx + "Search");
             if (search && it.part) search.value = it.part;
-            note.textContent = "飛書單項目：" + it.part + (it.qty != null ? " × " + it.qty : "") + " — 未配對到主檔產品，請喺上面搜尋框手動揀返產品。";
+            note.textContent = "飛書單項目：" + it.part + (it.qty != null ? " × " + it.qty : "") + " — 未配對到相關商品，請手動選擇產品。";
             note.style.color = "var(--warn)";
             note.style.fontWeight = "700";
           }
@@ -943,7 +943,7 @@
           return true;
         }).catch(function () { if (timeoutId) clearTimeout(timeoutId); return false; });
       }
-      // 倉位雙向同步：飛書 倉庫主檔 <-> 本地位置清單。
+      // 倉位雙向同步：飛書倉庫主檔 <-> 本地位置清單。
       // fsId = 飛書 record_id（備份 JSON 會一齊存返，restore 嗰陣經 normalizeData 保留）。
       var fsLocCacheAt = 0;
       var fsLocPromise = null;
