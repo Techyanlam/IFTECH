@@ -1,0 +1,26 @@
+name: Rename mancheong (one-off)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Rename uploaded mancheong.html to repo root
+        run: |
+          rm -f mancheong.html
+          git mv tmp-upload-mc-sum/mancheong.html mancheong.html
+          echo "md5 after rename:"
+          md5sum mancheong.html
+          test "$(md5sum mancheong.html | cut -d' ' -f1)" = "6f4994317e082624e778ffe20362ce0f"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git status --short
+          git commit -m "Stock page reads pivoted 庫存總表 (/stock-summary)"
+          git push
