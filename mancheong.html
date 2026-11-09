@@ -1036,7 +1036,7 @@
       // 新產品寫入飛書商品信息表（POST /add-product）；成功或已存在都算 ok。
       function fsProductPost(np) {
         var controller = null, timeoutId = null;
-        var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ part: np.partNumber || "", name: np.name || "", brand: np.brand || "", alias: np.aliases || "", unit: np.unit || "" }) };
+        var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ part: np.partNumber || np.name || "", name: np.name || "", brand: np.brand || "", alias: np.aliases || "", unit: np.unit || "" }) };
         if (window.AbortController) {
           controller = new AbortController();
           opts.signal = controller.signal;
@@ -1056,7 +1056,7 @@
       // 無就按貨品編號搵，搵到更新、搵唔到新增）。成功就傳回 Worker 嘅 data（帶 record_id），失敗就 false。
       function fsProductSave(p) {
         var controller = null, timeoutId = null;
-        var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ record_id: p.fsId || "", part: p.partNumber || "", name: p.name || "", brand: p.brand || "", alias: p.aliases || "", unit: p.unit || "" }) };
+        var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ record_id: p.fsId || "", part: p.partNumber || p.name || "", name: p.name || "", brand: p.brand || "", alias: p.aliases || "", unit: p.unit || "" }) };
         if (window.AbortController) {
           controller = new AbortController();
           opts.signal = controller.signal;
@@ -1278,9 +1278,12 @@
           var orec = card.getAttribute("data-origin-record");
           if (orec) item.origin = { recordId: orec, grNo: card.getAttribute("data-origin-grno") || "" };
           if (isNew) {
+            // 型號留空，用名做編號（Yan 2026-11-10 揀）
+            var npName = card.querySelector(".np-name").value.trim();
+            var npPart = card.querySelector(".np-part").value.trim();
             item.newProduct = {
-              name: card.querySelector(".np-name").value.trim(),
-              partNumber: card.querySelector(".np-part").value.trim() || null,
+              name: npName,
+              partNumber: npPart || npName,
               brand: card.querySelector(".np-brand").value.trim() || null,
               aliases: card.querySelector(".np-alias").value.trim() || null,
               unit: card.querySelector(".np-unit").value.trim() || "件"
@@ -2075,7 +2078,7 @@
           if (!name) { setNotice("產品名稱未填。", "err"); return; }
           var data = {
             name: name,
-            partNumber: document.getElementById("pfPart").value.trim() || null,
+            partNumber: document.getElementById("pfPart").value.trim() || name,
             brand: document.getElementById("pfBrand").value.trim() || null,
             aliases: document.getElementById("pfAlias").value.trim() || null,
             unit: document.getElementById("pfUnit").value.trim() || "件"
