@@ -1685,11 +1685,11 @@
       var fsStockFailed = false;
       var fsStockFailedAt = 0; // 上次攞唔到嘅時間，30 秒內唔重試
       var fsStockTimer = null; // 庫存頁自動更新（每 30 秒攞一次）
-      function fsStockFetch() {
+      function fsStockFetch(force) {
         var cached = fsStockCache;
-        if (cached && Date.now() - cached.at < 30 * 1000) return; // 30 秒 cache
+        if (!force && cached && Date.now() - cached.at < 30 * 1000) return; // 30 秒 cache（撳「更新」嗰陣 force 會跳過）
         if (fsStockFetching) return;
-        if (fsStockFailed && Date.now() - fsStockFailedAt < 30000) return; // 攞唔到就等 30 秒先再試，唔好不停重攞
+        if (!force && fsStockFailed && Date.now() - fsStockFailedAt < 30000) return; // 攞唔到就等 30 秒先再試，唔好不停重攞
         fsStockFetching = true;
         fetch(FS_SYNC_BASE + "/stock").then(function (resp) {
           return resp.json().catch(function () { return null; }).then(function (data) {
@@ -1814,7 +1814,8 @@
           '<input type="text" class="input" id="stockQ" value="' + esc(stockState.q) + '" placeholder="例如 2012NB、刨床、PLANER" />' +
           '<label class="flabel"><input type="checkbox" id="stockOnly" ' + (stockState.onlyStocked ? "checked" : "") + ' /> 只顯示有貨／有出入記錄嘅產品</label>' +
           fsFailNote +
-          '<p class="count-line">顯示 ' + shownRows.length + " 款（共 " + rows.length + " 款）</p></div>" +
+          '<p class="count-line">顯示 ' + shownRows.length + " 款（共 " + rows.length + " 款）</p>" +
+          '<button type="button" class="btn" id="stockRefresh">更新</button></div>' +
           (shownRows.length ?
             '<div class="table-wrap"><table class="grid"><thead><tr><th>產品</th><th>型號</th><th>品牌</th>' +
             names.map(function (n) { return '<th class="num">' + esc(n) + "</th>"; }).join("") +
@@ -1838,6 +1839,11 @@
           var nq = document.getElementById("stockQ"); nq.focus(); nq.setSelectionRange(nq.value.length, nq.value.length);
         });
         document.getElementById("stockOnly").addEventListener("change", function (e) { stockState.onlyStocked = e.target.checked; render(); });
+        var refreshBtn = document.getElementById("stockRefresh");
+        if (refreshBtn) refreshBtn.addEventListener("click", function () {
+          // 撳「更新」：即刻由飛書重新攞最新庫存（跳過 30 秒 cache），唔使等自動更新。
+          fsStockCache = null; fsStockFailed = false; fsStockFetch(true);
+        });
         var more = document.getElementById("stockMore");
         if (more) more.addEventListener("click", function () { stockState.limit += 200; render(); });
       }
