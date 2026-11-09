@@ -281,8 +281,8 @@
           }),
           products: (d.products || []).map(function (p) {
             return Array.isArray(p)
-              ? { id: p[0], name: p[1], partNumber: p[2] || null, brand: p[3] || null, aliases: p[4] || null, unit: p[5] || "件" }
-              : { id: p.id, name: p.name, partNumber: p.partNumber || null, brand: p.brand || null, aliases: p.aliases || null, unit: p.unit || "件" };
+              ? { id: p[0], name: p[1], partNumber: p[2] || null, brand: p[3] || null, aliases: p[4] || null, unit: p[5] || "件", fsId: p[6] || null }
+              : { id: p.id, name: p.name, partNumber: p.partNumber || null, brand: p.brand || null, aliases: p.aliases || null, unit: p.unit || "件", fsId: p.fsId || null };
           }),
           receipts: (d.receipts || []).map(function (r) {
             return {
@@ -1021,7 +1021,27 @@
         }).then(function (r) {
           if (timeoutId) clearTimeout(timeoutId);
           if (!r.ok || !r.data || r.data.error || r.data.ok === false) return false;
-          return true;
+          return r.data;
+        }).catch(function () { if (timeoutId) clearTimeout(timeoutId); return false; });
+      }
+      // 產品頁新增／修改寫入飛書商品信息表（POST /update-product：有 record_id 就更新嗰行，
+      // 無就按貨品編號搵，搵到更新、搵唔到新增）。成功就傳回 Worker 嘅 data（帶 record_id），失敗就 false。
+      function fsProductSave(p) {
+        var controller = null, timeoutId = null;
+        var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ record_id: p.fsId || "", part: p.partNumber || "", name: p.name || "", brand: p.brand || "", alias: p.aliases || "" }) };
+        if (window.AbortController) {
+          controller = new AbortController();
+          opts.signal = controller.signal;
+          timeoutId = setTimeout(function () { try { controller.abort(); } catch (e) {} }, 60000);
+        }
+        return fetch(FS_SYNC_BASE + "/update-product", opts).then(function (resp) {
+          return resp.json().catch(function () { return null; }).then(function (data) {
+            return { ok: resp.ok, data: data };
+          });
+        }).then(function (r) {
+          if (timeoutId) clearTimeout(timeoutId);
+          if (!r.ok || !r.data || r.data.error || r.data.ok === false) return false;
+          return r.data;
         }).catch(function () { if (timeoutId) clearTimeout(timeoutId); return false; });
       }
       function fsSyncReceiptLines(rec, supplier, product, allocs, srcGrNo) {
@@ -1296,7 +1316,10 @@
         // 新產品：本地已存，另外寫一份去飛書商品信息表（有重複貨品編號就唔再寫）。
         // 冇新產品就係 null（提示唔提呢樣）；全部寫好就係 true；有失敗就係 false。
         var productPromise = newProds.length
-          ? Promise.all(newProds.map(function (np) { return fsProductPost(np); })).then(function (oks) { return oks.every(function (x) { return x; }); })
+          ? Promise.all(newProds.map(function (np) { return fsProductPost(np); })).then(function (rs) {
+              rs.forEach(function (r, i) { if (r && r.ok && r.record_id) newProds[i].fsId = r.record_id; });
+              return rs.every(function (x) { return !!x; });
+            })
           : Promise.resolve(null);
         var origins = [];
         var seenRec = {};
@@ -1873,10 +1896,18 @@
             Object.assign(p, data);
             prodState.editingId = null;
             setNotice("產品已更新：" + name + "。");
+            fsProductSave(p).then(function (r) {
+              if (r && r.ok) { if (r.record_id) p.fsId = r.record_id; setNotice("產品已更新：" + name + "。已同步去飛書商品信息表。"); }
+              else setNotice("產品已更新：" + name + "。但寫入飛書商品信息表失敗，請喺飛書手動改返。", "warn");
+            });
           } else {
             var np = Object.assign({ id: nextId(DB.products) }, data);
             DB.products.push(np);
             setNotice("已新增產品：" + name + "。");
+            fsProductSave(np).then(function (r) {
+              if (r && r.ok) { if (r.record_id) np.fsId = r.record_id; setNotice("已新增產品：" + name + "。已同步去飛書商品信息表。"); }
+              else setNotice("已新增產品：" + name + "。但寫入飛書商品信息表失敗，請喺飛書手動補返。", "warn");
+            });
           }
           rebuildMaps();
           render();
