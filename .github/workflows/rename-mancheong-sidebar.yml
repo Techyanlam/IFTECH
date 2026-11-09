@@ -1,0 +1,33 @@
+name: Rename mancheong sidebar (one-off)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace root mancheong.html with uploaded copy
+        run: |
+          set -eux
+          echo "md5 before (tmp upload):"
+          md5sum tmp-upload-mc6/mancheong.html
+          test "$(md5sum tmp-upload-mc6/mancheong.html | cut -d' ' -f1)" = "73c94745b144b4b8977eb173aa4041b0"
+          rm -f mancheong.html
+          git mv tmp-upload-mc6/mancheong.html mancheong.html
+          rmdir tmp-upload-mc6 || true
+          echo "md5 after (root):"
+          md5sum mancheong.html
+          test "$(md5sum mancheong.html | cut -d' ' -f1)" = "73c94745b144b4b8977eb173aa4041b0"
+          git status --short
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Replace mancheong.html (sidebar refresh button, AI拍照 first, iPad layout)" || echo "nothing to commit"
+          git push
