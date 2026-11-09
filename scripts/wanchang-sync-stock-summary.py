@@ -139,6 +139,19 @@ def create_record(token, table_id, fields):
     return data["data"]["record"]["record_id"]
 
 
+def delete_record(token, table_id, record_id):
+    url = f"{API_BASE}/{table_id}/records/{record_id}"
+    req = urllib.request.Request(
+        url,
+        headers={"Authorization": "Bearer " + token},
+        method="DELETE",
+    )
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    if data.get("code") != 0:
+        raise RuntimeError(f"delete record failed in {table_id}: {data}")
+
+
 def update_record(token, table_id, record_id, fields):
     url = f"{API_BASE}/{table_id}/records/{record_id}"
     req = urllib.request.Request(
@@ -401,47 +414,88 @@ def sync_summary(token, summary, product_name_by_id, dry_run=False):
     Columns: 貨品編號 (primary), 商品名稱, 倉1–倉7, 收貨區, 出貨區,
     收貨總數, 出貨總數, 總庫存. Creates missing rows, updates changed rows,
     zeroes rows whose movements are gone (never deletes them).
+    One row per PART NUMBER: several product records sharing a part are
+    merged into a single row (their quantities summed). Duplicate rows for
+    the same part (e.g. created by two near-simultaneous fast-path writes)
+    are deleted, keeping one.
     Returns a stats dict.
     """
+    # Merge summary entries by part number (several product records may
+    # share one part number; their quantities add up).
+    by_part = {}
+    for prod_id, entry in summary.items():
+        part = entry["part"]
+        merged = by_part.get(part)
+        if merged is None:
+            merged = by_part[part] = {
+                "part": part,
+                "name": product_name_by_id.get(prod_id, ""),
+                "wh": dict(entry["wh"]),
+                "in_total": entry["in_total"],
+                "out_total": entry["out_total"],
+                "total": entry["total"],
+            }
+        else:
+            for wh, v in entry["wh"].items():
+                merged["wh"][wh] = merged["wh"].get(wh, 0.0) + v
+            merged["in_total"] += entry["in_total"]
+            merged["out_total"] += entry["out_total"]
+            merged["total"] += entry["total"]
+            if not merged["name"]:
+                merged["name"] = product_name_by_id.get(prod_id, "")
+    # Existing rows, keyed by part. Duplicates (same part, several rows)
+    # are collected so the extras can be deleted, keeping one.
     existing = {}
+    duplicates = []
     for rec_id, f in list_records(token, SUMMARY_TABLE):
         part = text(f.get("貨品編號"))
         if not part:
             continue
-        existing[part] = {
+        row = {
             "record_id": rec_id,
             "values": [parse_qty(f.get(name)) or 0.0
                        for name in SUMMARY_NUMBER_COLUMNS],
         }
+        if part in existing:
+            duplicates.append(row)
+        else:
+            existing[part] = row
     stats = {"created": 0, "updated": 0, "unchanged": 0, "zeroed": 0,
-             "negative": []}
-    for prod_id, entry in sorted(summary.items(), key=lambda kv: kv[1]["part"]):
-        part = entry["part"]
+             "deduped": 0, "negative": []}
+    for part, entry in sorted(by_part.items()):
         values = [entry["wh"].get(name, 0.0) for name in WAREHOUSE_COLUMNS]
         values += [entry["in_total"], entry["out_total"], entry["total"]]
         if entry["total"] < 0:
             stats["negative"].append(f"{part} = {num(entry['total'])}")
-        fields = {"貨品編號": part,
-                  "商品名稱": product_name_by_id.get(prod_id, "")}
+        fields = {"貨品編號": part, "商品名稱": entry["name"]}
         for name, value in zip(SUMMARY_NUMBER_COLUMNS, values):
             fields[name] = num(value)
         old = existing.get(part)
         if old is None:
             stats["created"] += 1
             if not dry_run:
-                create_record(token, SUMMARY_TABLE, fields)
+                new_id = create_record(token, SUMMARY_TABLE, fields)
+                existing[part] = {"record_id": new_id, "values": values}
         elif old["values"] != values:
             stats["updated"] += 1
             if not dry_run:
                 update_record(token, SUMMARY_TABLE, old["record_id"], fields)
+                old["values"] = values
         else:
             stats["unchanged"] += 1
     for part, old in existing.items():
-        if part not in {e["part"] for e in summary.values()}:
+        if part not in by_part:
             stats["zeroed"] += 1
             if not dry_run:
                 update_record(token, SUMMARY_TABLE, old["record_id"],
                               {name: 0 for name in SUMMARY_NUMBER_COLUMNS})
+    for dup in duplicates:
+        # A duplicate row for a part that already has a kept row: delete it.
+        # The kept row was just updated to the merged totals above, so
+        # nothing is lost.
+        stats["deduped"] += 1
+        if not dry_run:
+            delete_record(token, SUMMARY_TABLE, dup["record_id"])
     return stats
 
 
@@ -500,7 +554,8 @@ def main():
 
     stats = sync_summary(token, summary, product_name_by_id, dry_run=dry_run)
     print(f"created: {stats['created']}, updated: {stats['updated']}, "
-          f"unchanged: {stats['unchanged']}, zeroed: {stats['zeroed']}")
+          f"unchanged: {stats['unchanged']}, zeroed: {stats['zeroed']}, "
+          f"deduped: {stats['deduped']}")
     print(f"negative rows: {len(stats['negative'])}" +
           (f" — {'; '.join(stats['negative'][:5])}" if stats['negative'] else ""))
     if dry_run:
