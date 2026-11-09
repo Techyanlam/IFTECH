@@ -860,9 +860,9 @@
           var key = rc.recordId || rc.grNo || ("row" + origIdx);
           var expanded = fsRcvExpandedKey !== null && fsRcvExpandedKey === key;
           var warn = rc.warehouseAssigned ? "" : ' <span class="pmeta" style="color:var(--warn);font-weight:700">未入倉</span>';
-          var collapsedLabel = rc.part
-            ? esc(rc.part) + (rc.qty != null ? " × " + esc(rc.qty) + (rc.unit ? " " + esc(rc.unit) : "") : "")
-            : esc(rc.grNo || rc.recordId || "飛書收貨單");
+          var qtyTxt = rc.qty != null ? esc(rc.qty) + (rc.unit ? " " + esc(rc.unit) : "") : "";
+          var collapsedLabel = [rc.grNo ? esc(rc.grNo) : "", rc.part ? esc(rc.part) : "", qtyTxt]
+            .filter(function (x) { return x; }).join(" / ") || esc(rc.recordId || "飛書收貨單"); // Yan 2026-11-09：行頭顯示 GR-XXX / 貨品編號 / 數量
           var meta = [
             rc.supplier ? "供應商：" + rc.supplier : "",
             rc.part ? "貨品：" + rc.part : "",
