@@ -522,6 +522,7 @@
       function render() {
         if (tab !== "receive" && fsAutoTimer) { clearInterval(fsAutoTimer); fsAutoTimer = null; }
         if (tab !== "receipts" && tab !== "transfers" && tab !== "shipments" && fsRecTimer) { clearInterval(fsRecTimer); fsRecTimer = null; }
+        if (tab !== "stock" && fsStockTimer) { clearInterval(fsStockTimer); fsStockTimer = null; }
         navGrid.querySelectorAll("[data-tab]").forEach(function (b) {
           b.setAttribute("aria-pressed", b.getAttribute("data-tab") === tab ? "true" : "false");
         });
@@ -1675,39 +1676,156 @@
       }
 
       /* ============ 庫存 ============ */
+      /* ============ 飛書庫存（庫存頁讀飛書「庫存」表） ============ */
+      // 庫存頁唔再只計本機記錄（reload／換機之後本機記錄係空，全部顯示 0）：
+      // 佢攞飛書「庫存」表（每晚 02:15 重建，亦可手動重跑），等唔同機器、
+      // reload 之後都睇到同一份庫存。攞唔到就用返本機記錄，並出提示。
+      var fsStockCache = null; // {at, rows}
+      var fsStockFetching = false;
+      var fsStockFailed = false;
+      var fsStockFailedAt = 0; // 上次攞唔到嘅時間，30 秒內唔重試
+      var fsStockTimer = null; // 庫存頁自動更新（每 30 秒攞一次）
+      function fsStockFetch() {
+        var cached = fsStockCache;
+        if (cached && Date.now() - cached.at < 30 * 1000) return; // 30 秒 cache
+        if (fsStockFetching) return;
+        if (fsStockFailed && Date.now() - fsStockFailedAt < 30000) return; // 攞唔到就等 30 秒先再試，唔好不停重攞
+        fsStockFetching = true;
+        fetch(FS_SYNC_BASE + "/stock").then(function (resp) {
+          return resp.json().catch(function () { return null; }).then(function (data) {
+            return { ok: resp.ok, data: data };
+          });
+        }).then(function (r) {
+          fsStockFetching = false;
+          if (!r.ok || !r.data || r.data.error || !Array.isArray(r.data.rows)) {
+            var wasFailed = fsStockFailed;
+            fsStockFailed = true;
+            fsStockFailedAt = Date.now();
+            // 只喺第一次失敗嗰陣重畫（等「未能載入」嗰句出現）；之後再失敗唔重畫，
+            // 否則重畫會再觸發 fsStockFetch，變成無限重試。
+            if (tab === "stock" && !wasFailed) fsStockRerender();
+            return;
+          }
+          fsStockFailed = false;
+          fsStockCache = { at: Date.now(), rows: r.data.rows };
+          if (tab === "stock") fsStockRerender();
+        }).catch(function () {
+          fsStockFetching = false;
+          var wasFailed2 = fsStockFailed;
+          fsStockFailed = true;
+          fsStockFailedAt = Date.now();
+          if (tab === "stock" && !wasFailed2) fsStockRerender();
+        });
+      }
+      function fsStockRerender() {
+        var qEl = document.getElementById("stockQ");
+        var wasFocused = !!(qEl && document.activeElement === qEl);
+        var sel = wasFocused ? qEl.selectionStart : 0;
+        render();
+        if (wasFocused) {
+          var nq = document.getElementById("stockQ");
+          if (nq) { nq.focus(); try { nq.setSelectionRange(sel, sel); } catch (e) {} }
+        }
+      }
+
       var stockState = { q: "", onlyStocked: true, limit: 200 };
       function renderStock() {
-        var stock = computeStock();
+        fsStockFetch(); // 攞飛書庫存（30 秒內有 cache 就唔重攞）
+        if (fsStockTimer) clearInterval(fsStockTimer);
+        fsStockTimer = setInterval(function () {
+          if (tab !== "stock") { clearInterval(fsStockTimer); fsStockTimer = null; return; }
+          fsStockFetch(); // 每 30 秒攞一次，唔同機器嘅庫存會自動更新
+        }, 30 * 1000);
         var names = locationNames();
         var q = stockState.q.trim().toLowerCase();
-        var rows = DB.products.filter(function (p) {
-          if (stockState.onlyStocked && Math.abs(totalStock(stock, p.id)) < 1e-9 && !hasAnyStock(stock, p.id)) return false;
-          if (q && searchText(p).indexOf(q) === -1) return false;
-          return true;
-        });
+        var fsFailNote = (fsStockFailed && !fsStockCache) ? '<p class="small" style="color:var(--bad)">未能載入飛書庫存，只顯示本機記錄。</p>' : "";
+        var rows, locTotals, grand;
+        if (fsStockCache && fsStockCache.rows) {
+          // 飛書庫存：按貨品編號分組，每個位置嘅存量用「現有庫存」。
+          var byPart = {};
+          fsStockCache.rows.forEach(function (r) {
+            var part = (r.part || "").trim();
+            if (!part) return;
+            var g = byPart[part];
+            if (!g) { g = byPart[part] = { part: part, locs: {}, total: 0, moved: false }; }
+            var wh = (r.warehouse || "").trim();
+            var st = +r.stock || 0;
+            if (wh) g.locs[wh] = (g.locs[wh] || 0) + st;
+            g.total += st;
+            if (+r.in_qty || +r.out_qty || +r.tin_qty || +r.tout_qty || +r.adj_qty) g.moved = true;
+          });
+          var all = Object.keys(byPart).map(function (part) {
+            var g = byPart[part];
+            var p = DB.products.find(function (x) { return (x.partNumber || "").trim() === part; });
+            return {
+              name: p ? p.name : part,
+              partNumber: part,
+              brand: p ? (p.brand || "") : "",
+              search: p ? searchText(p) : part.toLowerCase(),
+              locs: g.locs,
+              total: g.total,
+              moved: g.moved
+            };
+          });
+          rows = all.filter(function (r) {
+            if (stockState.onlyStocked && Math.abs(r.total) < 1e-9 && !r.moved) return false;
+            if (q && r.search.indexOf(q) === -1) return false;
+            return true;
+          });
+          locTotals = {};
+          names.forEach(function (n) { locTotals[n] = 0; });
+          all.forEach(function (r) {
+            names.forEach(function (n) { if (r.locs[n] != null) locTotals[n] += r.locs[n]; });
+          });
+          grand = names.reduce(function (s, n) { return s + locTotals[n]; }, 0);
+        } else {
+          // 未攞到飛書庫存（第一次載入／攞唔到）：用返本機記錄。
+          var stock = computeStock();
+          var allLocal = DB.products.map(function (p) {
+            var locs = {};
+            names.forEach(function (n) { locs[n] = stockAt(stock, p.id, n); });
+            return {
+              name: p.name,
+              partNumber: p.partNumber || "",
+              brand: p.brand || "",
+              search: searchText(p),
+              locs: locs,
+              total: totalStock(stock, p.id),
+              moved: hasAnyStock(stock, p.id)
+            };
+          });
+          rows = allLocal.filter(function (r) {
+            if (stockState.onlyStocked && Math.abs(r.total) < 1e-9 && !r.moved) return false;
+            if (q && r.search.indexOf(q) === -1) return false;
+            return true;
+          });
+          locTotals = {};
+          names.forEach(function (n) { locTotals[n] = 0; });
+          allLocal.forEach(function (r) {
+            names.forEach(function (n) { if (r.locs[n] != null) locTotals[n] += r.locs[n]; });
+          });
+          grand = names.reduce(function (s, n) { return s + locTotals[n]; }, 0);
+        }
         var shownRows = rows.slice(0, stockState.limit);
-        var locTotals = {};
-        names.forEach(function (n) { locTotals[n] = 0; });
-        stock.forEach(function (m) { m.forEach(function (v, loc) { if (locTotals[loc] != null) locTotals[loc] += v; }); });
-        var grand = names.reduce(function (s, n) { return s + locTotals[n]; }, 0);
         view.innerHTML =
           '<h1 class="page-title">庫存</h1>' +
           '<p class="page-sub">一款一行，睇晒每個位置存量同總數；可以用名稱／型號／品牌／花名搜尋。</p>' +
           '<div class="card"><label class="flabel">搜尋產品</label>' +
           '<input type="text" class="input" id="stockQ" value="' + esc(stockState.q) + '" placeholder="例如 2012NB、刨床、PLANER" />' +
-          '<label class="flabel"><input type="checkbox" id="stockOnly" ' + (stockState.onlyStocked ? "checked" : "") + " /> 只顯示有貨／有出入記錄嘅產品</label>" +
+          '<label class="flabel"><input type="checkbox" id="stockOnly" ' + (stockState.onlyStocked ? "checked" : "") + ' /> 只顯示有貨／有出入記錄嘅產品</label>' +
+          fsFailNote +
           '<p class="count-line">顯示 ' + shownRows.length + " 款（共 " + rows.length + " 款）</p></div>" +
           (shownRows.length ?
             '<div class="table-wrap"><table class="grid"><thead><tr><th>產品</th><th>型號</th><th>品牌</th>' +
             names.map(function (n) { return '<th class="num">' + esc(n) + "</th>"; }).join("") +
             '<th class="num">總數</th></tr></thead><tbody>' +
-            shownRows.map(function (p) {
-              return "<tr><td>" + esc(p.name) + "</td><td>" + esc(p.partNumber || "") + "</td><td>" + esc(p.brand || "") + "</td>" +
+            shownRows.map(function (r) {
+              return "<tr><td>" + esc(r.name) + "</td><td>" + esc(r.partNumber || "") + "</td><td>" + esc(r.brand || "") + "</td>" +
                 names.map(function (n) {
-                  var v = stockAt(stock, p.id, n);
+                  var v = r.locs[n] || 0;
                   return '<td class="num">' + (Math.abs(v) > 1e-9 ? fmtQty(v) : "0") + "</td>";
                 }).join("") +
-                '<td class="num"><b>' + fmtQty(totalStock(stock, p.id)) + "</b></td></tr>";
+                '<td class="num"><b>' + fmtQty(r.total) + "</b></td></tr>";
             }).join("") +
             '</tbody><tfoot><tr><td colspan="3">合共</td>' +
             names.map(function (n) { return '<td class="num">' + fmtQty(locTotals[n]) + "</td>"; }).join("") +
