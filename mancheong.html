@@ -521,6 +521,7 @@
       var view = document.getElementById("view");
       function render() {
         if (tab !== "receive" && fsAutoTimer) { clearInterval(fsAutoTimer); fsAutoTimer = null; }
+        if (tab !== "receipts" && tab !== "transfers" && tab !== "shipments" && fsRecTimer) { clearInterval(fsRecTimer); fsRecTimer = null; }
         navGrid.querySelectorAll("[data-tab]").forEach(function (b) {
           b.setAttribute("aria-pressed", b.getAttribute("data-tab") === tab ? "true" : "false");
         });
@@ -629,6 +630,7 @@
       var fsRcvExpandedKey = null;
       var fsRcvShowAssigned = false; // 預設隱藏已入倉嘅飛書收貨單；撳卡頂嗰行先顯示，狀態喺 5 分鐘自動更新後仍然保留
       var fsAutoTimer = null;
+      var fsRecTimer = null; // 記錄頁自動更新（每 30 秒攞一次飛書同步記錄，等唔同機器睇到對方嘅記錄）
       function allocRowHtml(loc, qty) {
         return '<div class="alloc-row row">' +
           '<select class="input alloc-loc">' + locationOptions(loc || locationNames()[0]) + "</select>" +
@@ -1095,7 +1097,7 @@
       }
       function fsSyncFetch(kind) {
         var cached = fsSyncCache[kind];
-        if (cached && Date.now() - cached.at < 5 * 60 * 1000) return;
+        if (cached && Date.now() - cached.at < 30 * 1000) return; // 30 秒 cache，等唔同機器嘅記錄快啲出現
         if (fsSyncFetching[kind]) return;
         if (fsSyncFailed[kind] && Date.now() - fsSyncFailedAt[kind] < 30000) return; // 攞唔到就等 30 秒先再試，唔好不停重攞
         fsSyncFetching[kind] = true;
@@ -1567,7 +1569,12 @@
       function renderRecords(kind) {
         var def = RECORD_DEFS[kind];
         var f = recFilters[kind];
-        fsSyncFetch(kind); // 攞飛書同步記錄（5 分鐘內有 cache 就唔重攞）；本地記錄即刻顯示先
+        fsSyncFetch(kind); // 攞飛書同步記錄（30 秒內有 cache 就唔重攞）；本地記錄即刻顯示先
+        if (fsRecTimer) clearInterval(fsRecTimer);
+        fsRecTimer = setInterval(function () {
+          if (tab !== kind) { clearInterval(fsRecTimer); fsRecTimer = null; return; }
+          fsSyncFetch(kind); // 每 30 秒攞一次，唔同機器收到貨會自動出現，唔使撳重新整理
+        }, 30 * 1000);
         var all = movementRows(kind);
         var shown = filteredRows(kind);
         var totalQty = shown.reduce(function (s, r) { return s + r.qty; }, 0);
