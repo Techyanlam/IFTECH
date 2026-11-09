@@ -78,7 +78,7 @@
       .nav-btn[aria-pressed="true"]:hover { background: var(--accent-hover); }
       .nav-btn.nav-link { display: block; text-decoration: none; }
       .nav-tools { margin-top: 14px; border-top: 1px solid var(--sidebar-alt); padding-top: 12px; display: none; }
-      @media (min-width: 760px) { .nav-tools { display: block; margin-top: auto; } }
+      @media (min-width: 760px) { .nav-tools { display: none; margin-top: auto; } } /* 備份欄唔顯示（Yan 2026-11-09） */
       .nav-tools .tlabel { font-size: 12px; color: var(--sidebar-dim); padding: 0 8px 6px; }
       .tool-btn {
         display: block; width: 100%; border: 1px solid var(--sidebar-alt); border-radius: var(--radius);
@@ -203,7 +203,7 @@
       .diff-table { width: 100%; border-collapse: collapse; font-size: 14.5px; margin: 10px 0; }
       .diff-table th, .diff-table td { border: 1px solid var(--grid); padding: 7px 9px; text-align: left; }
       .diff-table td.num { text-align: right; }
-      .mobile-tools { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+      .mobile-tools { display: none; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; } /* 備份欄唔顯示（Yan 2026-11-09） */
       @media (min-width: 760px) { .mobile-tools { display: none; } }
       .hidden { display: none !important; }
       .mt8 { margin-top: 8px; } .mt14 { margin-top: 14px; }
@@ -216,7 +216,7 @@
         <div class="brand">
           <div>
             <div class="name">ManCheong</div>
-            <div class="sub">萬昌倉庫管理 </div>
+            <div class="sub">萬昌倉庫管理 · 獨立版</div>
           </div>
           <button type="button" id="btnMenu" aria-label="打開選單" aria-expanded="false">☰</button>
         </div>
@@ -639,7 +639,7 @@
         return '<div class="item-card" data-item="' + idx + '">' +
           '<div class="item-head"><span class="t">貨品 ' + (idx + 1) + '</span><button type="button" class="btn small item-del">刪除此項</button></div>' +
           '<label class="flabel">搜尋現有產品</label>' + pickerHtml("rcv" + idx) +
-          '<label class="flabel"><input type="checkbox" class="is-new" />  新產品（商品記錄同步更新）</label>' +
+          '<label class="flabel"><input type="checkbox" class="is-new" /> 呢項係新產品（主檔未有）</label>' +
           '<div class="new-fields hidden">' +
           '<div class="row"><div><label class="flabel">產品名稱 *</label><input type="text" class="input np-name" /></div>' +
           '<div><label class="flabel">型號</label><input type="text" class="input np-part" /></div></div>' +
@@ -647,8 +647,8 @@
           '<div><label class="flabel">花名／英文名</label><input type="text" class="input np-alias" /></div>' +
           '<div><label class="flabel">單位</label><input type="text" class="input np-unit" value="件" /></div></div>' +
           "</div>" +
-          '<label class="flabel">相片／包裝標示數量（選填， 確認量核對）</label>' +
-          '<input type="number" class="input label-qty" min="0" step="any" placeholder="數量" />' +
+          '<label class="flabel">相片／包裝標示數量（選填，用嚟同確認量核對）</label>' +
+          '<input type="number" class="input label-qty" min="0" step="any" placeholder="例如包裝寫住 50" />' +
           '<label class="flabel">入倉分配（同一項可以拆去多個位置）</label>' +
           '<div class="alloc-list">' + allocRowHtml() + "</div>" +
           '<button type="button" class="btn small mt8 alloc-add">＋ 加多一個入倉位置</button>' +
@@ -661,8 +661,8 @@
           '<p class="page-sub">核對產品同數量，確認先入庫存；同一批貨可以逐項加，每項可拆去多個倉位。</p>' +
           '<div class="card">' +
           '<h3 style="margin-top:0">飛書收貨單</h3>' +
-          '<div class="small"> 飛書收貨表入面嘅收貨行；按其中一行，就會將貨品同數量填入下面收貨卡片，你核對完、揀好入倉位置，先按「確認收貨」入庫存。</div>' +
-          '<div class="btn-row"><button type="button" class="btn primary" id="btnFetchFsRcv">更新飛書收貨單</button></div>' +
+          '<div class="small">下面係飛書收貨表入面嘅收貨行（最新先排未入倉嘅）；撳其中一行，就會將貨品同數量填入下面收貨卡片，你核對完、揀好入倉位置，先撳「確認收貨」入庫存。確認收貨嗰陣，會將第一個入倉位置寫返去飛書嗰張單嘅入倉欄。</div>' +
+          '<div class="btn-row"><button type="button" class="btn primary" id="btnFetchFsRcv">由飛書攞最新收貨單</button></div>' +
           '<div class="small mt8" id="fsRcvStatus"></div>' +
           '<div id="fsRcvList"></div>' +
           '<div class="small mt8" id="fsRcvUpdated"></div>' +
@@ -773,12 +773,12 @@
           if (pid && receivePickers[idx]) {
             receivePickers[idx].setId(pid);
             matched++;
-            note.textContent = "飛書單項目：" + it.part + (it.qty != null ? " × " + it.qty : "") + "（已配對到商品）";
+            note.textContent = "飛書單項目：" + it.part + (it.qty != null ? " × " + it.qty : "") + "（已配對到主檔）";
           } else {
             unmatched++;
             var search = document.getElementById("rcv" + idx + "Search");
             if (search && it.part) search.value = it.part;
-            note.textContent = "飛書單項目：" + it.part + (it.qty != null ? " × " + it.qty : "") + " — 未配對到相關商品，請手動選擇產品。";
+            note.textContent = "飛書單項目：" + it.part + (it.qty != null ? " × " + it.qty : "") + " — 未配對到主檔產品，請喺上面搜尋框手動揀返產品。";
             note.style.color = "var(--warn)";
             note.style.fontWeight = "700";
           }
@@ -843,18 +843,10 @@
         if (!wrap) return;
         var visible = fsRcvVisibleList();
         if (!visible.length) { wrap.innerHTML = ""; return; }
-        // 已入倉嘅行預設唔顯示；有已入倉嘅行先出 toggle 行（撳嚟顯示／隱藏）。
-        var assignedCount = visible.filter(function (rc) { return rc.warehouseAssigned; }).length;
+        // 已入倉嘅行唔顯示，亦唔出 toggle 行（Yan 2026-11-09：兩個都唔顯示）。
         var toggleHtml = "";
-        if (assignedCount) {
-          toggleHtml = '<div class="mt8"><button type="button" class="btn small" id="fsRcvToggleAssigned">' +
-            (fsRcvShowAssigned
-              ? "已入倉 " + assignedCount + " 張顯示緊 · 撳呢度隱藏"
-              : "已入倉 " + assignedCount + " 張已隱藏 · 撳呢度顯示") +
-            "</button></div>";
-        }
-        var shown = fsRcvShowAssigned ? visible : visible.filter(function (rc) { return !rc.warehouseAssigned; });
-        if (!shown.length) { wrap.innerHTML = toggleHtml; return; } // 全部都係已入倉、又隱藏緊：淨係留返 toggle 行
+        var shown = visible.filter(function (rc) { return !rc.warehouseAssigned; });
+        if (!shown.length) { wrap.innerHTML = ""; return; } // 全部都係已入倉：張卡留空
         var sorted = shown.slice().sort(function (a, b) {
           if (a.warehouseAssigned !== b.warehouseAssigned) return a.warehouseAssigned ? 1 : -1;
           return (b.created || "").localeCompare(a.created || "");
@@ -943,7 +935,7 @@
           return true;
         }).catch(function () { if (timeoutId) clearTimeout(timeoutId); return false; });
       }
-      // 倉位雙向同步：飛書倉庫主檔 <-> 本地位置清單。
+      // 倉位雙向同步：飛書 倉庫主檔 <-> 本地位置清單。
       // fsId = 飛書 record_id（備份 JSON 會一齊存返，restore 嗰陣經 normalizeData 保留）。
       var fsLocCacheAt = 0;
       var fsLocPromise = null;
