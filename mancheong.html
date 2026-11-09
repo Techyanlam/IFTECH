@@ -1071,21 +1071,27 @@
       }
       function fsSyncReceiptLines(rec, supplier, product, allocs, srcGrNo) {
         var lines = (allocs && allocs.length) ? allocs : [{ location: "", qty: rec.totalQty }];
-        var jobs = lines.map(function (a, i) {
-          return fsSyncPost({
-            sync_key: rec.syncId + "#" + i,
-            record_no: srcGrNo || ("GR-" + rec.id),
-            kind: "收貨",
-            date: fmtDate(rec.createdAt), time: fmtTime(rec.createdAt),
-            supplier: supplier || "",
-            part: (product && product.partNumber) || "",
-            name: (product && product.name) || "",
-            qty: a.qty, unit: (product && product.unit) || "",
-            from_loc: "", to_loc: a.location || "",
-            ship_no: "", src_gr: srcGrNo || "", note: rec.note || ""
+        // 逐行寫，唔好一齊寫：同一隻貨分開幾個倉收嗰陣，一齊寫會令飛書
+        // 庫存總表嗰邊兩邊都見唔到行、各自開多一行（D-31245 就係咁）。
+        var chain = Promise.resolve(true);
+        var oks = [];
+        lines.forEach(function (a, i) {
+          chain = chain.then(function () {
+            return fsSyncPost({
+              sync_key: rec.syncId + "#" + i,
+              record_no: srcGrNo || ("GR-" + rec.id),
+              kind: "收貨",
+              date: fmtDate(rec.createdAt), time: fmtTime(rec.createdAt),
+              supplier: supplier || "",
+              part: (product && product.partNumber) || "",
+              name: (product && product.name) || "",
+              qty: a.qty, unit: (product && product.unit) || "",
+              from_loc: "", to_loc: a.location || "",
+              ship_no: "", src_gr: srcGrNo || "", note: rec.note || ""
+            }).then(function (ok) { oks.push(ok); return ok; });
           });
         });
-        return Promise.all(jobs).then(function (oks) { return oks.every(function (x) { return x; }); });
+        return chain.then(function () { return oks.every(function (x) { return x; }); });
       }
       function fsSyncTransferLine(rec) {
         var p = productMap[rec.productId] || { name: "(產品已刪)", partNumber: null, unit: "件" };
