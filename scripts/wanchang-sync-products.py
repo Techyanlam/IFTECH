@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Nightly sync: Feishu 商品信息表 -> mancheong.html product seed.
+"""Nightly sync: Feishu 產品 table -> mancheong.html product seed.
 
 Feishu is the source of truth for the product master. The script lists every
-row of 商品信息表 (tblFqzqfaRbXh5qq), then rebuilds the `products` array in
+row of 產品 (tblJfZH58x8L8OMo), then rebuilds the `products` array in
 the <script id="seed"> JSON of mancheong.html:
 
 - A Feishu row matching a local product by 貨品編號 (or by 商品名稱 when the
@@ -30,7 +30,7 @@ import sys
 import urllib.request
 
 APP_TOKEN = "Wftab3L6AaSQG9s0zaIcKMf9n0g"
-PRODUCT_TABLE = "tblFqzqfaRbXh5qq"
+PRODUCT_TABLE = "tblJfZH58x8L8OMo"  # 產品 (new clean product master; was tblFqzqfaRbXh5qq 商品信息表 until 2026-11-09)
 BASE = f"https://open.feishu.cn/open-apis/bitable/v1/apps/{APP_TOKEN}/tables/{PRODUCT_TABLE}/records"
 TOKEN_URL = "https://open.feishu.cn/open-apis/auth/v3/tenant_access_token/internal"
 SEED_RE = re.compile(r'(<script id="seed" type="application/json">)(.*?)(\s*</script>)', re.S)
@@ -51,7 +51,7 @@ def get_token(app_id, app_secret):
 
 
 def list_all_products(token):
-    """Return all 商品信息表 rows as (part, name, brand, alias) tuples."""
+    """Return all 產品 rows as (part, name, brand, alias, unit) tuples."""
     rows = []
     page_token = None
     while True:
@@ -69,7 +69,8 @@ def list_all_products(token):
                 (f.get("貨品編號") or "").strip() if isinstance(f.get("貨品編號"), str) else "",
                 (f.get("商品名稱") or "").strip() if isinstance(f.get("商品名稱"), str) else "",
                 (f.get("品牌") or "").strip() if isinstance(f.get("品牌"), str) else "",
-                (f.get("產品名稱(英文)") or "").strip() if isinstance(f.get("產品名稱(英文)"), str) else "",
+                (f.get("產品花名／英文名") or "").strip() if isinstance(f.get("產品花名／英文名"), str) else "",
+                (f.get("單位") or "").strip() if isinstance(f.get("單位"), str) else "",
             ))
         if not data.get("data", {}).get("has_more"):
             break
@@ -88,7 +89,7 @@ def merge_products(local_products, feishu_rows, referenced_ids):
     """Merge Feishu rows into the local seed products.
 
     local_products: list of [id, name, part, brand, alias, unit].
-    feishu_rows: list of (part, name, brand, alias).
+    feishu_rows: list of (part, name, brand, alias, unit).
     referenced_ids: set of product ids still referenced by seed records.
     Returns (new_products, stats dict).
     """
@@ -103,7 +104,7 @@ def merge_products(local_products, feishu_rows, referenced_ids):
     stats = {"feishu_rows": len(feishu_rows), "matched": 0, "added": 0,
              "dropped": 0, "kept_referenced": 0, "dup_feishu_keys": 0,
              "dup_local_keys": 0, "skipped": 0}
-    for part, name, brand, alias in feishu_rows:
+    for part, name, brand, alias, unit in feishu_rows:
         if not part and not name:
             stats["skipped"] += 1
             continue
@@ -117,14 +118,17 @@ def merge_products(local_products, feishu_rows, referenced_ids):
         if old is not None:
             stats["matched"] += 1
             matched_ids.add(old[0])
-            # Keep the local id and unit; take name/brand/alias from Feishu.
-            new_products.append([old[0], name or old[1], part or None, brand or None,
-                                 alias or None, old[5] or "件"])
+            # Keep the local id; take name/brand/alias from Feishu when it has
+            # one, else keep the local value (the new table was copied by hand
+            # and has gaps — an empty Feishu field must not blank the seed),
+            # and the unit from Feishu when it has one, else keep the local unit.
+            new_products.append([old[0], name or old[1], part or None, brand or old[3] or None,
+                                 alias or old[4] or None, unit or old[5] or "件"])
         else:
             stats["added"] += 1
             max_id += 1
             new_products.append([max_id, name, part or None, brand or None,
-                                 alias or None, "件"])
+                                 alias or None, unit or "件"])
     # Local products with no Feishu match: drop, unless a seed record still
     # references them (dropping would break that record). A local product
     # sharing its key with an already-matched product (e.g. two identical
