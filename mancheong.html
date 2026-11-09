@@ -1008,7 +1008,7 @@
       // 新產品寫入飛書商品信息表（POST /add-product）；成功或已存在都算 ok。
       function fsProductPost(np) {
         var controller = null, timeoutId = null;
-        var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ part: np.partNumber || "", name: np.name || "", brand: np.brand || "", alias: np.aliases || "" }) };
+        var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ part: np.partNumber || "", name: np.name || "", brand: np.brand || "", alias: np.aliases || "", unit: np.unit || "" }) };
         if (window.AbortController) {
           controller = new AbortController();
           opts.signal = controller.signal;
@@ -1028,7 +1028,7 @@
       // 無就按貨品編號搵，搵到更新、搵唔到新增）。成功就傳回 Worker 嘅 data（帶 record_id），失敗就 false。
       function fsProductSave(p) {
         var controller = null, timeoutId = null;
-        var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ record_id: p.fsId || "", part: p.partNumber || "", name: p.name || "", brand: p.brand || "", alias: p.aliases || "" }) };
+        var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ record_id: p.fsId || "", part: p.partNumber || "", name: p.name || "", brand: p.brand || "", alias: p.aliases || "", unit: p.unit || "" }) };
         if (window.AbortController) {
           controller = new AbortController();
           opts.signal = controller.signal;
