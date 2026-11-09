@@ -1,0 +1,32 @@
+name: Sync Wanchang stock (Feishu -> 庫存 table)
+
+on:
+  schedule:
+    # Every 10 minutes — so a just-received item appears in the 庫存 table
+    # (and on the webpage's 庫存 page) within ~10 min, not only at 02:15.
+    - cron: '*/10 * * * *'
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Never run two rebuilds at once (a run takes ~2-3 min; overlapping runs
+# would read/write the same 庫存 rows). Queued runs wait their turn.
+concurrency:
+  group: sync-wanchang-stock
+  cancel-in-progress: false
+
+jobs:
+  sync-stock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Rebuild 庫存 table from movements
+        env:
+          WANCHANG_APP_ID: ${{ secrets.WANCHANG_APP_ID }}
+          WANCHANG_APP_SECRET: ${{ secrets.WANCHANG_APP_SECRET }}
+        run: python3 scripts/wanchang-sync-stock.py
