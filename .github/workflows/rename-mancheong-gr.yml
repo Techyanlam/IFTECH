@@ -1,0 +1,32 @@
+name: Rename mancheong (GR)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify uploaded file md5
+        run: |
+          md5sum tmp-upload-mc2/mancheong.html
+          test "$(md5sum tmp-upload-mc2/mancheong.html | cut -d' ' -f1)" = "f377fd50729028d5482c1ca489a4c297"
+      - name: Replace root mancheong.html
+        run: |
+          rm -f mancheong.html
+          git mv tmp-upload-mc2/mancheong.html mancheong.html
+          echo "Root mancheong.html md5 after rename:"
+          md5sum mancheong.html
+          test "$(md5sum mancheong.html | cut -d' ' -f1)" = "f377fd50729028d5482c1ca489a4c297"
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git status --short
+          git commit -m "Replace mancheong.html (GR card rows show GR/part/qty)"
+          git push
