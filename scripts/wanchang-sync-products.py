@@ -51,7 +51,7 @@ def get_token(app_id, app_secret):
 
 
 def list_all_products(token):
-    """Return all 產品 rows as (part, name, brand, alias, unit) tuples."""
+    """Return all 產品 rows as (part, name, brand, alias, unit, record_id) tuples."""
     rows = []
     page_token = None
     while True:
@@ -71,6 +71,7 @@ def list_all_products(token):
                 (f.get("品牌") or "").strip() if isinstance(f.get("品牌"), str) else "",
                 (f.get("產品花名／英文名") or "").strip() if isinstance(f.get("產品花名／英文名"), str) else "",
                 (f.get("單位") or "").strip() if isinstance(f.get("單位"), str) else "",
+                rec.get("record_id") or "",
             ))
         if not data.get("data", {}).get("has_more"):
             break
@@ -88,8 +89,10 @@ def key_of(part, name):
 def merge_products(local_products, feishu_rows, referenced_ids):
     """Merge Feishu rows into the local seed products.
 
-    local_products: list of [id, name, part, brand, alias, unit].
-    feishu_rows: list of (part, name, brand, alias, unit).
+    local_products: list of [id, name, part, brand, alias, unit] (a 7th
+    element, the Feishu record_id, is added by this merge and preserved by
+    the webpage so product edits update the right Feishu row by id).
+    feishu_rows: list of (part, name, brand, alias, unit, record_id).
     referenced_ids: set of product ids still referenced by seed records.
     Returns (new_products, stats dict).
     """
@@ -104,7 +107,7 @@ def merge_products(local_products, feishu_rows, referenced_ids):
     stats = {"feishu_rows": len(feishu_rows), "matched": 0, "added": 0,
              "dropped": 0, "kept_referenced": 0, "dup_feishu_keys": 0,
              "dup_local_keys": 0, "skipped": 0}
-    for part, name, brand, alias, unit in feishu_rows:
+    for part, name, brand, alias, unit, record_id in feishu_rows:
         if not part and not name:
             stats["skipped"] += 1
             continue
@@ -122,13 +125,15 @@ def merge_products(local_products, feishu_rows, referenced_ids):
             # one, else keep the local value (the new table was copied by hand
             # and has gaps — an empty Feishu field must not blank the seed),
             # and the unit from Feishu when it has one, else keep the local unit.
+            # The 7th element is the Feishu record_id, so the webpage's product
+            # edits update this exact row by id instead of by part number.
             new_products.append([old[0], name or old[1], part or None, brand or old[3] or None,
-                                 alias or old[4] or None, unit or old[5] or "件"])
+                                 alias or old[4] or None, unit or old[5] or "件", record_id])
         else:
             stats["added"] += 1
             max_id += 1
             new_products.append([max_id, name, part or None, brand or None,
-                                 alias or None, unit or "件"])
+                                 alias or None, unit or "件", record_id])
     # Local products with no Feishu match: drop, unless a seed record still
     # references them (dropping would break that record). A local product
     # sharing its key with an already-matched product (e.g. two identical
