@@ -1,0 +1,33 @@
+name: Rename stock script (one-off)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Replace scripts/wanchang-sync-stock.py with uploaded copy
+        run: |
+          set -e
+          echo "Uploaded file md5 and lines:"
+          md5sum tmp-upload/wanchang-sync-stock.py
+          wc -l tmp-upload/wanchang-sync-stock.py
+          test "$(md5sum tmp-upload/wanchang-sync-stock.py | cut -d' ' -f1)" = "7a5a3587aa5b8ac2e01d196e91dfc85d"
+          rm -f scripts/wanchang-sync-stock.py
+          git mv tmp-upload/wanchang-sync-stock.py scripts/wanchang-sync-stock.py
+          rm -f tmp-upload/.gitkeep
+          echo "After rename md5 and lines:"
+          md5sum scripts/wanchang-sync-stock.py
+          wc -l scripts/wanchang-sync-stock.py
+          test "$(md5sum scripts/wanchang-sync-stock.py | cut -d' ' -f1)" = "7a5a3587aa5b8ac2e01d196e91dfc85d"
+          git status --short
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Replace scripts/wanchang-sync-stock.py with fixed version (tmp-upload)"
+          git push
