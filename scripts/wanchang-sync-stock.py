@@ -28,6 +28,7 @@ split_wanchang.yml). Usage: python3 scripts/wanchang-sync-stock.py
 import json
 import os
 import sys
+import time
 import urllib.request
 
 APP_TOKEN = "Wftab3L6AaSQG9s0zaIcKMf9n0g"
@@ -62,23 +63,40 @@ def get_token(app_id, app_secret):
 
 
 def list_records(token, table_id):
-    """Return all rows of a table as [(record_id, fields)] (max 5 pages)."""
+    """Return all rows of a table as [(record_id, fields)] (max 5 pages).
+
+    Retries a page up to 3 times when the API returns a null data/items
+    (seen once on the 出貨 table: code 0 but items null, which is not a
+    normal empty table). If it still fails, raise with the raw response
+    so the log shows the real cause instead of a bare TypeError.
+    """
     rows = []
     page_token = None
     for _ in range(5):
         url = f"{API_BASE}/{table_id}/records?page_size=100"
         if page_token:
             url += "&page_token=" + page_token
-        req = urllib.request.Request(url, headers={"Authorization": "Bearer " + token})
-        with urllib.request.urlopen(req, timeout=60) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-        if data.get("code") != 0:
+        data = None
+        for attempt in range(3):
+            req = urllib.request.Request(url, headers={"Authorization": "Bearer " + token})
+            with urllib.request.urlopen(req, timeout=60) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+            if data.get("code") != 0:
+                break
+            if (data.get("data") or {}).get("items") is not None:
+                break
+            if attempt < 2:
+                time.sleep(2 * (attempt + 1))
+        if data is None or data.get("code") != 0:
             raise RuntimeError(f"list records failed for {table_id}: {data}")
-        for rec in data.get("data", {}).get("items", []):
+        items = (data.get("data") or {}).get("items")
+        if items is None:
+            raise RuntimeError(f"list records returned no items for {table_id}: {data}")
+        for rec in items:
             rows.append((rec.get("record_id") or "", rec.get("fields", {}) or {}))
-        if not data.get("data", {}).get("has_more"):
+        if not (data.get("data") or {}).get("has_more"):
             break
-        page_token = data["data"].get("page_token")
+        page_token = (data.get("data") or {}).get("page_token")
         if not page_token:
             break
     return rows
