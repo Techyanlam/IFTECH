@@ -535,7 +535,7 @@
         // 跳過各頁嘅 cache，即刻重攞；唔使等 30 秒自動更新或者撳每頁自己嘅更新掣。
         if (tab === "receive") { fsRcvFetch(); }
         else if (tab === "receipts" || tab === "transfers" || tab === "shipments") { fsSyncFetch(tab, true); }
-        else if (tab === "stock") { fsStockCache = null; fsStockFetch(true); }
+        else if (tab === "stock" || tab === "transfer" || tab === "ship") { fsStockCache = null; fsStockFetch(true); }
         else if (tab === "locations") { fsLocCacheAt = 0; fsLocFetch(); }
         render();
       }
@@ -1420,7 +1420,8 @@
       /* ============ 轉位 ============ */
       var tfState = { from: null, to: null, qty: "", note: "" };
       function renderTransfer() {
-        var stock = computeStock();
+        fsStockFetch(); // 攞飛書庫存總表，等 picker 睇到全部有貨嘅產品（唔只係今次開頁收嗰隻）
+        var stock = effectiveStock();
         var names = locationNames();
         if (!tfState.from) tfState.from = names[0];
         if (!tfState.to) tfState.to = names[1] || names[0];
@@ -1457,7 +1458,7 @@
           if (!pid) { setNotice("請先揀產品。", "err"); return; }
           if (from === to) { setNotice("轉出同轉入位置唔可以相同。", "err"); return; }
           if (!qty || qty <= 0) { setNotice("請填正確數量。", "err"); return; }
-          var have = stockAt(computeStock(), pid, from);
+          var have = stockAt(effectiveStock(), pid, from);
           if (qty > have + 1e-9) { setNotice("「" + from + "」只有 " + fmtQty(have) + "，唔夠轉 " + fmtQty(qty) + "。", "err"); return; }
           var trec = { id: nextId(DB.transfers), productId: pid, fromLocation: from, toLocation: to, qty: qty, note: document.getElementById("tfNote").value.trim() || null, createdAt: Date.now(), syncId: newSyncId() };
           DB.transfers.push(trec);
@@ -1475,7 +1476,8 @@
       /* ============ 出貨 ============ */
       var shState = { from: null, qty: "", number: "", note: "" };
       function renderShip() {
-        var stock = computeStock();
+        fsStockFetch(); // 攞飛書庫存總表，等 picker 睇到全部有貨嘅產品（唔只係今次開頁收嗰隻）
+        var stock = effectiveStock();
         var names = locationNames();
         if (!shState.from) shState.from = names[0];
         view.innerHTML =
@@ -1511,7 +1513,7 @@
           if (!number) { setNotice("出貨單號未填，唔可以出貨。", "err"); return; }
           if (!pid) { setNotice("請先揀產品。", "err"); return; }
           if (!qty || qty <= 0) { setNotice("請填正確數量。", "err"); return; }
-          var have = stockAt(computeStock(), pid, from);
+          var have = stockAt(effectiveStock(), pid, from);
           if (qty > have + 1e-9) { setNotice("「" + from + "」只有 " + fmtQty(have) + "，唔夠出 " + fmtQty(qty) + "。", "err"); return; }
           var srec = { id: nextId(DB.shipments), productId: pid, fromLocation: from, qty: qty, shipmentNumber: number, note: document.getElementById("shNote").value.trim() || null, createdAt: Date.now(), syncId: newSyncId() };
           DB.shipments.push(srec);
@@ -1708,6 +1710,30 @@
       var fsStockFailed = false;
       var fsStockFailedAt = 0; // 上次攞唔到嘅時間，30 秒內唔重試
       var fsStockTimer = null; // 庫存頁自動更新（每 30 秒攞一次）
+      // 將飛書庫存總表（fsStockCache.rows，一行一款，key 係貨品編號）轉做
+      // 同 computeStock() 一樣格式嘅 Map（key 係產品 id），等轉位／出貨嗰啲
+      // picker 可以直接用。攞唔到飛書庫存就返 null（用返本機記錄）。
+      function fsStockMap() {
+        if (!fsStockCache || !fsStockCache.rows) return null;
+        var m = new Map();
+        fsStockCache.rows.forEach(function (r) {
+          var part = (r.part || "").trim();
+          if (!part) return;
+          var p = DB.products.find(function (x) { return (x.partNumber || "").trim() === part; });
+          if (!p) return;
+          var locs = new Map();
+          var wh = r.warehouses || {};
+          Object.keys(wh).forEach(function (name) { locs.set(name, +wh[name] || 0); });
+          m.set(p.id, locs);
+        });
+        return m;
+      }
+      // 轉位／出貨用嘅庫存：有飛書庫存就用飛書（全部機器、全部記錄），
+      // 冇（攞唔到／未載入）就用返本機記錄。
+      function effectiveStock() {
+        var fs = fsStockMap();
+        return fs || computeStock();
+      }
       function fsStockFetch(force) {
         var cached = fsStockCache;
         if (!force && cached && Date.now() - cached.at < 30 * 1000) return; // 30 秒 cache（撳「更新」嗰陣 force 會跳過）
@@ -1726,18 +1752,18 @@
             fsStockFailedAt = Date.now();
             // 只喺第一次失敗嗰陣重畫（等「未能載入」嗰句出現）；之後再失敗唔重畫，
             // 否則重畫會再觸發 fsStockFetch，變成無限重試。
-            if (tab === "stock" && !wasFailed) fsStockRerender();
+            if ((tab === "stock" || tab === "transfer" || tab === "ship") && !wasFailed) fsStockRerender();
             return;
           }
           fsStockFailed = false;
           fsStockCache = { at: Date.now(), rows: r.data.rows };
-          if (tab === "stock") fsStockRerender();
+          if (tab === "stock" || tab === "transfer" || tab === "ship") fsStockRerender();
         }).catch(function () {
           fsStockFetching = false;
           var wasFailed2 = fsStockFailed;
           fsStockFailed = true;
           fsStockFailedAt = Date.now();
-          if (tab === "stock" && !wasFailed2) fsStockRerender();
+          if ((tab === "stock" || tab === "transfer" || tab === "ship") && !wasFailed2) fsStockRerender();
         });
       }
       function fsStockRerender() {
