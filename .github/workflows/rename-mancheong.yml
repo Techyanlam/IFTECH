@@ -1,0 +1,24 @@
+name: Rename mancheong.html into place
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Move uploaded mancheong.html to repo root
+        run: |
+          test -f tmp-mancheong/mancheong.html
+          rm -f mancheong.html
+          git mv tmp-mancheong/mancheong.html mancheong.html
+          rmdir tmp-mancheong || true
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Replace mancheong.html (products two-way P2)"
+          git push
