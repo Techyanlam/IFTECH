@@ -65,10 +65,12 @@ def get_token(app_id, app_secret):
 def list_records(token, table_id):
     """Return all rows of a table as [(record_id, fields)] (max 5 pages).
 
-    Retries a page up to 3 times when the API returns a null data/items
-    (seen once on the 出貨 table: code 0 but items null, which is not a
-    normal empty table). If it still fails, raise with the raw response
-    so the log shows the real cause instead of a bare TypeError.
+    Retries a page up to 3 times when the API returns a null items with a
+    non-zero total. A table with genuinely 0 rows returns items null +
+    total 0 (verified in the Feishu UI for the 出貨 table, 2026-11-09:
+    0 records, no filter) — that is treated as empty, not an error.
+    If it still fails, raise with the raw response so the log shows the
+    real cause instead of a bare TypeError.
     """
     rows = []
     page_token = None
@@ -83,7 +85,8 @@ def list_records(token, table_id):
                 data = json.loads(resp.read().decode("utf-8"))
             if data.get("code") != 0:
                 break
-            if (data.get("data") or {}).get("items") is not None:
+            d = data.get("data") or {}
+            if d.get("items") is not None or d.get("total") == 0:
                 break
             if attempt < 2:
                 time.sleep(2 * (attempt + 1))
@@ -91,6 +94,11 @@ def list_records(token, table_id):
             raise RuntimeError(f"list records failed for {table_id}: {data}")
         items = (data.get("data") or {}).get("items")
         if items is None:
+            # Genuinely empty table (items null + total 0, verified in the
+            # Feishu UI) — treat as no rows. If total > 0 the rows exist
+            # but were not returned, so still fail loudly.
+            if (data.get("data") or {}).get("total") == 0:
+                return rows
             raise RuntimeError(f"list records returned no items for {table_id}: {data}")
         for rec in items:
             rows.append((rec.get("record_id") or "", rec.get("fields", {}) or {}))
