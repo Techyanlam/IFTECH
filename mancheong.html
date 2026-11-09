@@ -50,7 +50,7 @@
       a { color: var(--accent); }
 
       .layout { display: flex; flex-direction: column; min-height: 100vh; }
-      @media (min-width: 760px) { .layout { flex-direction: row; } }
+      @media (min-width: 1025px) { .layout { flex-direction: row; } }
 
       nav.main-nav {
         background: var(--sidebar);
@@ -58,27 +58,29 @@
         padding: 10px 10px 12px;
         position: sticky; top: 0; z-index: 30;
       }
-      @media (min-width: 760px) {
+      @media (min-width: 1025px) {
         nav.main-nav { width: 216px; flex-shrink: 0; height: 100vh; padding: 18px 12px; display: flex; flex-direction: column; }
       }
       .brand { padding: 2px 6px 10px; }
       .brand .name { font-size: 26px; font-weight: 800; letter-spacing: .4px; color: #fff; line-height: 1.15; }
       .brand .sub { font-size: 13px; color: var(--sidebar-dim); margin-top: 2px; }
-      @media (min-width: 760px) { .brand { padding: 4px 8px 16px; } .brand .name { font-size: 30px; } }
+      @media (min-width: 1025px) { .brand { padding: 4px 8px 16px; } .brand .name { font-size: 30px; } }
       .nav-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-      @media (min-width: 760px) { .nav-grid { display: flex; flex-direction: column; gap: 6px; } }
+      @media (min-width: 1025px) { .nav-grid { display: flex; flex-direction: column; gap: 6px; } }
       .nav-btn {
         border: 0; border-radius: var(--radius);
         background: var(--sidebar-alt); color: var(--sidebar-text);
         padding: 10px 4px; font-size: 15px; font-weight: 700; text-align: center;
       }
-      @media (min-width: 760px) { .nav-btn { text-align: left; padding: 11px 14px; background: transparent; } }
+      @media (min-width: 1025px) { .nav-btn { text-align: left; padding: 11px 14px; background: transparent; } }
       .nav-btn[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
       .nav-btn:hover { background: rgba(255, 255, 255, .10); }
       .nav-btn[aria-pressed="true"]:hover { background: var(--accent-hover); }
       .nav-btn.nav-link { display: block; text-decoration: none; }
       .nav-tools { margin-top: 14px; border-top: 1px solid var(--sidebar-alt); padding-top: 12px; display: none; }
-      @media (min-width: 760px) { .nav-tools { display: none; margin-top: auto; } } /* 備份欄唔顯示（Yan 2026-11-09） */
+      @media (min-width: 1025px) { .nav-tools { display: none; margin-top: auto; } } /* 備份欄唔顯示（Yan 2026-11-09） */
+      .nav-bottom { display: none; }
+      @media (min-width: 1025px) { .nav-bottom { display: block; margin-top: auto; border-top: 1px solid var(--sidebar-alt); padding-top: 12px; } } /* 側欄底「更新」掣（Yan 2026-11-09） */
       .nav-tools .tlabel { font-size: 12px; color: var(--sidebar-dim); padding: 0 8px 6px; }
       .tool-btn {
         display: block; width: 100%; border: 1px solid var(--sidebar-alt); border-radius: var(--radius);
@@ -88,7 +90,7 @@
       .tool-btn:active { opacity: .75; }
 
       main { flex: 1; min-width: 0; width: 100%; max-width: 1060px; margin: 0 auto; padding: 16px 14px 48px; }
-      @media (min-width: 760px) { main { padding: 24px 28px 56px; } }
+      @media (min-width: 1025px) { main { padding: 24px 28px 56px; } }
       h1.page-title { font-size: 24px; margin: 0 0 4px; color: var(--title); }
       .page-sub { color: var(--dim); font-size: 14px; margin: 0 0 16px; }
       h2 { font-size: 19px; margin: 22px 0 10px; color: var(--title); }
@@ -188,7 +190,7 @@
       #noticeText a { font-weight: 700; }
       /* 手機漢堡選單：窄屏先出 ☰，闊屏維持原有導覽格 */
       #btnMenu { display: none; }
-      @media (max-width: 759px) {
+      @media (max-width: 1024px) {
         .nav-grid { display: none; }
         .brand { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding-bottom: 6px; }
         #btnMenu { display: block; border: 0; border-radius: var(--radius); background: var(--sidebar-alt); color: var(--sidebar-text); font-size: 22px; line-height: 1; padding: 8px 12px; }
@@ -226,6 +228,9 @@
           <button type="button" class="tool-btn" id="btnBackupSide">匯出備份 JSON</button>
           <button type="button" class="tool-btn" id="btnImportSide">匯入備份 JSON</button>
           <button type="button" class="tool-btn" id="btnResetSide">恢復內置資料</button>
+        </div>
+        <div class="nav-bottom">
+          <button type="button" class="tool-btn" id="btnRefreshAll">更新</button>
         </div>
       </nav>
       <main>
@@ -487,7 +492,7 @@
       navGrid.innerHTML = TABS.map(function (t) {
         return '<button type="button" class="nav-btn" data-tab="' + t.key + '" aria-pressed="false">' + t.label + "</button>";
       }).join("");
-      navGrid.querySelector('[data-tab="receive"]').insertAdjacentHTML("afterend", '<a class="nav-btn nav-link" href="https://fcnnkklc0uhr.feishu.cn/share/base/form/shrcnMKZHnQNveeWzHUrFc9hdYc" target="_blank" rel="noopener">AI拍照收貨</a>');
+      navGrid.insertAdjacentHTML("afterbegin", '<a class="nav-btn nav-link" href="https://fcnnkklc0uhr.feishu.cn/share/base/form/shrcnMKZHnQNveeWzHUrFc9hdYc" target="_blank" rel="noopener">AI拍照收貨</a>');
       navGrid.addEventListener("click", function (e) {
         var b = e.target.closest("[data-tab]");
         if (!b) return;
@@ -501,6 +506,7 @@
       var btnMenu = document.getElementById("btnMenu");
       function openMenu() {
         menuList.innerHTML = navGrid.innerHTML;
+        menuList.insertAdjacentHTML("beforeend", '<button type="button" class="nav-btn" id="btnRefreshMenu">更新</button>');
         menuBack.classList.add("show");
         btnMenu.setAttribute("aria-expanded", "true");
       }
@@ -516,8 +522,20 @@
       menuList.addEventListener("click", function (e) {
         var b = e.target.closest("[data-tab]");
         if (b) { tab = b.getAttribute("data-tab"); render(); closeMenu(); return; }
+        if (e.target.closest("#btnRefreshMenu")) { refreshCurrent(); closeMenu(); return; }
         if (e.target.closest("a")) closeMenu();
       });
+
+      /* ============ 側欄底「更新」掣：即刻由飛書重攞而家呢頁嘅數據 ============ */
+      function refreshCurrent() {
+        // 跳過各頁嘅 cache，即刻重攞；唔使等 30 秒自動更新或者撳每頁自己嘅更新掣。
+        if (tab === "receive") { fsRcvFetch(); }
+        else if (tab === "receipts" || tab === "transfers" || tab === "shipments") { fsSyncFetch(tab, true); }
+        else if (tab === "stock") { fsStockCache = null; fsStockFetch(true); }
+        else if (tab === "locations") { fsLocCacheAt = 0; fsLocFetch(); }
+        render();
+      }
+      document.getElementById("btnRefreshAll").addEventListener("click", refreshCurrent);
       var view = document.getElementById("view");
       function render() {
         if (tab !== "receive" && fsAutoTimer) { clearInterval(fsAutoTimer); fsAutoTimer = null; }
@@ -1096,11 +1114,11 @@
           ship_no: rec.shipmentNumber || "", src_gr: "", note: rec.note || ""
         });
       }
-      function fsSyncFetch(kind) {
+      function fsSyncFetch(kind, force) {
         var cached = fsSyncCache[kind];
-        if (cached && Date.now() - cached.at < 30 * 1000) return; // 30 秒 cache，等唔同機器嘅記錄快啲出現
+        if (!force && cached && Date.now() - cached.at < 30 * 1000) return; // 30 秒 cache（撳「更新」嗰陣 force 會跳過）
         if (fsSyncFetching[kind]) return;
-        if (fsSyncFailed[kind] && Date.now() - fsSyncFailedAt[kind] < 30000) return; // 攞唔到就等 30 秒先再試，唔好不停重攞
+        if (!force && fsSyncFailed[kind] && Date.now() - fsSyncFailedAt[kind] < 30000) return; // 攞唔到就等 30 秒先再試，唔好不停重攞
         fsSyncFetching[kind] = true;
         fetch(FS_SYNC_BASE + "/synced-records?kind=" + encodeURIComponent(FS_SYNC_KIND[kind])).then(function (resp) {
           return resp.json().catch(function () { return null; }).then(function (data) {
