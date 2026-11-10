@@ -454,11 +454,11 @@
       var noticeEl = document.getElementById("notice");
       var noticeBack = document.getElementById("noticeBack");
       var noticeTextEl = document.getElementById("noticeText");
+      // 提示改做頁頂橫額，唔再彈出對話框（Yan 2026-11-11：收貨完成唔想彈出嚟）。
       function setNotice(msg, type, linkHtml) {
-        noticeTextEl.innerHTML = esc(msg) + (linkHtml ? " " + linkHtml : "");
-        noticeBack.classList.remove("notice-ok", "notice-err", "notice-warn");
-        noticeBack.classList.add("notice-" + (type || "ok"));
-        noticeBack.classList.add("show");
+        noticeEl.innerHTML = esc(msg) + (linkHtml ? " " + linkHtml : "");
+        noticeEl.className = "notice show " + (type || "ok");
+        hideNotice();
       }
       function hideNotice() { noticeBack.classList.remove("show"); }
       document.getElementById("noticeOk").addEventListener("click", hideNotice);
@@ -844,7 +844,7 @@
         var tag = inv.docNo ? "「" + inv.docNo + "」" : "";
         var kindWord = inv.kindWord || "飛書單";
         if (!inv.items.length) setNotice("呢張" + kindWord + tag + "冇貨品項目，未有嘢填入。", "warn");
-        else if (unmatched) setNotice("已將" + kindWord + tag + "填入下面：配對到 " + matched + " 項，" + unmatched + " 項未配對到，要手動揀產品。請逐項揀入倉位置，核對後撳「確認收貨」。", "warn");
+        else if (unmatched) setNotice("已將" + kindWord + tag + "填入下面，核對收貨資訊後撳「確認收貨」。", "warn");
         else setNotice("已將" + kindWord + tag + "填入下面，共 " + matched + " 項。請逐項揀入倉位置，核對後撳「確認收貨」。", "ok");
       }
       function fsApplyReceipt(rc) {
@@ -1094,7 +1094,7 @@
       // 無就按貨品編號搵，搵到更新、搵唔到新增）。成功就傳回 Worker 嘅 data（帶 record_id），失敗就 false。
       function fsProductSave(p) {
         var controller = null, timeoutId = null;
-        var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ record_id: p.fsId || "", part: p.partNumber || p.name || "", name: p.name || "", brand: p.brand || "", alias: p.aliases || "", unit: p.unit || "" }) };
+        var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ record_id: p.fsId || "", part: p.partNumber || p.name || "", name: p.name || "", brand: p.brand || "", alias: p.aliases || "", unit: p.unit || "", password: editPw || "" }) };
         if (window.AbortController) {
           controller = new AbortController();
           opts.signal = controller.signal;
@@ -1106,9 +1106,9 @@
           });
         }).then(function (r) {
           if (timeoutId) clearTimeout(timeoutId);
-          if (!r.ok || !r.data || r.data.error || r.data.ok === false) return false;
+          if (!r.ok || !r.data || r.data.error || r.data.ok === false) return { ok: false, error: (r.data && r.data.error) || ("伺服器回覆 " + r.status) };
           return r.data;
-        }).catch(function () { if (timeoutId) clearTimeout(timeoutId); return false; });
+        }).catch(function () { if (timeoutId) clearTimeout(timeoutId); return { ok: false, error: "連唔到同步服務" }; });
       }
       function fsSyncReceiptLines(rec, supplier, product, allocs, srcGrNo) {
         var lines = (allocs && allocs.length) ? allocs : [{ location: "", qty: rec.totalQty }];
@@ -2156,6 +2156,36 @@
 
       /* ============ 產品主檔 ============ */
       var prodState = { q: "", limit: 100, editingId: null };
+      var editPw = null; // 產品編輯密碼（開頁後打過一次就記住，淨係放喺記憶體，唔會寫入任何儲存）。
+      // 撳「編輯」先要打密碼，啱先開得編輯表；密碼用返取消收貨單嗰個。
+      function openProductEditor(id) {
+        prodState.editingId = id;
+        render(); window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      function askEditPassword(id) {
+        if (editPw) { openProductEditor(id); return; }
+        showModal("編輯產品要入密碼",
+          "<p>改產品資料要入密碼，唔係人人都可以改。</p>" +
+          '<label class="flabel">密碼</label><input type="password" class="input" id="editPwInput" autocomplete="off" />',
+          "確認", function () {
+            var pw = (document.getElementById("editPwInput") || {}).value || "";
+            if (!pw) { setNotice("請輸入密碼先可以編輯產品。", "err"); return; }
+            fetch(FS_SYNC_BASE + "/verify-password", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ password: pw })
+            }).then(function (resp) {
+              return resp.json().catch(function () { return null; }).then(function (data) { return { ok: resp.ok, status: resp.status, data: data }; });
+            }).then(function (r) {
+              if (!r.ok || !r.data || !r.data.ok) {
+                setNotice(r.status === 401 ? "密碼唔啱，編輯唔到。" : "驗證失敗，請稍後再試。", "err");
+                return;
+              }
+              editPw = pw;
+              openProductEditor(id);
+            }).catch(function () { setNotice("驗證失敗：連唔到同步服務。", "err"); });
+          });
+      }
       // 打字嗰陣只更新數目同結果清單，唔重建成頁：搜尋輸入框唔會俾人刪走再重建，
       // iPad 鍵盤唔會彈，倉頡等輸入法組字唔會斷；上面新增產品嗰幾格填緊嘅嘢亦唔會俾人清走。
       function refreshProdList() {
@@ -2175,8 +2205,7 @@
           (total > list.length ? '<button type="button" class="btn mt14" id="prodMore">顯示更多（再加 100 款）</button>' : "");
         box.querySelectorAll("[data-edit-product]").forEach(function (b) {
           b.addEventListener("click", function () {
-            prodState.editingId = parseInt(b.getAttribute("data-edit-product"), 10);
-            render(); window.scrollTo({ top: 0, behavior: "smooth" });
+            askEditPassword(parseInt(b.getAttribute("data-edit-product"), 10));
           });
         });
         var pm = document.getElementById("prodMore");
@@ -2216,7 +2245,7 @@
             setNotice("產品已更新：" + name + "。");
             fsProductSave(p).then(function (r) {
               if (r && r.ok) { if (r.record_id) p.fsId = r.record_id; setNotice("產品已更新：" + name + "。已同步去飛書商品信息表。"); }
-              else setNotice("產品已更新：" + name + "。但寫入飛書商品信息表失敗，請喺飛書手動改返。", "warn");
+              else setNotice("產品已更新：" + name + "。但寫入飛書失敗：" + ((r && r.error) || "請喺飛書手動改返") + "。", "warn");
             });
           } else {
             var np = Object.assign({ id: nextId(DB.products) }, data);
@@ -2224,7 +2253,7 @@
             setNotice("已新增產品：" + name + "。");
             fsProductSave(np).then(function (r) {
               if (r && r.ok) { if (r.record_id) np.fsId = r.record_id; setNotice("已新增產品：" + name + "。已同步去飛書商品信息表。"); }
-              else setNotice("已新增產品：" + name + "。但寫入飛書商品信息表失敗，請喺飛書手動補返。", "warn");
+              else setNotice("已新增產品：" + name + "。但寫入飛書失敗：" + ((r && r.error) || "請喺飛書手動補返") + "。", "warn");
             });
           }
           rebuildMaps();
