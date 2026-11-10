@@ -356,12 +356,20 @@
       function searchText(p) {
         return [p.name, p.partNumber || "", p.brand || "", p.aliases || ""].join(" ").toLowerCase();
       }
+      // 多詞搜尋：用空格分開幾個詞，全部詞都要喺文字入面出現，次序唔限、唔使連埋一齊。
+      // 例如「橡膠 1.5M」搵到「1.5M 橡膠欄」，「1.5M 橡膠」亦都搵到。
+      function matchQuery(text, query) {
+        var terms = (query || "").trim().toLowerCase().split(/\s+/).filter(Boolean);
+        if (!terms.length) return true;
+        var t = (text || "").toLowerCase();
+        for (var i = 0; i < terms.length; i++) { if (t.indexOf(terms[i]) === -1) return false; }
+        return true;
+      }
       function findProducts(query, limit) {
-        var q = (query || "").trim().toLowerCase();
         var out = [];
         for (var i = 0; i < DB.products.length; i++) {
           var p = DB.products[i];
-          if (!q || searchText(p).indexOf(q) !== -1) {
+          if (matchQuery(searchText(p), query)) {
             out.push(p);
             if (out.length >= (limit || 100)) break;
           }
@@ -369,10 +377,9 @@
         return out;
       }
       function countProducts(query) {
-        var q = (query || "").trim().toLowerCase();
-        if (!q) return DB.products.length;
+        if (!(query || "").trim()) return DB.products.length;
         var n = 0;
-        DB.products.forEach(function (p) { if (searchText(p).indexOf(q) !== -1) n++; });
+        DB.products.forEach(function (p) { if (matchQuery(searchText(p), query)) n++; });
         return n;
       }
       function normalizeKey(s) { return String(s || "").trim().toLowerCase().replace(/[\s\-_/]/g, ""); }
@@ -588,7 +595,7 @@
           var list;
           var poolArr = pool();
           if (poolArr) {
-            list = poolArr.filter(function (p) { return !q || searchText(p).indexOf(q) !== -1; });
+            list = poolArr.filter(function (p) { return !q || matchQuery(searchText(p), input.value); });
             note.textContent = "「" + opts.onlyStockedAt + "」有貨嘅產品共 " + poolArr.length + " 款";
             list = list.slice(0, 100);
           } else {
@@ -1161,14 +1168,8 @@
         });
       }
       function fsSyncRerender(kind) {
-        var qEl = document.getElementById("recQ");
-        var wasFocused = !!(qEl && document.activeElement === qEl);
-        var sel = wasFocused ? qEl.selectionStart : 0;
-        render();
-        if (wasFocused) {
-          var nq = document.getElementById("recQ");
-          if (nq) { nq.focus(); try { nq.setSelectionRange(sel, sel); } catch (e) {} }
-        }
+        // 記錄頁：只更新結果清單，唔重建成頁（打緊字都唔會彈鍵盤）。
+        refreshRecList(kind);
       }
       // 將已攞返嘅飛書同步行轉做同本地記錄一樣格式嘅行；本地已有（syncId 相同）嘅跳過。
       function fsSyncRows(kind) {
@@ -1595,29 +1596,24 @@
       };
       function filteredRows(kind) {
         var f = recFilters[kind];
-        var q = f.q.trim().toLowerCase();
         return movementRows(kind).filter(function (r) {
           var d = fmtDate(r.ts);
           if (f.from && d < f.from) return false;
           if (f.to && d > f.to) return false;
-          if (q && r.search.indexOf(q) === -1) return false;
+          if (!matchQuery(r.search, f.q)) return false;
           return true;
         });
       }
-      function renderRecords(kind) {
+      // 打字嗰陣只更新數目同結果清單，唔重建成頁（原因同產品／庫存搜尋一樣）。
+      function refreshRecList(kind) {
         var def = RECORD_DEFS[kind];
-        var f = recFilters[kind];
-        fsSyncFetch(kind); // 攞飛書同步記錄（30 秒內有 cache 就唔重攞）；本地記錄即刻顯示先
-        if (fsRecTimer) clearInterval(fsRecTimer);
-        fsRecTimer = setInterval(function () {
-          if (tab !== kind) { clearInterval(fsRecTimer); fsRecTimer = null; return; }
-          fsSyncFetch(kind); // 每 30 秒攞一次，唔同機器收到貨會自動出現，唔使撳重新整理
-        }, 30 * 1000);
         var all = movementRows(kind);
         var shown = filteredRows(kind);
         var totalQty = shown.reduce(function (s, r) { return s + r.qty; }, 0);
-        var dateErr = f.from && f.to && f.from > f.to;
-        var fsFailNote = (fsSyncFailed[kind] && !fsSyncCache[kind]) ? '<p class="small" style="color:var(--bad)">未能載入飛書記錄，只顯示本機記錄。</p>' : "";
+        var cnt = document.getElementById("recCount");
+        if (cnt) cnt.textContent = "顯示 " + shown.length + " 筆（共 " + all.length + " 筆）";
+        var box = document.getElementById("recList");
+        if (!box) return;
         var body = shown.map(function (r) {
           var tds = r.cells.map(function (c, i) {
             if (i === def.qtyIdx) return '<td class="num">' + esc(c) + "</td>";
@@ -1631,9 +1627,33 @@
           }).join("");
           return "<tr>" + tds + "</tr>";
         }).join("");
+        box.innerHTML = shown.length ?
+          '<div class="table-wrap"><table class="grid"><thead><tr>' +
+          def.headers.map(function (h, i) { return '<th' + (i === def.qtyIdx ? ' class="num"' : "") + ">" + esc(h) + "</th>"; }).join("") +
+          "</tr></thead><tbody>" + body + "</tbody>" +
+          '<tfoot><tr>' + def.headers.map(function (h, i) {
+            if (i === 0) return "<td>合共</td>";
+            if (i === def.qtyIdx) return '<td class="num">' + fmtQty(totalQty) + "</td>";
+            return "<td></td>";
+          }).join("") + "</tr></tfoot></table></div>"
+          : '<div class="card">呢個篩選下無記錄。</div>';
+        var csv = document.getElementById("btnCsv");
+        if (csv) { csv.disabled = !shown.length; csv.onclick = function () { exportCsv(kind, shown); }; }
+      }
+      function renderRecords(kind) {
+        var def = RECORD_DEFS[kind];
+        var f = recFilters[kind];
+        fsSyncFetch(kind); // 攞飛書同步記錄（30 秒內有 cache 就唔重攞）；本地記錄即刻顯示先
+        if (fsRecTimer) clearInterval(fsRecTimer);
+        fsRecTimer = setInterval(function () {
+          if (tab !== kind) { clearInterval(fsRecTimer); fsRecTimer = null; return; }
+          fsSyncFetch(kind); // 每 30 秒攞一次，唔同機器收到貨會自動出現，唔使撳重新整理
+        }, 30 * 1000);
+        var dateErr = f.from && f.to && f.from > f.to;
+        var fsFailNote = (fsSyncFailed[kind] && !fsSyncCache[kind]) ? '<p class="small" style="color:var(--bad)">未能載入飛書記錄，只顯示本機記錄。</p>' : "";
         view.innerHTML =
           '<h1 class="page-title">' + def.title + "</h1>" +
-          '<p class="page-sub">顯示 ' + shown.length + " 筆（共 " + all.length + " 筆）</p>" + fsFailNote +
+          '<p class="page-sub" id="recCount"></p>' + fsFailNote +
           '<div class="card">' +
           '<label class="flabel">搜尋</label><input type="text" class="input" id="recQ" value="' + esc(f.q) + '" placeholder="產品／型號／編號' + (kind === "shipments" ? "／出貨單號" : kind === "receipts" ? "／GR 編號／供應商" : "／位置") + '" />' +
           '<div class="row"><div><label class="flabel">由日期</label><input type="date" class="input" id="recFrom" value="' + esc(f.from) + '" /></div>' +
@@ -1644,19 +1664,11 @@
           '<button type="button" class="btn" data-quick="7">近 7 日</button>' +
           '<button type="button" class="btn" data-quick="30">近 30 日</button>' +
           '<button type="button" class="btn" data-quick="clear">清除日期</button>' +
-          '<button type="button" class="btn primary" id="btnCsv" ' + (shown.length ? "" : "disabled") + ">Export CSV</button></div>" +
+          '<button type="button" class="btn primary" id="btnCsv">Export CSV</button></div>' +
           '<div class="mt8" id="csvReady"></div>' +
           "</div>" +
-          (shown.length ?
-            '<div class="table-wrap"><table class="grid"><thead><tr>' +
-            def.headers.map(function (h, i) { return '<th' + (i === def.qtyIdx ? ' class="num"' : "") + ">" + esc(h) + "</th>"; }).join("") +
-            "</tr></thead><tbody>" + body + "</tbody>" +
-            '<tfoot><tr>' + def.headers.map(function (h, i) {
-              if (i === 0) return "<td>合共</td>";
-              if (i === def.qtyIdx) return '<td class="num">' + fmtQty(totalQty) + "</td>";
-              return "<td></td>";
-            }).join("") + "</tr></tfoot></table></div>"
-            : '<div class="card">呢個篩選下無記錄。</div>');
+          '<div id="recList"></div>';
+        refreshRecList(kind);
         function applyAndRender() {
           recFilters[kind].q = document.getElementById("recQ").value;
           recFilters[kind].from = document.getElementById("recFrom").value;
@@ -1666,10 +1678,7 @@
         var qInput = document.getElementById("recQ");
         qInput.addEventListener("input", function () {
           recFilters[kind].q = qInput.value;
-          render();
-          var nq = document.getElementById("recQ");
-          nq.focus();
-          nq.setSelectionRange(nq.value.length, nq.value.length);
+          refreshRecList(kind);
         });
         document.getElementById("recFrom").addEventListener("change", applyAndRender);
         document.getElementById("recTo").addEventListener("change", applyAndRender);
@@ -1683,8 +1692,6 @@
             render();
           });
         });
-        var csvBtn = document.getElementById("btnCsv");
-        if (csvBtn) csvBtn.addEventListener("click", function () { exportCsv(kind, shown); });
       }
       function csvEscape(v) {
         var s = String(v == null ? "" : v);
@@ -1780,26 +1787,17 @@
         });
       }
       function fsStockRerender() {
-        var qEl = document.getElementById("stockQ");
-        var wasFocused = !!(qEl && document.activeElement === qEl);
-        var sel = wasFocused ? qEl.selectionStart : 0;
+        // 庫存頁：只更新結果清單，唔重建成頁（打緊字都唔會彈鍵盤）。
+        if (tab === "stock") { refreshStockList(); return; }
+        // 轉位／出貨頁：打緊字嗰陣唔重畫，留返下次入頁先更新。
+        var ae = document.activeElement;
+        if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.tagName === "SELECT")) return;
         render();
-        if (wasFocused) {
-          var nq = document.getElementById("stockQ");
-          if (nq) { nq.focus(); try { nq.setSelectionRange(sel, sel); } catch (e) {} }
-        }
       }
 
       var stockState = { q: "", onlyStocked: true, limit: 200 };
-      function renderStock() {
-        fsStockFetch(); // 攞飛書庫存（30 秒內有 cache 就唔重攞）
-        if (fsStockTimer) clearInterval(fsStockTimer);
-        fsStockTimer = setInterval(function () {
-          if (tab !== "stock") { clearInterval(fsStockTimer); fsStockTimer = null; return; }
-          fsStockFetch(); // 每 30 秒攞一次，唔同機器嘅庫存會自動更新
-        }, 30 * 1000);
+      function stockRowsData() {
         var names = locationNames();
-        var q = stockState.q.trim().toLowerCase();
         var fsFailNote = (fsStockFailed && !fsStockCache) ? '<p class="small" style="color:var(--bad)">未能載入飛書庫存，只顯示本機記錄。</p>' : "";
         var rows, locTotals, grand, inGrand, outGrand;
         if (fsStockCache && fsStockCache.rows) {
@@ -1824,7 +1822,7 @@
           });
           rows = all.filter(function (r) {
             if (stockState.onlyStocked && Math.abs(r.total) < 1e-9 && !r.moved) return false;
-            if (q && r.search.indexOf(q) === -1) return false;
+            if (!matchQuery(r.search, stockState.q)) return false;
             return true;
           });
           locTotals = {};
@@ -1855,7 +1853,7 @@
           });
           rows = allLocal.filter(function (r) {
             if (stockState.onlyStocked && Math.abs(r.total) < 1e-9 && !r.moved) return false;
-            if (q && r.search.indexOf(q) === -1) return false;
+            if (!matchQuery(r.search, stockState.q)) return false;
             return true;
           });
           locTotals = {};
@@ -1868,22 +1866,17 @@
           outGrand = 0;
         }
         var shownRows = rows.slice(0, stockState.limit);
-        view.innerHTML =
-          '<h1 class="page-title">庫存</h1>' +
-          '<p class="page-sub">一款一行，睇晒每個位置存量同總數；可以用名稱／型號／品牌／花名搜尋。</p>' +
-          '<div class="card"><label class="flabel">搜尋產品</label>' +
-          '<input type="text" class="input" id="stockQ" value="' + esc(stockState.q) + '" placeholder="例如 2012NB、刨床、PLANER" />' +
-          '<label class="flabel"><input type="checkbox" id="stockOnly" ' + (stockState.onlyStocked ? "checked" : "") + ' /> 只顯示有貨／有出入記錄嘅產品</label>' +
-          fsFailNote +
-          '<p class="count-line">顯示 ' + shownRows.length + " 款（共 " + rows.length + " 款）</p>" +
-          '<button type="button" class="btn" id="stockRefresh">更新</button></div>' +
-          (shownRows.length ?
+        return { names: names, rows: rows, shownRows: shownRows, locTotals: locTotals, grand: grand, inGrand: inGrand, outGrand: outGrand };
+      }
+
+      function stockListHtml(d) {
+        return           (d.shownRows.length ?
             '<div class="table-wrap"><table class="grid"><thead><tr><th>產品</th><th>型號</th><th>品牌</th>' +
-            names.map(function (n) { return '<th class="num">' + esc(n) + "</th>"; }).join("") +
+            d.names.map(function (n) { return '<th class="num">' + esc(n) + "</th>"; }).join("") +
             '<th class="num">收貨總數</th><th class="num">出貨總數</th><th class="num">總數</th></tr></thead><tbody>' +
-            shownRows.map(function (r) {
+            d.shownRows.map(function (r) {
               return "<tr><td>" + esc(r.name) + "</td><td>" + esc(r.partNumber || "") + "</td><td>" + esc(r.brand || "") + "</td>" +
-                names.map(function (n) {
+                d.names.map(function (n) {
                   var v = r.locs[n] || 0;
                   return '<td class="num">' + (Math.abs(v) > 1e-9 ? fmtQty(v) : "0") + "</td>";
                 }).join("") +
@@ -1891,24 +1884,57 @@
                 '<td class="num"><b>' + fmtQty(r.total) + "</b></td></tr>";
             }).join("") +
             '</tbody><tfoot><tr><td colspan="3">合共</td>' +
-            names.map(function (n) { return '<td class="num">' + fmtQty(locTotals[n]) + "</td>"; }).join("") +
-            '<td class="num">' + fmtQty(inGrand) + '</td><td class="num">' + fmtQty(outGrand) + '</td><td class="num">' + fmtQty(grand) + "</td></tr></tfoot></table></div>"
+            d.names.map(function (n) { return '<td class="num">' + fmtQty(d.locTotals[n]) + "</td>"; }).join("") +
+            '<td class="num">' + fmtQty(d.inGrand) + '</td><td class="num">' + fmtQty(d.outGrand) + '</td><td class="num">' + fmtQty(d.grand) + "</td></tr></tfoot></table></div>"
             : '<div class="card">無符合嘅產品。</div>') +
-          (rows.length > shownRows.length ? '<button type="button" class="btn mt14" id="stockMore">顯示更多（再加 200 款）</button>' : "");
+          (d.rows.length > d.shownRows.length ? '<button type="button" class="btn mt14" id="stockMore">顯示更多（再加 200 款）</button>' : "");
+      }
+
+      // 打字嗰陣只更新數目同結果清單，唔重建成頁（原因同產品搜尋一樣）。
+      function refreshStockList() {
+        var d = stockRowsData();
+        var c = document.getElementById("stockCount");
+        if (c) c.textContent = "顯示 " + d.shownRows.length + " 款（共 " + d.rows.length + " 款）";
+        var fn = document.getElementById("stockFailNote");
+        if (fn) fn.innerHTML = (fsStockFailed && !fsStockCache) ? '<p class="small" style="color:var(--bad)">未能載入飛書庫存，只顯示本機記錄。</p>' : "";
+        var box = document.getElementById("stockList");
+        if (!box) return;
+        box.innerHTML = stockListHtml(d);
+        var more = document.getElementById("stockMore");
+        if (more) more.addEventListener("click", function () { stockState.limit += 200; refreshStockList(); });
+      }
+
+      function renderStock() {
+        fsStockFetch(); // 攞飛書庫存（30 秒內有 cache 就唔重攞）
+        if (fsStockTimer) clearInterval(fsStockTimer);
+        fsStockTimer = setInterval(function () {
+          if (tab !== "stock") { clearInterval(fsStockTimer); fsStockTimer = null; return; }
+          fsStockFetch(); // 每 30 秒攞一次，唔同機器嘅庫存會自動更新
+        }, 30 * 1000);
+        var fsFailNote = (fsStockFailed && !fsStockCache) ? '<p class="small" style="color:var(--bad)">未能載入飛書庫存，只顯示本機記錄。</p>' : "";
+        view.innerHTML =
+          '<h1 class="page-title">庫存</h1>' +
+          '<p class="page-sub">一款一行，睇晒每個位置存量同總數；可以用名稱／型號／品牌／花名搜尋。</p>' +
+          '<div class="card"><label class="flabel">搜尋產品</label>' +
+          '<input type="text" class="input" id="stockQ" value="' + esc(stockState.q) + '" placeholder="例如 2012NB、刨床、PLANER" />' +
+          '<label class="flabel"><input type="checkbox" id="stockOnly" ' + (stockState.onlyStocked ? "checked" : "") + ' /> 只顯示有貨／有出入記錄嘅產品</label>' +
+          '<span id="stockFailNote">' + fsFailNote + '</span>' +
+          '<p class="count-line" id="stockCount"></p>' +
+          '<button type="button" class="btn" id="stockRefresh">更新</button></div>' +
+          '<div id="stockList"></div>';
+        refreshStockList();
         var qi = document.getElementById("stockQ");
         qi.addEventListener("input", function () {
-          stockState.q = qi.value; stockState.limit = 200; render();
-          var nq = document.getElementById("stockQ"); nq.focus(); nq.setSelectionRange(nq.value.length, nq.value.length);
+          stockState.q = qi.value; stockState.limit = 200; refreshStockList();
         });
-        document.getElementById("stockOnly").addEventListener("change", function (e) { stockState.onlyStocked = e.target.checked; render(); });
+        document.getElementById("stockOnly").addEventListener("change", function (e) { stockState.onlyStocked = e.target.checked; refreshStockList(); });
         var refreshBtn = document.getElementById("stockRefresh");
         if (refreshBtn) refreshBtn.addEventListener("click", function () {
           // 撳「更新」：即刻由飛書重新攞最新庫存（跳過 30 秒 cache），唔使等自動更新。
           fsStockCache = null; fsStockFailed = false; fsStockFetch(true);
         });
-        var more = document.getElementById("stockMore");
-        if (more) more.addEventListener("click", function () { stockState.limit += 200; render(); });
       }
+
       function hasAnyStock(stock, pid) {
         var m = stock.get(pid);
         if (!m) return false;
@@ -2063,9 +2089,33 @@
 
       /* ============ 產品主檔 ============ */
       var prodState = { q: "", limit: 100, editingId: null };
-      function renderProducts() {
+      // 打字嗰陣只更新數目同結果清單，唔重建成頁：搜尋輸入框唔會俾人刪走再重建，
+      // iPad 鍵盤唔會彈，倉頡等輸入法組字唔會斷；上面新增產品嗰幾格填緊嘅嘢亦唔會俾人清走。
+      function refreshProdList() {
         var total = countProducts(prodState.q);
         var list = findProducts(prodState.q, prodState.limit);
+        var c = document.getElementById("prodCount");
+        if (c) c.textContent = "符合 " + total + " 款，顯示 " + list.length + " 款";
+        var box = document.getElementById("prodList");
+        if (!box) return;
+        box.innerHTML =
+          (list.length ?
+            '<div class="table-wrap"><table class="grid"><thead><tr><th>產品名稱</th><th>型號</th><th>品牌</th><th>花名／英文名</th><th>單位</th><th></th></tr></thead><tbody>' +
+            list.map(function (p) {
+              return "<tr><td>" + esc(p.name) + "</td><td>" + esc(p.partNumber || "") + "</td><td>" + esc(p.brand || "") + "</td><td>" + esc(p.aliases || "") + "</td><td>" + esc(p.unit) + '</td><td><button type="button" class="btn small" data-edit-product="' + p.id + '">編輯</button></td></tr>';
+            }).join("") + "</tbody></table></div>"
+            : '<div class="card">無符合嘅產品。</div>') +
+          (total > list.length ? '<button type="button" class="btn mt14" id="prodMore">顯示更多（再加 100 款）</button>' : "");
+        box.querySelectorAll("[data-edit-product]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            prodState.editingId = parseInt(b.getAttribute("data-edit-product"), 10);
+            render(); window.scrollTo({ top: 0, behavior: "smooth" });
+          });
+        });
+        var pm = document.getElementById("prodMore");
+        if (pm) pm.addEventListener("click", function () { prodState.limit += 100; refreshProdList(); });
+      }
+      function renderProducts() {
         var ed = prodState.editingId ? productMap[prodState.editingId] : null;
         view.innerHTML =
           '<h1 class="page-title">產品主檔</h1>' +
@@ -2079,14 +2129,9 @@
           '<div class="btn-row"><button type="button" class="btn primary" id="btnSaveProduct">' + (ed ? "儲存修改" : "新增產品") + "</button>" +
           (ed ? '<button type="button" class="btn" id="btnCancelEdit">取消編輯</button>' : "") + "</div></div>" +
           '<div class="card"><label class="flabel">搜尋產品</label><input type="text" class="input" id="prodQ" value="' + esc(prodState.q) + '" placeholder="名稱／型號／品牌／花名" />' +
-          '<p class="count-line">符合 ' + total + " 款，顯示 " + list.length + " 款</p></div>" +
-          (list.length ?
-            '<div class="table-wrap"><table class="grid"><thead><tr><th>產品名稱</th><th>型號</th><th>品牌</th><th>花名／英文名</th><th>單位</th><th></th></tr></thead><tbody>' +
-            list.map(function (p) {
-              return "<tr><td>" + esc(p.name) + "</td><td>" + esc(p.partNumber || "") + "</td><td>" + esc(p.brand || "") + "</td><td>" + esc(p.aliases || "") + "</td><td>" + esc(p.unit) + '</td><td><button type="button" class="btn small" data-edit-product="' + p.id + '">編輯</button></td></tr>';
-            }).join("") + "</tbody></table></div>"
-            : '<div class="card">無符合嘅產品。</div>') +
-          (total > list.length ? '<button type="button" class="btn mt14" id="prodMore">顯示更多（再加 100 款）</button>' : "");
+          '<p class="count-line" id="prodCount"></p></div>' +
+          '<div id="prodList"></div>';
+        refreshProdList();
         document.getElementById("btnSaveProduct").addEventListener("click", function () {
           var name = document.getElementById("pfName").value.trim();
           if (!name) { setNotice("產品名稱未填。", "err"); return; }
@@ -2122,17 +2167,8 @@
         if (ce) ce.addEventListener("click", function () { prodState.editingId = null; render(); });
         var pq = document.getElementById("prodQ");
         pq.addEventListener("input", function () {
-          prodState.q = pq.value; prodState.limit = 100; render();
-          var nq = document.getElementById("prodQ"); nq.focus(); nq.setSelectionRange(nq.value.length, nq.value.length);
+          prodState.q = pq.value; prodState.limit = 100; refreshProdList();
         });
-        view.querySelectorAll("[data-edit-product]").forEach(function (b) {
-          b.addEventListener("click", function () {
-            prodState.editingId = parseInt(b.getAttribute("data-edit-product"), 10);
-            render(); window.scrollTo({ top: 0, behavior: "smooth" });
-          });
-        });
-        var pm = document.getElementById("prodMore");
-        if (pm) pm.addEventListener("click", function () { prodState.limit += 100; render(); });
       }
 
       /* ============ 備份匯出／匯入／恢復 ============ */
