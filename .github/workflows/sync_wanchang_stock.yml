@@ -31,3 +31,4 @@ jobs:
           WANCHANG_APP_ID: ${{ secrets.WANCHANG_APP_ID }}
           WANCHANG_APP_SECRET: ${{ secrets.WANCHANG_APP_SECRET }}
         run: python3 scripts/wanchang-sync-stock-summary.py
+# 2026-11-10: re-saved to re-register the schedule (no functional change)
