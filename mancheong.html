@@ -222,7 +222,7 @@
         <div class="brand">
           <div>
             <div class="name">ManCheong</div>
-            <div class="sub">萬昌倉庫管理 · 獨立版</div>
+            <div class="sub">萬昌倉庫管理</div>
           </div>
           <button type="button" id="btnMenu" aria-label="打開選單" aria-expanded="false">☰</button>
         </div>
@@ -548,6 +548,7 @@
         if (tab !== "receive" && fsAutoTimer) { clearInterval(fsAutoTimer); fsAutoTimer = null; }
         if (tab !== "receipts" && tab !== "transfers" && tab !== "shipments" && fsRecTimer) { clearInterval(fsRecTimer); fsRecTimer = null; }
         if (tab !== "stock" && fsStockTimer) { clearInterval(fsStockTimer); fsStockTimer = null; }
+        if (tab !== "locations" && fsLocTimer) { clearInterval(fsLocTimer); fsLocTimer = null; }
         navGrid.querySelectorAll("[data-tab]").forEach(function (b) {
           b.setAttribute("aria-pressed", b.getAttribute("data-tab") === tab ? "true" : "false");
         });
@@ -1919,6 +1920,7 @@
       /* ============ 倉位管理 ============ */
       var locDetail = null;
       var locKinds = ["倉庫", "門市", "區域", "其他"];
+      var fsLocTimer = null;
       function renderLocations() {
         var stock = computeStock();
         var stats = locationStats(stock);
@@ -1928,6 +1930,18 @@
           if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.tagName === "SELECT")) return;
           render();
         });
+        // 倉位頁留喺度嗰陣，每 30 秒自動去飛書攞最新倉位（同收貨記錄／庫存頁一樣）。
+        // fsLocFetch 本身有 5 分鐘 cache，所以每次先將 cache 清零，先至真係去攞。
+        if (!fsLocTimer) fsLocTimer = setInterval(function () {
+          if (tab !== "locations") { clearInterval(fsLocTimer); fsLocTimer = null; return; }
+          fsLocCacheAt = 0;
+          fsLocFetch().then(function (changed) {
+            if (!changed) return;
+            var ae = document.activeElement;
+            if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.tagName === "SELECT")) return;
+            render();
+          });
+        }, 30 * 1000);
         var html =
           '<h1 class="page-title">倉位管理</h1>' +
           '<p class="page-sub">現有 ' + DB.locations.length + ' 個位置。新增、改名、刪除都喺呢頁做；改名會同步更新所有記錄，刪除只限完全無存貨嘅位置。</p>' +
