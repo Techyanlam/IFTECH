@@ -665,6 +665,17 @@
       var fsRcvShowAssigned = false; // 預設隱藏已入倉嘅飛書收貨單；撳卡頂嗰行先顯示，狀態喺 5 分鐘自動更新後仍然保留
       var fsAutoTimer = null;
       var fsRecTimer = null; // 記錄頁自動更新（每 30 秒攞一次飛書同步記錄，等唔同機器睇到對方嘅記錄）
+      var HOLD_LOCATION = "暫存待確認"; // 新產品一定要先入呢個位，等 office 睇完先轉位（Yan 2026-11-10）。
+      // 新產品剔咗嗰陣，入倉位置鎖定做暫存待確認；位置未入主檔嗰陣唔強制，等主檔有咗先自動生效。
+      function applyHoldLocation(card) {
+        if (!card) return;
+        var isNew = !!card.querySelector(".is-new") && card.querySelector(".is-new").checked;
+        var hasHold = locationNames().indexOf(HOLD_LOCATION) !== -1;
+        card.querySelectorAll(".alloc-loc").forEach(function (sel) {
+          if (isNew && hasHold) { sel.value = HOLD_LOCATION; sel.disabled = true; }
+          else { sel.disabled = false; }
+        });
+      }
       function allocRowHtml(loc, qty) {
         return '<div class="alloc-row row">' +
           '<select class="input alloc-loc">' + locationOptions(loc || locationNames()[0]) + "</select>" +
@@ -732,6 +743,7 @@
             var d = document.createElement("div");
             d.innerHTML = allocRowHtml();
             list.appendChild(d.firstChild);
+            applyHoldLocation(card);
           } else if (e.target.classList.contains("alloc-del")) {
             var row = e.target.closest(".alloc-row");
             if (card.querySelectorAll(".alloc-row").length > 1) row.remove();
@@ -748,6 +760,7 @@
                 nameInput.value = searchInput.value;
               }
             }
+            applyHoldLocation(card);
           }
         });
         view.querySelector("#rcvItems").addEventListener("input", function (e) {
@@ -763,6 +776,8 @@
             fsRcvRenderList();
             return;
           }
+          var cx = e.target.closest("[data-cancel]");
+          if (cx) { cancelReceipt(parseInt(cx.getAttribute("data-cancel"), 10)); return; }
           var b = e.target.closest("[data-fsrcv]");
           if (!b) return;
           var idx = parseInt(b.getAttribute("data-fsrcv"), 10);
@@ -868,11 +883,20 @@
           created: raw.created || raw.date || "",
           qty: qn,
           unit: raw.unit || "",
+          status: raw.status || "",
           warehouseAssigned: raw.warehouse_assigned === true || raw.warehouseAssigned === true
         };
       }
       function fsRcvVisibleList() {
         return feishuReceipts.filter(function (rc) { return !(rc.recordId && feishuReceivedSession[rc.recordId]); });
+      }
+      // 按型號由產品主檔對返商品名稱；對唔到就返空字串，唔估；型號本身就係名嗰陣唔重複。
+      function productNameByPart(part) {
+        var p = (part || "").trim();
+        if (!p) return "";
+        var found = DB.products.find(function (x) { return (x.partNumber || "").trim() === p; });
+        var n = found ? (found.name || "").trim() : "";
+        return (n && n !== p) ? n : "";
       }
       function fsRcvRenderList() {
         var wrap = document.getElementById("fsRcvList");
@@ -895,16 +919,22 @@
           var expanded = fsRcvExpandedKey !== null && fsRcvExpandedKey === key;
           var warn = rc.warehouseAssigned ? "" : ' <span class="pmeta" style="color:var(--warn);font-weight:700">未入倉</span>';
           var qtyTxt = rc.qty != null ? esc(rc.qty) + (rc.unit ? " " + esc(rc.unit) : "") : "";
-          var collapsedLabel = [rc.grNo ? esc(rc.grNo) : "", rc.part ? esc(rc.part) : "", qtyTxt]
-            .filter(function (x) { return x; }).join(" / ") || esc(rc.recordId || "飛書收貨單"); // Yan 2026-11-09：行頭顯示 GR-XXX / 貨品編號 / 數量
+          var pname = productNameByPart(rc.part);
+          var collapsedLabel = [rc.grNo ? esc(rc.grNo) : "",
+            rc.part ? "商品編號：" + esc(rc.part) : "",
+            pname ? "商品名稱：" + esc(pname) : "",
+            qtyTxt ? "數量：" + qtyTxt : ""]
+            .filter(function (x) { return x; }).join(" / ") || esc(rc.recordId || "飛書收貨單"); // Yan 2026-11-10：行頭顯示 GR-XXX / 商品編號 / 商品名稱 / 數量
           var meta = [
             rc.supplier ? "供應商：" + rc.supplier : "",
             rc.part ? "貨品：" + rc.part : "",
+            pname ? "商品名稱：" + pname : "",
             rc.qty != null ? "數量：" + rc.qty + (rc.unit ? " " + rc.unit : "") : "",
             rc.created ? "建立：" + rc.created : ""
           ].filter(Boolean).join(" · ");
           var detail = '<span class="pname">' + esc(rc.grNo || rc.recordId || "飛書收貨單") + "</span>" + warn + ' <span class="pmeta">▾</span>' +
-            '<span class="pmeta"> ' + esc(meta) + "</span>";
+            '<span class="pmeta"> ' + esc(meta) + "</span>" +
+            ' <span role="button" class="btn small" data-cancel="' + origIdx + '">取消呢張單</span>';
           return '<button type="button" class="picker-item' + (expanded ? " selected" : "") + '" data-fsrcv="' + origIdx + '">' +
             (expanded
               ? '<span class="fs-detail">' + detail + "</span>"
@@ -1123,7 +1153,7 @@
         var p = productMap[rec.productId] || { name: "(產品已刪)", partNumber: null, unit: "件" };
         return fsSyncPost({
           sync_key: rec.syncId + "#0",
-          record_no: "SH-" + rec.id,
+          record_no: rec.shipmentNumber || ("SH-" + rec.id),
           kind: "出貨",
           date: fmtDate(rec.createdAt), time: fmtTime(rec.createdAt),
           supplier: "",
@@ -1188,7 +1218,7 @@
             if (!isNaN(t)) ts = t;
           }
           var qty = (typeof fr.qty === "number") ? fr.qty : (parseFloat(fr.qty) || 0);
-          var no = "飛書 " + ((kind === "receipts" && fr.src_gr) ? fr.src_gr : (fr.record_no || ""));
+          var no = "飛書 " + ((kind === "receipts" && fr.src_gr) ? fr.src_gr : (kind === "shipments" && fr.ship_no) ? fr.ship_no : (fr.record_no || "")); // 出貨記錄編號顯示出貨單號（同一張單共用一個號）
           var name = fr.name || "", part = fr.part || "";
           if (kind === "receipts") {
             var alloc = (fr.to_loc || "") + (fr.to_loc ? " " : "") + fmtQty(qty);
@@ -1213,6 +1243,37 @@
           }
         });
         return out;
+      }
+      // 取消收貨單：密碼確認後，經同步 Worker 將飛書嗰行狀態轉做「已取消」，網頁即刻唔顯示。
+      function cancelReceipt(idx) {
+        var rc = feishuReceipts[idx];
+        if (!rc) return;
+        if (!rc.recordId) { setNotice("呢張單冇飛書記錄編號，取消唔到。", "err"); return; }
+        var label = rc.grNo || rc.recordId;
+        showModal("取消收貨單",
+          "<p>確定要取消 " + esc(label) + (rc.part ? "（" + esc(rc.part) + "）" : "") + " 嗎？取消後呢張單唔會再喺網頁顯示，飛書記錄會轉做「已取消」。</p>" +
+          '<label class="flabel">密碼</label><input type="password" class="input" id="cancelPw" autocomplete="off" />',
+          "確認取消", function () {
+            var pw = (document.getElementById("cancelPw") || {}).value || "";
+            if (!pw) { setNotice("請輸入密碼先可以取消。", "err"); return; }
+            fetch(FS_SYNC_BASE + "/cancel-receipt", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ record_id: rc.recordId, password: pw })
+            }).then(function (resp) {
+              return resp.json().catch(function () { return null; }).then(function (data) { return { ok: resp.ok, status: resp.status, data: data }; });
+            }).then(function (r) {
+              if (!r.ok || !r.data || r.data.error) {
+                setNotice(r.status === 401 ? "密碼唔啱，取消唔到。" : "取消失敗：" + ((r.data && r.data.error) || ("伺服器回覆 " + r.status)) + "。", "err");
+                return;
+              }
+              var pos = feishuReceipts.findIndex(function (x) { return x.recordId === rc.recordId; });
+              if (pos >= 0) feishuReceipts.splice(pos, 1);
+              if (fsRcvExpandedKey === (rc.recordId || rc.grNo)) fsRcvExpandedKey = null;
+              fsRcvRenderList();
+              setNotice("已取消 " + label + "（飛書狀態：已取消）。", "ok");
+            }).catch(function () { setNotice("取消失敗：連唔到同步服務。", "err"); });
+          });
       }
       function fsRcvFetch() {
         if (fsRcvFetching) return;
@@ -1255,12 +1316,12 @@
           else if (data && Array.isArray(data.data)) list = data.data;
           else if (data && Array.isArray(data.records)) list = data.records;
           if (!list) { fail("攞唔到飛書收貨單：同步服務回覆格式唔啱。請聯絡管理員檢查 Worker。"); return; }
-          feishuReceipts = list.map(fsNormReceipt).filter(Boolean);
+          feishuReceipts = list.map(fsNormReceipt).filter(Boolean).filter(function (r) { return r.status !== "已取消"; }); // 已取消嘅單唔顯示
           fsRcvRenderList();
           fsRcvStampUpdated();
           var visibleCount = fsRcvVisibleList().length;
           if (!visibleCount) fsRcvSetStatus("飛書已回覆：暫時冇收貨單。");
-          else fsRcvSetStatus("攞到 " + visibleCount + " 張收貨單，未入倉嘅排先；撳其中一張就會將貨品同數量填入下面收貨卡片。");
+          else fsRcvSetStatus("撳其中一張就會將貨品同數量填入下面收貨卡片。");
         }).catch(function (err) {
           if (timeoutId) clearTimeout(timeoutId);
           fsRcvFetching = false;
@@ -1301,6 +1362,7 @@
           var total = 0;
           for (var ri = 0; ri < rows.length; ri++) {
             var loc = rows[ri].querySelector(".alloc-loc").value;
+            if (isNew && locationNames().indexOf(HOLD_LOCATION) !== -1) loc = HOLD_LOCATION; // 新產品強制入暫存待確認
             var q = parseFloat(rows[ri].querySelector(".alloc-qty").value);
             if (!q || q <= 0) return { error: "貨品 " + (ci + 1) + "：入倉數量未填或唔正確。" };
             item.allocations.push({ location: loc, qty: q });
@@ -1580,7 +1642,7 @@
             var p = productMap[s.productId] || { name: "(產品已刪)", partNumber: null, unit: "件" };
             rows.push({
               id: s.id, ts: s.createdAt, product: p, qty: s.qty,
-              cells: ["SH-" + s.id, s.shipmentNumber || "", fmtDate(s.createdAt), fmtTime(s.createdAt), p.name, p.partNumber || "", fmtQty(s.qty), p.unit, s.fromLocation, s.note || ""],
+              cells: [s.shipmentNumber || ("SH-" + s.id), s.shipmentNumber || "", fmtDate(s.createdAt), fmtTime(s.createdAt), p.name, p.partNumber || "", fmtQty(s.qty), p.unit, s.fromLocation, s.note || ""],
               search: ["SH-" + s.id, s.shipmentNumber || "", p.name, p.partNumber || "", s.fromLocation].join(" ").toLowerCase()
             });
           });
@@ -1795,7 +1857,7 @@
         render();
       }
 
-      var stockState = { q: "", onlyStocked: true, limit: 200 };
+      var stockState = { q: "", onlyStocked: true, limit: 200, warehouse: "" };
       function stockRowsData() {
         var names = locationNames();
         var fsFailNote = (fsStockFailed && !fsStockCache) ? '<p class="small" style="color:var(--bad)">未能載入飛書庫存，只顯示本機記錄。</p>' : "";
@@ -1822,6 +1884,7 @@
           });
           rows = all.filter(function (r) {
             if (stockState.onlyStocked && Math.abs(r.total) < 1e-9 && !r.moved) return false;
+            if (stockState.warehouse && Math.abs((r.locs[stockState.warehouse] || 0)) < 1e-9) return false;
             if (!matchQuery(r.search, stockState.q)) return false;
             return true;
           });
@@ -1853,6 +1916,7 @@
           });
           rows = allLocal.filter(function (r) {
             if (stockState.onlyStocked && Math.abs(r.total) < 1e-9 && !r.moved) return false;
+            if (stockState.warehouse && Math.abs((r.locs[stockState.warehouse] || 0)) < 1e-9) return false;
             if (!matchQuery(r.search, stockState.q)) return false;
             return true;
           });
@@ -1918,6 +1982,8 @@
           '<div class="card"><label class="flabel">搜尋產品</label>' +
           '<input type="text" class="input" id="stockQ" value="' + esc(stockState.q) + '" placeholder="例如 2012NB、刨床、PLANER" />' +
           '<label class="flabel"><input type="checkbox" id="stockOnly" ' + (stockState.onlyStocked ? "checked" : "") + ' /> 只顯示有貨／有出入記錄嘅產品</label>' +
+          '<label class="flabel">倉位</label><select class="input" id="stockWh"><option value="">全部倉位</option>' +
+          locationNames().map(function (n) { return '<option value="' + esc(n) + '"' + (stockState.warehouse === n ? " selected" : "") + ">" + esc(n) + "</option>"; }).join("") + "</select>" +
           '<span id="stockFailNote">' + fsFailNote + '</span>' +
           '<p class="count-line" id="stockCount"></p>' +
           '<button type="button" class="btn" id="stockRefresh">更新</button></div>' +
@@ -1928,6 +1994,7 @@
           stockState.q = qi.value; stockState.limit = 200; refreshStockList();
         });
         document.getElementById("stockOnly").addEventListener("change", function (e) { stockState.onlyStocked = e.target.checked; refreshStockList(); });
+        document.getElementById("stockWh").addEventListener("change", function (e) { stockState.warehouse = e.target.value; stockState.limit = 200; refreshStockList(); });
         var refreshBtn = document.getElementById("stockRefresh");
         if (refreshBtn) refreshBtn.addEventListener("click", function () {
           // 撳「更新」：即刻由飛書重新攞最新庫存（跳過 30 秒 cache），唔使等自動更新。

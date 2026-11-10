@@ -43,7 +43,7 @@ import urllib.request
 APP_TOKEN = "Wftab3L6AaSQG9s0zaIcKMf9n0g"
 SUMMARY_TABLE = "tblsZfbJ1mj19zk5"      # 庫存總表 (pivoted; created 2026-11-09)
 WAREHOUSE_COLUMNS = ["倉1", "倉2", "倉3", "倉4", "倉5", "倉6", "倉7",
-                     "收貨區", "出貨區"]
+                     "收貨區", "出貨區", "暫存待確認"]
 SUMMARY_NUMBER_COLUMNS = WAREHOUSE_COLUMNS + ["收貨總數", "出貨總數", "總庫存"]
 PRODUCT_TABLE = "tblJfZH58x8L8OMo"      # 產品 (new clean product master)
 WAREHOUSE_TABLE = "tblHiQYnU8QjmizF"    # 倉庫主檔
