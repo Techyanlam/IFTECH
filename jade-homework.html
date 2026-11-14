@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-HK">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="功課記錄">
+<meta name="theme-color" content="#b3402e">
+<link rel="apple-touch-icon" href="jade-homework-icon.svg">
+<link rel="icon" type="image/svg+xml" href="jade-homework-icon.svg">
+<link rel="manifest" href="jade-homework-manifest.json">
+<title>芊穎功課記錄</title>
+<style>
+:root{--red:#b3402e;--ink:#222;--muted:#888;--line:#e8e8e8;--bg:#f7f5f2;--card:#fff;--radius:14px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Segoe UI","PingFang HK","Microsoft JhengHei",sans-serif;font-size:16px;line-height:1.5}
+.wrap{max-width:720px;margin:0 auto;padding:0 12px 90px}
+header{position:sticky;top:0;z-index:20;background:var(--bg);padding:14px 0 8px;display:flex;align-items:center;gap:8px}
+header h1{font-size:22px;margin:0;flex:1}
+header .count{color:var(--muted);font-size:13px}
+button{font-family:inherit;cursor:pointer;border:0;background:none}
+.btn{display:inline-block;background:var(--red);color:#fff;border-radius:999px;padding:12px 22px;font-size:16px;font-weight:600}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.btn.small{padding:8px 14px;font-size:14px}
+.btn.block{width:100%;text-align:center}
+.btn:disabled{opacity:.5}
+.iconbtn{font-size:22px;padding:6px 10px;border-radius:10px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+.chipbtn{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 13px;font-size:14px;display:inline-flex;align-items:center;gap:6px}
+.chipbtn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chipbtn .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.chipbtn.on .dot{outline:2px solid #fff}
+.subjtag{display:inline-block;color:#fff;border-radius:6px;padding:2px 8px;font-size:13px;font-weight:600}
+.kindtag{color:var(--muted);font-size:13px}
+.score{font-weight:700}
+/* unsigned strip */
+#unsignedStrip{margin:10px 0}
+.unsigned{background:#fff6e5;border:1px solid #f0d9a8;border-radius:var(--radius);padding:12px}
+.unsigned h3{margin:0 0 8px;font-size:15px}
+.urow{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px dashed #eadfc3}
+.urow:first-of-type{border-top:0}
+.urow span{flex:1;font-size:14px}
+/* cards */
+#list{margin-top:6px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;margin-bottom:14px;cursor:pointer}
+.card .ph{width:100%;aspect-ratio:4/3;object-fit:cover;display:block;background:#eee}
+.card .phwrap{width:100%;aspect-ratio:4/3;display:flex;align-items:center;justify-content:center;color:#fff;font-size:64px;font-weight:700}
+.card .body{padding:10px 12px 12px}
+.card .topline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px}
+.card .topline .date{color:var(--muted)}
+.card .topic{font-size:17px;font-weight:700;margin:4px 0 2px}
+.card .summary{font-size:14px;color:#555}
+.card .summary .bad{color:#c0392b;font-weight:700}
+.card .summary .good{color:#15803d;font-weight:700}
+.empty{color:var(--muted);text-align:center;padding:40px 0}
+/* upload CTA */
+.cta{margin:12px 0}
+.cta .btn{font-size:18px;padding:16px 22px}
+/* generic views */
+.view{display:none}
+.view.active{display:block}
+.box{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:14px;margin:12px 0}
+.box h2{margin:0 0 8px;font-size:18px}
+.box h3{margin:14px 0 6px;font-size:15px}
+label.f{display:block;margin:10px 0 4px;font-size:14px;color:#555}
+input[type=text],input[type=date],input[type=number],input[type=password],textarea,select{width:100%;padding:10px 12px;border:1px solid #ccc;border-radius:10px;font-size:16px;font-family:inherit;background:#fff}
+textarea{min-height:64px;resize:vertical}
+.row{display:flex;gap:8px}
+.row>*{flex:1}
+.thumbs{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.thumbs .th{position:relative;width:104px;height:78px;border-radius:10px;overflow:hidden;border:1px solid var(--line);background:#eee}
+.thumbs .th img{width:100%;height:100%;object-fit:cover}
+.thumbs .th .x{position:absolute;top:2px;right:2px;background:rgba(0,0,0,.65);color:#fff;border-radius:50%;width:22px;height:22px;font-size:13px;line-height:22px;text-align:center}
+.status{padding:10px 12px;border-radius:10px;background:#eef4ff;font-size:14px;margin:10px 0}
+.status.warn{background:#fff6e5}
+.status.err{background:#fdeaea}
+.corr{background:#fdeaea;border:1px solid #f3c1c1;border-radius:10px;padding:12px;margin:10px 0}
+.corr h3{margin:0 0 6px;color:#b3402e;font-size:15px}
+.corr li{margin:4px 0;font-size:14px}
+.qc{border:1px solid var(--line);border-radius:10px;padding:10px;margin:8px 0;background:#fff}
+.qc .qhead{display:flex;gap:8px;align-items:center;font-weight:700;font-size:14px}
+.qc .qhead .st{margin-left:auto;font-weight:700}
+.qc .qhead .st.啱{color:#15803d}.qc .qhead .st.錯{color:#c0392b}.qc .qhead .st.部分啱{color:#d97706}.qc .qhead .st.睇唔清{color:#888}
+.qc p{margin:6px 0;font-size:14px}
+.qc p b{color:#555}
+.qc .fld{margin:6px 0}
+.qc .fld label{font-size:12px;color:var(--muted)}
+/* lightbox */
+#lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:100;display:none;flex-direction:column}
+#lightbox.open{display:flex}
+#lbStage{flex:1;overflow:hidden;position:relative;touch-action:none}
+#lbStage img{position:absolute;left:50%;top:50%;max-width:96vw;max-height:100%;transform-origin:center;will-change:transform}
+#lbBar{display:flex;gap:10px;justify-content:center;align-items:center;padding:12px}
+#lbBar button{color:#fff;font-size:20px;padding:8px 14px;border:1px solid #666;border-radius:10px}
+#lbBar .close{border-color:#c0392b;background:#c0392b}
+/* login */
+#loginView{display:none;min-height:80vh;flex-direction:column;justify-content:center}
+#loginView.active{display:flex}
+#loginView .card{padding:24px 18px;cursor:default}
+#loginView h1{font-size:24px;margin:0 0 4px}
+#loginView p{color:var(--muted);margin:0 0 16px;font-size:14px}
+.err{color:#c0392b;font-size:14px;margin-top:8px;min-height:20px}
+/* menu */
+#menu{position:absolute;right:12px;top:56px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 24px rgba(0,0,0,.15);padding:6px;display:none;z-index:30}
+#menu.open{display:block}
+#menu button{display:block;width:100%;text-align:left;padding:10px 14px;font-size:15px;border-radius:8px}
+#menu button:hover{background:#f5f5f5}
+.hidden{display:none!important}
+.small{font-size:13px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ============ 登入 ============ -->
+<div id="loginView" class="view">
+  <div class="card">
+    <h1>🔒 芊穎功課記錄</h1>
+    <p>呢個係私人記錄，請輸入密碼先可以睇。</p>
+    <form id="loginForm">
+      <input type="password" id="pwInput" placeholder="密碼" autocomplete="current-password" required>
+      <div class="err" id="loginErr"></div>
+      <button class="btn block" type="submit" style="margin-top:8px">登入</button>
+    </form>
+  </div>
+</div>
+
+<!-- ============ 主程式 ============ -->
+<div id="appView" class="view">
+  <header>
+    <h1>📚 芊穎功課記錄</h1>
+    <span class="count" id="countLabel"></span>
+    <button class="iconbtn" id="menuBtn" aria-label="選單">⋯</button>
+  </header>
+  <div id="menu">
+    <button id="changePwBtn">🔑 更改密碼</button>
+    <button id="logoutBtn">🚪 登出</button>
+  </div>
+
+  <!-- 主頁 -->
+  <div id="homeView" class="view active">
+    <div class="cta"><button class="btn block" id="goUploadBtn">📷 影相 / 上載 check 功課</button></div>
+    <div id="unsignedStrip"></div>
+    <div class="chips" id="subjectChips"></div>
+    <div class="chips" id="kindChips"></div>
+    <div id="list"></div>
+  </div>
+
+  <!-- 上載 / 結果 -->
+  <div id="uploadView" class="view">
+    <button class="btn ghost small" id="backHomeBtn1">← 返主頁</button>
+    <div class="box">
+      <h2>影相 / 上載功課</h2>
+      <p class="small">一次最多 8 張相（多頁功課一次過影晒）。AI 會逐題檢查，等齊相 2.5 秒後自動開始。</p>
+      <div class="row">
+        <button class="btn block" id="cameraBtn">📷 影相</button>
+        <button class="btn ghost block" id="fileBtn">＋ 上載檔案</button>
+      </div>
+      <input type="file" id="cameraInput" accept="image/*" capture="environment" class="hidden">
+      <input type="file" id="fileInput" accept="image/*,application/pdf" multiple class="hidden">
+      <div class="thumbs" id="pendingThumbs"></div>
+      <div id="uploadStatus"></div>
+      <button class="btn ghost block hidden" id="manualBtn">手動填寫記錄</button>
+    </div>
+    <div id="resultBox"></div>
+  </div>
+
+  <!-- 記錄詳情 -->
+  <div id="detailView" class="view">
+    <button class="btn ghost small" id="backHomeBtn2">← 返主頁</button>
+    <div id="detailBox"></div>
+  </div>
+
+  <!-- 編輯 / 手動 -->
+  <div id="editView" class="view">
+    <button class="btn ghost small" id="backHomeBtn3">← 返主頁</button>
+    <div class="box" id="editBox"></div>
+  </div>
+
+  <!-- 改密碼 -->
+  <div id="pwView" class="view">
+    <button class="btn ghost small" id="backHomeBtn4">← 返主頁</button>
+    <div class="box">
+      <h2>更改密碼</h2>
+      <form id="pwForm">
+        <label class="f">舊密碼</label>
+        <input type="password" id="oldPw" required autocomplete="current-password">
+        <label class="f">新密碼（至少 8 個字）</label>
+        <input type="password" id="newPw" required minlength="8" autocomplete="new-password">
+        <label class="f">再打一次新密碼</label>
+        <input type="password" id="newPw2" required minlength="8" autocomplete="new-password">
+        <div class="err" id="pwErr"></div>
+        <button class="btn block" type="submit" style="margin-top:10px">改密碼</button>
+      </form>
+      <p class="small" style="margin-top:10px">改完密碼之後，所有裝置都要重新登入。</p>
+    </div>
+  </div>
+</div>
+
+<!-- 燈箱 -->
+<div id="lightbox">
+  <div id="lbStage"><img id="lbImg" alt="功課相"></div>
+  <div id="lbBar">
+    <button id="lbZoomOut">－</button>
+    <button id="lbReset">還原</button>
+    <button id="lbZoomIn">＋</button>
+    <button class="close" id="lbClose">✕ 關閉</button>
+  </div>
+</div>
+
+</div>
+<script>
+"use strict";
+const API = "https://jade-homework.yan-lam.workers.dev";
+const SUBJECTS = ["中文","英文","數學","人文","音樂","宗教","科學","普通話"];
+const SUBJ_COLOR = {中文:"#c0392b",英文:"#2563eb",數學:"#15803d",人文:"#7c3aed",音樂:"#db2777",宗教:"#0f766e",科學:"#ea7c28",普通話:"#9a6b2f"};
+const KINDS = ["功課","測驗"];
+const STATUSES = ["啱","錯","部分啱","睇唔清"];
+const $ = s => document.querySelector(s);
+const esc = s => String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function todayHK(){ return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Hong_Kong",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date()); }
+let token = localStorage.getItem("jh_token") || "";
+let records = [];
+let curSubject = "", curKind = "";
+let currentRecord = null;   // 完整記錄（詳情／編輯）
+let pendingPhotos = [];     // 上載流程：{url, contentType}
+let analyzeTimer = null, analyzing = false, photosStale = false, uploadGen = 0;
+
+async function api(path, method, body){
+  const r = await fetch(API + path, {method: method || "GET",
+    headers: {"Content-Type":"application/json", ...(token ? {"Authorization":"Bearer "+token} : {})},
+    body: body ? JSON.stringify(body) : undefined});
+  const d = await r.json().catch(()=>({}));
+  if (r.status === 401){ doLogout(); throw new Error("unauthorized"); }
+  return {status: r.status, data: d};
+}
+function showView(id){
+  document.querySelectorAll("#appView > .view, #loginView").forEach(v => v.classList.remove("active"));
+  const el = document.getElementById(id);
+  if (el) el.classList.add("active");
+  window.scrollTo(0,0);
+}
+function doLogout(){
+  token = ""; localStorage.removeItem("jh_token");
+  $("#loginView").classList.add("active");
+  $("#appView").classList.remove("active");
+}
+function isImage(p){ return p.contentType && p.contentType.indexOf("image/") === 0; }
+
+/* ---------- 登入 ---------- */
+$("#loginForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  $("#loginErr").textContent = "";
+  try {
+    const {status, data} = await api("/api/auth","POST",{password: $("#pwInput").value});
+    if (status !== 200 || !data.ok){ $("#loginErr").textContent = "密碼唔啱，再試過。"; return; }
+    token = data.token; localStorage.setItem("jh_token", token);
+    $("#pwInput").value = "";
+    $("#loginView").classList.remove("active");
+    $("#appView").classList.add("active");
+    await loadRecords(); showView("homeView");
+  } catch(err){ $("#loginErr").textContent = "登入唔到，檢查網絡再試。"; }
+});
+$("#logoutBtn").addEventListener("click", () => { doLogout(); $("#menu").classList.remove("open"); });
+$("#menuBtn").addEventListener("click", () => $("#menu").classList.toggle("open"));
+$("#changePwBtn").addEventListener("click", () => { $("#menu").classList.remove("open"); showView("pwView"); });
+$("#pwForm").addEventListener("submit", async e => {
+  e.preventDefault();
+  const o = $("#oldPw").value, n = $("#newPw").value, n2 = $("#newPw2").value;
+  if (n !== n2){ $("#pwErr").textContent = "兩次新密碼唔一樣。"; return; }
+  try {
+    const {status, data} = await api("/api/change-password","POST",{oldPassword:o, newPassword:n});
+    if (status !== 200 || !data.ok){ $("#pwErr").textContent = data.error === "wrong_password" ? "舊密碼唔啱。" : "改唔到，請再試。"; return; }
+    alert("密碼改好喇，請用新密碼重新登入。");
+    $("#oldPw").value = $("#newPw").value = $("#newPw2").value = "";
+    doLogout();
+  } catch(err){ $("#pwErr").textContent = "改唔到，請再試。"; }
+});
+
+/* ---------- 主頁 ---------- */
+async function loadRecords(){
+  const {status, data} = await api("/api/records");
+  if (status !== 200 || !data.ok) return;
+  records = data.records || [];
+  renderHome();
+}
+function subjChip(s){ return `<span class="subjtag" style="background:${SUBJ_COLOR[s]||"#888"}">${esc(s)}</span>`; }
+function scoreText(r){
+  if (r.scoreValue != null && r.scoreMax != null) return r.scoreValue + "/" + r.scoreMax;
+  if (r.scoreValue != null) return String(r.scoreValue);
+  if (r.grade) return esc(r.grade);
+  return "";
+}
+function summaryText(r){
+  if (r.totalChecks > 0){
+    return r.wrongCount > 0
+      ? `<span class="bad">${r.wrongCount} 題要改</span>（逐題 ${r.totalChecks - r.wrongCount}/${r.totalChecks} 題啱）`
+      : `<span class="good">✓ 全部啱</span>（${r.totalChecks} 題）`;
+  }
+  return "未逐題批改";
+}
+function renderHome(){
+  $("#countLabel").textContent = records.length + " 份記錄";
+  // 科目 chips
+  $("#subjectChips").innerHTML = `<button class="chipbtn ${curSubject===""?"on":""}" data-s="">全部科目</button>` +
+    SUBJECTS.map(s => `<button class="chipbtn ${curSubject===s?"on":""}" data-s="${s}"><span class="dot" style="background:${SUBJ_COLOR[s]}"></span>${s}</button>`).join("");
+  $("#kindChips").innerHTML = ["", ...KINDS].map(k =>
+    `<button class="chipbtn ${curKind===k?"on":""}" data-k="${k}">${k===""?"全部種類":k}</button>`).join("");
+  $("#subjectChips").querySelectorAll(".chipbtn").forEach(b => b.onclick = () => { curSubject = b.dataset.s; renderHome(); });
+  $("#kindChips").querySelectorAll(".chipbtn").forEach(b => b.onclick = () => { curKind = b.dataset.k; renderHome(); });
+  // 待簽名
+  const uns = records.filter(r => r.needsSignature && !r.signed);
+  $("#unsignedStrip").innerHTML = uns.length ? `<div class="unsigned"><h3>✍️ 待簽名（${uns.length}）</h3>` +
+    uns.map(r => `<div class="urow"><span>${esc(r.recordDate)} · ${esc(r.subject)} · ${esc(r.topic)}</span><button class="btn small" data-sign="${r.id}">簽咗</button></div>`).join("") + `</div>` : "";
+  $("#unsignedStrip").querySelectorAll("[data-sign]").forEach(b => b.onclick = () => signRecord(b.dataset.sign));
+  // 列表
+  const list = records.filter(r => (!curSubject || r.subject === curSubject) && (!curKind || r.kind === curKind));
+  $("#list").innerHTML = list.length ? list.map(r => {
+    const photo = ""; // 相片要開記錄先載（列表只係摘要）
+    return `<div class="card" data-id="${r.id}">
+      <div class="phwrap" style="background:${SUBJ_COLOR[r.subject]||"#888"}">${esc((r.subject||"")[0]||"功")}</div>
+      <div class="body">
+        <div class="topline"><span class="date">${esc(r.recordDate)}</span>${subjChip(r.subject)}<span class="kindtag">${esc(r.kind)}</span><span class="score">${scoreText(r)}</span></div>
+        <div class="topic">${esc(r.topic || "(未填題目)")}</div>
+        <div class="summary">${summaryText(r)}</div>
+      </div></div>`;
+  }).join("") : `<div class="empty">呢度冇記錄。</div>`;
+  document.querySelectorAll("#list .card").forEach(c => c.onclick = () => openRecord(c.dataset.id));
+}
+async function signRecord(id){
+  try {
+    const {data} = await api("/api/records/" + encodeURIComponent(id));
+    if (!data.ok || !data.record) return;
+    const rec = data.record; rec.signed = true;
+    const r2 = await api("/api/records/" + encodeURIComponent(id), "PUT", rec);
+    if (r2.status === 200 && r2.data.ok){ await loadRecords(); }
+  } catch(e){ alert("簽唔到，請再試。"); }
+}
+
+/* ---------- 記錄詳情 ---------- */
+async function openRecord(id){
+  showView("detailView");
+  $("#detailBox").innerHTML = `<div class="box">載入緊…</div>`;
+  try {
+    const {data} = await api("/api/records/" + encodeURIComponent(id));
+    if (!data.ok){ $("#detailBox").innerHTML = `<div class="box">搵唔到呢份記錄。</div>`; return; }
+    currentRecord = data.record;
+    renderDetail(currentRecord);
+  } catch(e){ $("#detailBox").innerHTML = `<div class="box">載入唔到，請再試。</div>`; }
+}
+function renderDetail(r){
+  const wrong = (r.questionChecks||[]).filter(c => c.status === "錯" || c.status === "部分啱");
+  const photos = r.photos || [];
+  const seededNote = (r.seedPhotoCount > 0 && photos.length === 0)
+    ? `<p class="small">📷 相片原本喺 Muse Space 入面，呢度只有文字記錄（${r.seedPhotoCount} 張）。</p>` : "";
+  $("#detailBox").innerHTML = `<div class="box">
+    <div class="topline" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <span class="date small">${esc(r.recordDate)}</span>${subjChip(r.subject)}<span class="kindtag">${esc(r.kind)}</span><span class="score">${scoreText(r)}</span>
+      ${r.needsSignature ? (r.signed ? `<span class="good" style="color:#15803d">✓ 已簽名</span>` : `<span style="color:#b3402e">✍️ 待簽名</span>`) : ""}
+    </div>
+    <h2 style="margin-top:8px">${esc(r.topic || "(未填題目)")}</h2>
+    ${r.mistakes ? `<p><b>要改嘅地方：</b><br>${esc(r.mistakes).replace(/\n/g,"<br>")}</p>` : ""}
+    ${r.note ? `<p><b>備註：</b><br>${esc(r.note).replace(/\n/g,"<br>")}</p>` : ""}
+    ${seededNote}
+    <div class="thumbs">${photos.map((p,i) => isImage(p)
+      ? `<div class="th" data-lb="${i}"><img src="${p.url}" alt="第 ${i+1} 張"></div>`
+      : `<div class="th" data-pdf="${i}"><div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px">📄</div></div>`).join("")}</div>
+    ${(r.questionChecks||[]).length ? `<h3>逐題檢查（${r.questionChecks.length} 題）</h3>` + r.questionChecks.map(checkRow).join("") : `<p class="small">未有逐題檢查。</p>`}
+    <div class="row" style="margin-top:14px">
+      ${r.needsSignature && !r.signed ? `<button class="btn" id="signBtn">✍️ 簽咗</button>` : ""}
+      <button class="btn ghost" id="editBtn">編輯</button>
+      <button class="btn ghost" id="delBtn" style="color:#c0392b">刪除</button>
+    </div>
+  </div>`;
+  document.querySelectorAll("#detailBox [data-lb]").forEach(t => t.onclick = () => openLightbox(photos, +t.dataset.lb));
+  document.querySelectorAll("#detailBox [data-pdf]").forEach(t => t.onclick = () => {
+    const p = photos[+t.dataset.pdf];
+    const a = document.createElement("a"); a.href = p.url; a.download = "功課.pdf"; a.click();
+  });
+  const sb = $("#signBtn"); if (sb) sb.onclick = async () => { await signRecord(r.id); openRecord(r.id); };
+  $("#editBtn").onclick = () => renderEdit(currentRecord);
+  $("#delBtn").onclick = async () => {
+    if (!confirm("真係要刪除呢份記錄？")) return;
+    const res = await api("/api/records/" + encodeURIComponent(r.id), "DELETE");
+    if (res.status === 200){ await loadRecords(); showView("homeView"); } else alert("刪唔到，請再試。");
+  };
+}
+function checkRow(c){
+  return `<div class="qc"><div class="qhead"><span>第 ${c.page} 頁 ${esc(c.label || "")}</span><span class="st ${esc(c.status)}">${esc(c.status)}</span></div>
+    ${c.question ? `<p><b>題目：</b>${esc(c.question)}</p>` : ""}
+    <p><b>Jade 寫：</b>${esc(c.childAnswer || "（冇填）")}</p>
+    <p><b>正確：</b>${esc(c.correctAnswer || "—")}</p>
+    ${c.errorNote ? `<p><b>錯咗乜：</b>${esc(c.errorNote)}</p>` : ""}</div>`;
+}
+
+/* ---------- 燈箱（撳大睇，捏合／雙擊放大） ---------- */
+let lbPhotos = [], lbIndex = 0, lbScale = 1, lbX = 0, lbY = 0;
+const lbImg = $("#lbImg"), lbStage = $("#lbStage");
+function lbApply(){ lbImg.style.transform = `translate(calc(-50% + ${lbX}px), calc(-50% + ${lbY}px)) scale(${lbScale})`; }
+function openLightbox(photos, i){
+  lbPhotos = photos.filter(isImage); lbIndex = i;
+  if (!lbPhotos.length) return;
+  lbScale = 1; lbX = 0; lbY = 0;
+  lbImg.src = lbPhotos[lbIndex].url; lbApply();
+  $("#lightbox").classList.add("open");
+}
+function closeLightbox(){ $("#lightbox").classList.remove("open"); }
+$("#lbClose").onclick = closeLightbox;
+$("#lbReset").onclick = () => { lbScale = 1; lbX = 0; lbY = 0; lbApply(); };
+$("#lbZoomIn").onclick = () => { lbScale = Math.min(5, lbScale + 0.5); lbApply(); };
+$("#lbZoomOut").onclick = () => { lbScale = Math.max(1, lbScale - 0.5); if (lbScale === 1){ lbX = 0; lbY = 0; } lbApply(); };
+lbStage.addEventListener("wheel", e => { e.preventDefault(); lbScale = Math.max(1, Math.min(5, lbScale + (e.deltaY < 0 ? 0.25 : -0.25))); if (lbScale === 1){ lbX = 0; lbY = 0; } lbApply(); }, {passive:false});
+const lbPointers = new Map(); let lbLastDist = 0, lbLastTap = 0;
+lbStage.addEventListener("pointerdown", e => { lbStage.setPointerCapture(e.pointerId); lbPointers.set(e.pointerId, {x:e.clientX, y:e.clientY}); if (lbPointers.size === 2){ const p=[...lbPointers.values()]; lbLastDist = Math.hypot(p[0].x-p[1].x, p[0].y-p[1].y); } });
+lbStage.addEventListener("pointermove", e => {
+  if (!lbPointers.has(e.pointerId)) return;
+  const prev = lbPointers.get(e.pointerId); lbPointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if (lbPointers.size === 2){
+    const p=[...lbPointers.values()]; const d = Math.hypot(p[0].x-p[1].x, p[0].y-p[1].y);
+    if (lbLastDist > 0){ lbScale = Math.max(1, Math.min(5, lbScale * d / lbLastDist)); }
+    lbLastDist = d;
+  } else if (lbScale > 1){
+    lbX += e.clientX - prev.x; lbY += e.clientY - prev.y;
+  }
+  if (lbScale === 1){ lbX = 0; lbY = 0; }
+  lbApply();
+});
+lbStage.addEventListener("pointerup", e => { lbPointers.delete(e.pointerId); });
+lbStage.addEventListener("pointercancel", e => { lbPointers.delete(e.pointerId); });
+lbStage.addEventListener("dblclick", () => { lbScale = lbScale === 1 ? 2.5 : 1; if (lbScale === 1){ lbX = 0; lbY = 0; } lbApply(); });
+
+/* ---------- 上載流程 ---------- */
+$("#goUploadBtn").onclick = () => { resetUpload(); showView("uploadView"); };
+$("#backHomeBtn1").onclick = () => showView("homeView");
+$("#backHomeBtn2").onclick = () => showView("homeView");
+$("#backHomeBtn3").onclick = () => { if (currentRecord) openRecord(currentRecord.id); else showView("homeView"); };
+$("#backHomeBtn4").onclick = () => showView("homeView");
+$("#cameraBtn").onclick = () => $("#cameraInput").click();
+$("#fileBtn").onclick = () => $("#fileInput").click();
+$("#cameraInput").addEventListener("change", e => { handleFiles(e.target.files); e.target.value = ""; });
+$("#fileInput").addEventListener("change", e => { handleFiles(e.target.files); e.target.value = ""; });
+$("#manualBtn").onclick = () => { uploadGen++; renderEdit(null, pendingPhotos.slice()); };
+
+function resetUpload(){
+  pendingPhotos = []; analyzing = false; photosStale = false; uploadGen++;
+  clearTimeout(analyzeTimer);
+  $("#pendingThumbs").innerHTML = ""; $("#uploadStatus").innerHTML = ""; $("#resultBox").innerHTML = "";
+  $("#manualBtn").classList.add("hidden");
+}
+function renderPending(){
+  $("#pendingThumbs").innerHTML = pendingPhotos.map((p,i) => isImage(p)
+    ? `<div class="th"><img src="${p.url}"><button class="x" data-rm="${i}">✕</button></div>`
+    : `<div class="th"><div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px">📄</div><button class="x" data-rm="${i}">✕</button></div>`).join("");
+  document.querySelectorAll("#pendingThumbs [data-rm]").forEach(b => b.onclick = () => {
+    pendingPhotos.splice(+b.dataset.rm, 1); renderPending(); scheduleAnalysis();
+  });
+}
+async function compressImage(file){
+  const bmp = await createImageBitmap(file, {imageOrientation:"from-image"}).catch(() => null);
+  const max = 1200;
+  let w, h, src;
+  if (bmp){ w = bmp.width; h = bmp.height; src = bmp; }
+  else {
+    const url = URL.createObjectURL(file);
+    const img = await new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = url; });
+    w = img.naturalWidth; h = img.naturalHeight; src = img; URL.revokeObjectURL(url);
+  }
+  const scale = Math.min(1, max / Math.max(w, h));
+  const cw = Math.max(1, Math.round(w * scale)), ch = Math.max(1, Math.round(h * scale));
+  const cv = document.createElement("canvas"); cv.width = cw; cv.height = ch;
+  cv.getContext("2d").drawImage(src, 0, 0, cw, ch);
+  if (bmp) bmp.close();
+  const blob = await new Promise(res => cv.toBlob(res, "image/jpeg", 0.85));
+  return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(blob); });
+}
+function readAsDataURL(file){
+  return new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result); fr.onerror = rej; fr.readAsDataURL(file); });
+}
+async function handleFiles(files){
+  const list = Array.from(files || []);
+  if (!list.length) return;
+  if (pendingPhotos.length + list.length > 8){ setStatus("一次最多 8 張相，已經有 " + pendingPhotos.length + " 張。", "warn"); }
+  for (const f of list.slice(0, Math.max(0, 8 - pendingPhotos.length))){
+    try {
+      if (f.type.indexOf("image/") === 0){
+        const url = await compressImage(f);
+        pendingPhotos.push({url, contentType:"image/jpeg"});
+      } else if (f.type === "application/pdf"){
+        if (f.size > 6*1024*1024){ setStatus("PDF 唔可以大過 6MB：" + f.name, "warn"); continue; }
+        pendingPhotos.push({url: await readAsDataURL(f), contentType:"application/pdf"});
+      }
+    } catch(e){ console.warn("file failed", f.name, e); }
+  }
+  renderPending();
+  scheduleAnalysis();
+}
+function setStatus(html, kind){
+  $("#uploadStatus").innerHTML = html ? `<div class="status ${kind||""}">${html}</div>` : "";
+}
+function scheduleAnalysis(){
+  clearTimeout(analyzeTimer);
+  if (!pendingPhotos.length) return;
+  setStatus("等齊相…（影多張可以繼續加，2.5 秒冇新相就開始分析）");
+  analyzeTimer = setTimeout(runAnalysis, 2500);
+}
+async function runAnalysis(){
+  if (analyzing){ photosStale = true; return; }
+  const gen = uploadGen;
+  const runPhotos = pendingPhotos.slice();
+  const images = runPhotos.filter(isImage);
+  if (!images.length){
+    setStatus("呢批冇相可以分析（淨係 PDF），請手動填寫。", "warn");
+    $("#manualBtn").classList.remove("hidden");
+    return;
+  }
+  analyzing = true; photosStale = false;
+  setStatus("🤖 AI 分析緊 " + images.length + " 張相…（可能要等 20 秒左右）");
+  try {
+    const {status, data} = await api("/api/analyze","POST",{photos: images.map(p => p.url)});
+    if (gen !== uploadGen) return; // 用戶已轉去手動填寫，唔好再自動儲存
+    if (photosStale){ analyzing = false; photosStale = false; runAnalysis(); return; }
+    if (status !== 200 || !data.ok){ throw new Error((data && data.error) || "analyze_failed"); }
+    await saveAnalyzed(data, runPhotos);
+  } catch(e){
+    setStatus("⚠️ AI 分析唔到（" + esc(e.message || "網絡問題") + "），請手動填寫，唔會亂入記錄。", "err");
+    $("#manualBtn").classList.remove("hidden");
+  } finally { analyzing = false; }
+}
+async function saveAnalyzed(result, runPhotos){
+  const rec = {
+    recordDate: result.paperDate || todayHK(),
+    subject: result.subject || "中文",
+    kind: "功課",
+    topic: "",
+    scoreValue: null, scoreMax: null, grade: null,
+    mistakes: (result.correctionsNeeded || []).join("\n"),
+    note: "",
+    questionChecks: result.questionChecks || [],
+    photos: runPhotos,
+    needsSignature: false, signed: false,
+  };
+  try {
+    const {status, data} = await api("/api/records","POST",rec);
+    if (status !== 201 || !data.ok) throw new Error("save_failed");
+    currentRecord = data.record;
+    pendingPhotos = [];
+    $("#pendingThumbs").innerHTML = "";
+    $("#manualBtn").classList.add("hidden");
+    setStatus("✅ 已經自動儲存咗記錄。");
+    await loadRecords();
+    renderResults(currentRecord, result);
+  } catch(e){
+    setStatus("⚠️ 儲存唔到，請手動填寫。", "err");
+    renderEdit(null, runPhotos, rec);
+  }
+}
+function renderResults(r, result){
+  const wrong = (r.questionChecks||[]).filter(c => c.status === "錯" || c.status === "部分啱");
+  $("#resultBox").innerHTML = `<div class="box">
+    <h2>✅ 檢查完</h2>
+    <p>日期：<b>${esc(r.recordDate)}</b>${result.paperDate ? "" : "（紙上搵唔到日期，用咗今日）"}　
+    科目：<b>${esc(r.subject)}</b>${result.subject ? "" : "（AI 未識別到科目，請喺下面改）"}</p>
+    <label class="f">日期</label>
+    <input type="date" id="resDate" value="${esc(r.recordDate)}">
+    <label class="f">科目</label>
+    <div class="chips" id="resSubjects">${SUBJECTS.map(s => `<button class="chipbtn ${r.subject===s?"on":""}" data-s="${s}"><span class="dot" style="background:${SUBJ_COLOR[s]}"></span>${s}</button>`).join("")}</div>
+    <label class="f">題目（可選）</label>
+    <input type="text" id="resTopic" placeholder="例如：Max 種白菜" value="${esc(r.topic)}">
+    ${wrong.length ? `<div class="corr"><h3>需要更改嘅地方（${wrong.length} 題）</h3><ul>` +
+      wrong.map(c => `<li>第 ${c.page} 頁 ${esc(c.label)}：${esc(c.errorNote || ("應為「" + c.correctAnswer + "」"))}</li>`).join("") + `</ul></div>` : `<p style="color:#15803d;font-weight:700">✓ 全部啱</p>`}
+    <h3>逐題檢查（${r.questionChecks.length} 題）</h3>
+    ${r.questionChecks.map(checkRow).join("")}
+    <div class="row" style="margin-top:14px">
+      <button class="btn" id="resDone">完成，返主頁</button>
+      <button class="btn ghost" id="resEdit">編輯全部</button>
+      <button class="btn ghost" id="resAgain">再影一份</button>
+    </div>
+  </div>`;
+  const putField = async () => {
+    const upd = Object.assign({}, currentRecord, {
+      recordDate: $("#resDate").value || currentRecord.recordDate,
+      subject: currentRecord.subject,
+      topic: $("#resTopic").value.trim(),
+    });
+    const res = await api("/api/records/" + encodeURIComponent(currentRecord.id), "PUT", upd);
+    if (res.status === 200 && res.data.ok){ currentRecord = res.data.record; await loadRecords(); }
+  };
+  $("#resDate").addEventListener("change", putField);
+  $("#resTopic").addEventListener("change", putField);
+  document.querySelectorAll("#resSubjects .chipbtn").forEach(b => b.onclick = async () => {
+    currentRecord.subject = b.dataset.s;
+    document.querySelectorAll("#resSubjects .chipbtn").forEach(x => x.classList.toggle("on", x === b));
+    await putField();
+  });
+  $("#resDone").onclick = () => { showView("homeView"); };
+  $("#resEdit").onclick = () => renderEdit(currentRecord);
+  $("#resAgain").onclick = () => { resetUpload(); renderPending(); $("#resultBox").innerHTML = ""; };
+}
+
+/* ---------- 編輯 / 手動填寫 ---------- */
+function renderEdit(rec, photos, prefill){
+  showView("editView");
+  const isNew = !rec;
+  const r = rec || Object.assign({
+    recordDate: todayHK(), subject: "中文", kind: "功課", topic: "",
+    scoreValue: null, scoreMax: null, grade: null, mistakes: "", note: "",
+    questionChecks: [], photos: photos || [], needsSignature: false, signed: false,
+  }, prefill || {});
+  if (photos && rec) r.photos = photos;
+  currentRecord = rec || null;
+  $("#editBox").innerHTML = `
+    <h2>${isNew ? "手動填寫記錄" : "編輯記錄"}</h2>
+    <label class="f">日期</label>
+    <input type="date" id="edDate" value="${esc(r.recordDate)}">
+    <label class="f">科目</label>
+    <div class="chips" id="edSubjects">${SUBJECTS.map(s => `<button type="button" class="chipbtn ${r.subject===s?"on":""}" data-s="${s}"><span class="dot" style="background:${SUBJ_COLOR[s]}"></span>${s}</button>`).join("")}</div>
+    <label class="f">種類</label>
+    <div class="chips" id="edKinds">${KINDS.map(k => `<button type="button" class="chipbtn ${r.kind===k?"on":""}" data-k="${k}">${k}</button>`).join("")}</div>
+    <label class="f">題目</label>
+    <input type="text" id="edTopic" value="${esc(r.topic)}" placeholder="例如：Max 種白菜">
+    <div class="row">
+      <div><label class="f">分數（得分）</label><input type="number" id="edScoreV" value="${r.scoreValue==null?"":r.scoreValue}" placeholder="例如 21"></div>
+      <div><label class="f">滿分</label><input type="number" id="edScoreM" value="${r.scoreMax==null?"":r.scoreMax}" placeholder="例如 22"></div>
+      <div><label class="f">等級</label><input type="text" id="edGrade" value="${esc(r.grade||"")}" placeholder="甲-"></div>
+    </div>
+    <label class="f">要改嘅地方</label>
+    <textarea id="edMistakes" placeholder="每行一項">${esc(r.mistakes||"")}</textarea>
+    <label class="f">備註</label>
+    <textarea id="edNote">${esc(r.note||"")}</textarea>
+    <label class="f">相片</label>
+    <div class="thumbs" id="edThumbs">${(r.photos||[]).map((p,i) => isImage(p)
+      ? `<div class="th"><img src="${p.url}"><button class="x" data-edrm="${i}">✕</button></div>`
+      : `<div class="th"><div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:28px">📄</div><button class="x" data-edrm="${i}">✕</button></div>`).join("")}</div>
+    <div class="row">
+      <button class="btn ghost block" id="edAddPhoto">＋ 加相</button>
+      ${(r.photos||[]).some(isImage) ? `<button class="btn ghost block" id="edReAI">🤖 用 AI 讀晒 ${r.photos.filter(isImage).length} 張相</button>` : ""}
+    </div>
+    <input type="file" id="edFileInput" accept="image/*,application/pdf" multiple class="hidden">
+    <h3>逐題檢查</h3>
+    <div id="edChecks">${(r.questionChecks||[]).map((c,i) => checkEditor(c,i)).join("")}</div>
+    <button class="btn ghost block" id="edAddCheck">＋ 加一題</button>
+    <label class="f" style="margin-top:12px"><input type="checkbox" id="edNeedsSig" ${r.needsSignature?"checked":""}> 需要家長簽名</label>
+    <label class="f"><input type="checkbox" id="edSigned" ${r.signed?"checked":""}> 已經簽咗</label>
+    <div class="row" style="margin-top:14px">
+      <button class="btn" id="edSave">儲存</button>
+      <button class="btn ghost" id="edCancel">取消</button>
+    </div>`;
+  let subj = r.subject, kind = r.kind;
+  document.querySelectorAll("#edSubjects .chipbtn").forEach(b => b.onclick = () => {
+    subj = b.dataset.s;
+    document.querySelectorAll("#edSubjects .chipbtn").forEach(x => x.classList.toggle("on", x === b));
+  });
+  document.querySelectorAll("#edKinds .chipbtn").forEach(b => b.onclick = () => {
+    kind = b.dataset.k;
+    document.querySelectorAll("#edKinds .chipbtn").forEach(x => x.classList.toggle("on", x === b));
+  });
+  document.querySelectorAll("#edThumbs [data-edrm]").forEach(b => b.onclick = () => {
+    r.photos.splice(+b.dataset.edrm, 1); renderEdit(rec, r.photos);
+  });
+  $("#edAddPhoto").onclick = () => $("#edFileInput").click();
+  $("#edFileInput").addEventListener("change", async e => {
+    const files = Array.from(e.target.files || []); e.target.value = "";
+    for (const f of files){
+      if (f.type.indexOf("image/") === 0) r.photos.push({url: await compressImage(f), contentType:"image/jpeg"});
+      else if (f.type === "application/pdf" && f.size <= 6*1024*1024) r.photos.push({url: await readAsDataURL(f), contentType:"application/pdf"});
+    }
+    renderEdit(rec, r.photos);
+  });
+  const reAI = $("#edReAI");
+  if (reAI) reAI.onclick = async () => {
+    if (!confirm("會用 AI 重新讀晒呢份記錄嘅相，取代而家嘅逐題檢查，肯定？")) return;
+    reAI.disabled = true; reAI.textContent = "分析緊…";
+    try {
+      const {status, data} = await api("/api/analyze","POST",{photos: r.photos.filter(isImage).map(p => p.url)});
+      if (status === 200 && data.ok){
+        r.questionChecks = data.questionChecks || [];
+        r.mistakes = (data.correctionsNeeded || []).join("\n");
+        if (data.paperDate) r.recordDate = data.paperDate;
+        if (data.subject) r.subject = data.subject;
+        renderEdit(rec, r.photos);
+      } else alert("AI 分析唔到。");
+    } catch(e){ alert("AI 分析唔到。"); }
+    reAI.disabled = false;
+  };
+  $("#edAddCheck").onclick = () => {
+    r.questionChecks = r.questionChecks || [];
+    r.questionChecks.push({page:1, label:"", question:"", childAnswer:"", correctAnswer:"", status:"啱", errorNote:""});
+    $("#edChecks").insertAdjacentHTML("beforeend", checkEditor(r.questionChecks[r.questionChecks.length-1], r.questionChecks.length-1));
+  };
+  $("#edChecks").addEventListener("click", e => {
+    const b = e.target.closest("[data-delcheck]");
+    if (b) b.closest(".qc").remove();
+  });
+  $("#edCancel").onclick = () => { if (currentRecord) openRecord(currentRecord.id); else showView("homeView"); };
+  $("#edSave").onclick = async () => {
+    const checks = [];
+    document.querySelectorAll("#edChecks .qc").forEach(q => {
+      checks.push({
+        page: Math.max(1, +q.querySelector("[data-f=page]").value || 1),
+        label: q.querySelector("[data-f=label]").value.trim(),
+        question: q.querySelector("[data-f=question]").value.trim(),
+        childAnswer: q.querySelector("[data-f=childAnswer]").value.trim(),
+        correctAnswer: q.querySelector("[data-f=correctAnswer]").value.trim(),
+        status: q.querySelector("[data-f=status]").value,
+        errorNote: q.querySelector("[data-f=errorNote]").value.trim(),
+      });
+    });
+    const body = {
+      recordDate: $("#edDate").value || todayHK(),
+      subject: subj, kind: kind,
+      topic: $("#edTopic").value.trim(),
+      scoreValue: $("#edScoreV").value === "" ? null : +$("#edScoreV").value,
+      scoreMax: $("#edScoreM").value === "" ? null : +$("#edScoreM").value,
+      grade: $("#edGrade").value.trim() || null,
+      mistakes: $("#edMistakes").value.trim(),
+      note: $("#edNote").value.trim(),
+      questionChecks: checks,
+      photos: r.photos || [],
+      needsSignature: $("#edNeedsSig").checked,
+      signed: $("#edSigned").checked,
+    };
+    try {
+      let res;
+      if (isNew){ res = await api("/api/records","POST",body); }
+      else { res = await api("/api/records/" + encodeURIComponent(rec.id), "PUT", body); }
+      if ((isNew && res.status !== 201 && res.status !== 200) || (!isNew && res.status !== 200) || !res.data.ok){
+        alert("儲存唔到，請再試。"); return;
+      }
+      currentRecord = res.data.record;
+      pendingPhotos = [];
+      await loadRecords();
+      openRecord(currentRecord.id);
+    } catch(e){ alert("儲存唔到，請再試。"); }
+  };
+}
+function checkEditor(c, i){
+  return `<div class="qc">
+    <div class="qhead"><span>第 <input type="number" data-f="page" value="${c.page||1}" style="width:52px;padding:4px 6px" min="1" max="8"> 頁</span>
+    <input type="text" data-f="label" value="${esc(c.label||"")}" placeholder="題號" style="width:110px;padding:4px 6px">
+    <select data-f="status" style="width:auto;padding:4px 6px">${STATUSES.map(s => `<option ${c.status===s?"selected":""}>${s}</option>`).join("")}</select>
+    <button type="button" data-delcheck style="margin-left:auto;color:#c0392b;font-size:18px">✕</button></div>
+    <div class="fld"><label>題目</label><input type="text" data-f="question" value="${esc(c.question||"")}"></div>
+    <div class="fld"><label>Jade 寫</label><input type="text" data-f="childAnswer" value="${esc(c.childAnswer||"")}"></div>
+    <div class="fld"><label>正確答案</label><input type="text" data-f="correctAnswer" value="${esc(c.correctAnswer||"")}"></div>
+    <div class="fld"><label>錯咗乜（啱就留空）</label><input type="text" data-f="errorNote" value="${esc(c.errorNote||"")}"></div>
+  </div>`;
+}
+
+/* ---------- 啟動 ---------- */
+if (token){
+  $("#loginView").classList.remove("active");
+  $("#appView").classList.add("active");
+  loadRecords().then(() => showView("homeView")).catch(() => doLogout());
+} else {
+  $("#loginView").classList.add("active");
+}
+document.addEventListener("click", e => {
+  if (!e.target.closest("#menu") && !e.target.closest("#menuBtn")) $("#menu").classList.remove("open");
+});
+</script>
+</body>
+</html>
