@@ -134,7 +134,7 @@
       <span class="who" id="loginWho"></span>
       <button class="cartbtn" onclick="location.href='bettereat-order.html'">← 返訂購頁</button>
       <button class="cartbtn" id="homeBtn" style="display:none;" onclick="location.href='https://iftech.dpdns.org/bettereat.html'">🏠 主頁</button>
-      <button class="cartbtn" onclick="logout()">登出</button>
+      <button class="cartbtn" id="logoutBtnTop" onclick="logout()">登出</button>
     </div>
   </header>
 
@@ -771,6 +771,17 @@ function logout(){
     if (who) who.textContent = "已登入：" + s.shop;
     setRecordsShop(s.shop); // 門店登入後，間店固定
   }
+  // 喺入口 iframe 入面開嗰陣，收起同入口重複嘅嘢（品牌、登入身份、登出、主頁），淨係留返訂購頁掣
+  try {
+    if (window.self !== window.top) {
+      var brand = document.querySelector("header.top .brand");
+      if (brand) brand.style.display = "none";
+      if (who) who.style.display = "none";
+      var loBtn = document.getElementById("logoutBtnTop");
+      if (loBtn) loBtn.style.display = "none";
+      if (homeBtn) homeBtn.style.display = "none";
+    }
+  } catch (e) {}
   renderRecords();
   loadFeishuRecords(); // 記錄頁以飛書為準：入頁即讀飛書全部記錄，失敗就留返本地記錄顯示
 })();

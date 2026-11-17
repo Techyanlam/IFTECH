@@ -154,7 +154,7 @@
       <button class="cartbtn" onclick="openChangePw()">🔑 改密碼</button>
       <button class="cartbtn" onclick="refreshPrices()">🔄 價格更新</button>
       <button class="cartbtn" onclick="scrollToCart()">🛒 已選 <span id="cartCountTop">0</span> 件</button>
-      <span class="who" id="loginWho"></span><button class="cartbtn" onclick="logout()">登出</button>
+      <span class="who" id="loginWho"></span><button class="cartbtn" id="logoutBtnTop" onclick="logout()">登出</button>
     </div>
   </header>
 
@@ -566,6 +566,17 @@ function unlockPage(){
     if (reportBtn) reportBtn.style.display = "none";
     setRecordsShop(s.shop);
   }
+  // 喺入口 iframe 入面開嗰陣，收起同入口重複嘅嘢（品牌、登入身份、登出、管理員報告），淨係留返轉店＋改密碼＋價格更新＋已選
+  try {
+    if (window.self !== window.top) {
+      var brand = document.querySelector("header.top .brand");
+      if (brand) brand.style.display = "none";
+      if (who) who.style.display = "none";
+      var loBtn = document.getElementById("logoutBtnTop");
+      if (loBtn) loBtn.style.display = "none";
+      if (reportBtn) reportBtn.style.display = "none";
+    }
+  } catch (e) {}
   if (verifyLines) renderVerify();
 }
 function showLogin(){
