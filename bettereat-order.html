@@ -114,9 +114,7 @@
   .loginshop .shopbtn { font-size: 15px; padding: 10px 16px; }
   .loginbox input[type="password"] { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #d8cfc0; border-radius: 10px; margin-bottom: 12px; background: #fff; }
   .loginerr { color: #b3402e; font-size: 14px; min-height: 20px; margin-bottom: 8px; }
-  .loginbar { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: #fff8ea; border: 1px solid #ecd9ac; border-radius: 10px; padding: 8px 12px; margin: 10px 0 0; font-size: 14px; }
-  header.top .loginbar { flex: 0 0 100%; }
-  .loginbar .who { font-weight: 700; }
+  .who { font-size: 13px; color: #6d6152; font-weight: 700; white-space: nowrap; }
   .pwmodal { position: fixed; inset: 0; z-index: 50; background: rgba(43,38,32,.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
   .pwbox { background: #fff; border-radius: 16px; padding: 24px; width: 100%; max-width: 380px; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
   .pwbox h3 { font-size: 18px; margin-bottom: 4px; }
@@ -156,8 +154,8 @@
       <button class="cartbtn" onclick="openChangePw()">🔑 改密碼</button>
       <button class="cartbtn" onclick="refreshPrices()">🔄 價格更新</button>
       <button class="cartbtn" onclick="scrollToCart()">🛒 已選 <span id="cartCountTop">0</span> 件</button>
+      <span class="who" id="loginWho"></span><button class="cartbtn" onclick="logout()">登出</button>
     </div>
-    <div class="loginbar" id="loginBar" style="display:none;"><span class="who" id="loginWho"></span><button class="xbtn" onclick="logout()">登出</button></div>
   </header>
 
   <div class="meta" id="metaLine">載入餐牌中…</div>
@@ -555,7 +553,6 @@ function unlockPage(){
   var bar = document.getElementById("mainCartbar");
   if (bar) bar.style.display = "flex";
   var who = document.getElementById("loginWho");
-  var barEl = document.getElementById("loginBar");
   var shopBtns = document.getElementById("shopBtns");
   var reportBtn = document.getElementById("adminReportBtn");
   if (s.role === "admin") {
@@ -569,7 +566,6 @@ function unlockPage(){
     if (reportBtn) reportBtn.style.display = "none";
     setRecordsShop(s.shop);
   }
-  if (barEl) barEl.style.display = "flex";
   if (verifyLines) renderVerify();
 }
 function showLogin(){
