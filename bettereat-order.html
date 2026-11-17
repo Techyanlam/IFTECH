@@ -783,7 +783,7 @@ var SALES_WORKER_URL = "https://bettereat-sales-proxy.yan-lam.workers.dev";
 function recordToLine(r){
   if (!r) return null;
   var rt = splitRecordTime(r.time);
-  if (!r.order || !/^B\d{8}-\d{3}$/.test(r.order)) return null;
+  if (!r.order || !/^B([A-Z]{3})?\d{8}-\d{3}$/.test(r.order)) return null;
   if (!rt.date || rt.date === "—" || !/^\d{4}-\d{2}-\d{2}$/.test(rt.date)) return null;
   var q = parseInt(r.qty, 10);
   var p = parseFloat(r.price), s = parseFloat(r.subtotal);
@@ -810,19 +810,35 @@ function syncSalesToFeishu(rows, statusEl){
     var line = recordToLine(rows[i]);
     if (line) lines.push(line);
   }
-  if (!lines.length) return;
   var done = false;
   function finish(msg){
     if (done) return; done = true;
     if (statusEl) statusEl.textContent += msg;
   }
+  // ⚠️ 2026-11-17 修正：舊版 recordToLine 只接受舊格式 B20261106-002，新格式 BMJF20261106-002
+  // 全部被濾走，lines 係空就靜靜哋 return，飛書永遠收唔到新單。宜家格式唔啱會出提示，唔再無聲漏單。
+  if (!lines.length) { finish("未能同步去飛書（記錄資料不完整），記錄已存喺呢部裝置，之後去訂單記錄頁撳「重新同步」。"); return; }
   var ctrl = null, timer = null;
   try { ctrl = new AbortController(); timer = setTimeout(function(){ try { ctrl.abort(); } catch (e) {} }, 20000); } catch (e) { ctrl = null; }
   var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lines: lines }) };
   if (ctrl) opts.signal = ctrl.signal;
   fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
     if (timer) clearTimeout(timer);
-    if (j && j.ok) finish("已同步去飛書「銷售紀錄」（" + lines.length + " 行）。");
+    if (j && j.ok) {
+      // Worker 返埋每行嘅飛書 record_id（順序同 lines 一致），存返入本地記錄，之後編輯／刪除可以直接用 record_id 定位，唔使再靠配對。
+      // 舊版 Worker 冇 recordIds 嗰陣照樣當成功，唔會壞。
+      if (Array.isArray(j.recordIds) && j.recordIds.length === lines.length) {
+        try {
+          var _arr = loadRecords();
+          for (var k = 0; k < lines.length; k++) {
+            var _r = _arr[k];
+            if (_r && _r.order === rows[k].order && _r.product === rows[k].product && _r.store === rows[k].store) _r.feishuId = j.recordIds[k];
+          }
+          saveRecords(_arr);
+        } catch (e) {}
+      }
+      finish("已同步去飛書「銷售紀錄」（" + lines.length + " 行）。");
+    }
     else finish("未能同步去飛書（記錄已存喺呢部裝置），稍後可再提交。");
   }).catch(function(){
     if (timer) clearTimeout(timer);

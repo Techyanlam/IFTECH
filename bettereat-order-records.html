@@ -142,6 +142,7 @@
 
   <h2 class="sec" id="recordsSection">訂單記錄</h2>
   <div class="status" id="recordsStatus"></div>
+  <div id="feishuSyncStatus" style="font-size:13px;color:#8a7f70;margin-top:6px;">載入飛書記錄緊…</div>
   <div style="display:flex;gap:8px;margin-top:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
     <label style="font-size:14px;color:#6d6152;">睇邊間店嘅記錄：</label>
     <select id="recordsShopFilter" onchange="setRecordsShop(this.value);renderRecords()" style="padding:8px 10px;border:1px solid #d8cbb6;border-radius:8px;background:#fff;font-size:14px;">
@@ -164,8 +165,9 @@
     </table>
   </div>
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
+    <button class="xbtn" id="resyncBtn" onclick="resyncUnsynced()" disabled>重新同步全部未同步</button>
     <button class="xbtn" id="clearRecordsBtn" onclick="clearRecords()">清空全部記錄</button>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">記錄係喺訂購頁確認提交嗰陣生成，一個產品一行，同一次提交嘅各行會共用同一個訂單編號，同時即刻傳送去飛書「銷售紀錄」表。喺呢頁可以撳「編輯」改單價、數量同原因，或者撳「刪除」刪走一行；改動會即刻同步去飛書「銷售紀錄」，如果同步失敗，記錄仍然會存喺呢部裝置，下次再改同一行會再試同步。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示、獨立清空。記錄只存喺呢部裝置嘅瀏覽器度，換部機或者清除瀏覽資料就會冇咗；「清空」只會清呢部裝置嘅記錄，唔會刪除飛書嘅數據。登入嗰陣揀邊間店，記錄就睇邊間店；管理員登入可以睇晒全部店。</div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">記錄而家係由飛書「銷售紀錄」表讀返嚟，任何一部機登入都睇到晒所有店嘅單，唔再淨係得呢部機先睇到。記錄係喺訂購頁確認提交嗰陣生成，一個產品一行，同一次提交嘅各行會共用同一個訂單編號，同時即刻傳送去飛書「銷售紀錄」表。喺呢頁可以撳「編輯」改單價、數量同原因，或者撳「刪除」刪走一行；改動會即刻同步去飛書「銷售紀錄」，如果同步失敗，記錄仍然會存喺呢部裝置，下次再改同一行會再試同步。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示。仲未同步去飛書嘅行會標明「只喺呢部機，未同步去飛書」，可以撳「重新同步」或者「重新同步全部未同步」補返去飛書。登入嗰陣揀邊間店，記錄就睇邊間店；管理員登入可以睇晒全部店。「清空」只會清呢部裝置嘅本地記錄，唔會刪除飛書嘅數據。</div>
   </div>
   <div class="foot">數據來源：BETTEREAT 飛書系統 · 餐牌以飛書產品主檔為準</div>
 </div>
@@ -183,6 +185,106 @@ function setRecordsShop(v){
 }
 var recordsDateFilter = "";
 var lastShownPairs = [];
+// ===== 跨裝置同步狀態：記錄頁以飛書「銷售紀錄」表為準 =====
+// feishuRows：由 Worker list 返嚟、轉做本地記錄格式嘅行（帶 feishuId）；feishuLoaded 為 false 即係未成功讀過飛書，
+// 嗰陣顯示本地記錄做後備，唔會當冇單。feishuFailed 為 true 即係最近一次 list 失敗。
+var feishuRows = [];
+var feishuLoaded = false;
+var feishuFailed = false;
+var feishuSyncTime = "";
+function feishuRowToLocal(rec){
+  return {
+    order: rec.order || "",
+    time: (rec.recordDate || "") + (rec.recordTime ? " " + rec.recordTime : ""),
+    store: rec.store || "",
+    product: rec.product || "",
+    qty: rec.qty, price: rec.price, subtotal: rec.subtotal,
+    reason: rec.reason || "", remarks: rec.remarks || "",
+    feishuId: rec.record_id || rec.feishuId || ""
+  };
+}
+function localRowKey(r){
+  var rt = splitRecordTime(r.time);
+  return [r.order || "", r.product || "", r.store || "", rt.date || ""].join("");
+}
+// 合併飛書行＋本地行：飛書已有嘅行唔會重複顯示；本地有、飛書冇嘅行先至係「未同步」。
+// 飛書未成功讀過嗰陣，本地行唔會標做未同步（唔知飛書有冇，唔好亂標），亦唔會自動重傳。
+function buildDisplayPairs(){
+  var local = loadRecords();
+  var feishuKeys = {}, feishuIds = {};
+  feishuRows.forEach(function(r){ feishuKeys[localRowKey(r)] = true; if (r.feishuId) feishuIds[r.feishuId] = true; });
+  var pairs = [];
+  feishuRows.forEach(function(r){ pairs.push({ r: r, localIndex: null, feishuId: r.feishuId || "", unsynced: false }); });
+  local.forEach(function(r, i){
+    if (r.feishuId && feishuIds[r.feishuId]) return; // 飛書嗰邊已經顯示咗同一行
+    if (feishuLoaded && feishuKeys[localRowKey(r)]) return; // 飛書已有同一行（舊記錄未存 feishuId）
+    pairs.push({ r: r, localIndex: i, feishuId: r.feishuId || "", unsynced: feishuLoaded });
+  });
+  pairs.sort(function(a, b){
+    var ra = splitRecordTime(a.r.time), rb = splitRecordTime(b.r.time);
+    if (ra.date !== rb.date) return ra.date < rb.date ? 1 : -1;
+    if (ra.time !== rb.time) return ra.time < rb.time ? 1 : -1;
+    if ((a.r.order || "") !== (b.r.order || "")) return (a.r.order || "") < (b.r.order || "") ? 1 : -1;
+    return 0;
+  });
+  return pairs;
+}
+function updateFeishuSyncStatus(){
+  var st = document.getElementById("feishuSyncStatus");
+  if (!st) return;
+  if (feishuLoaded) {
+    var unsynced = buildDisplayPairs().filter(function(p){ return p.unsynced; }).length;
+    st.textContent = "已同步飛書：" + feishuRows.length + " 行，更新時間 " + feishuSyncTime +
+      (unsynced ? "，有 " + unsynced + " 行只喺呢部機，未同步去飛書" : "。");
+  } else if (feishuFailed) {
+    st.textContent = "未能連接飛書，只顯示呢部機嘅記錄。";
+  } else {
+    st.textContent = "載入飛書記錄緊…";
+  }
+}
+// 向 Worker 攞飛書全部記錄；失敗就留返本地記錄顯示，唔會變空白表。
+function loadFeishuRecords(){
+  updateFeishuSyncStatus();
+  var ctrl = null, timer = null;
+  try { ctrl = new AbortController(); timer = setTimeout(function(){ try { ctrl.abort(); } catch (e) {} }, 20000); } catch (e) { ctrl = null; }
+  var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "list" }) };
+  if (ctrl) opts.signal = ctrl.signal;
+  fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
+    if (timer) clearTimeout(timer);
+    if (j && j.ok && Array.isArray(j.records)) {
+      feishuRows = j.records.map(feishuRowToLocal);
+      feishuLoaded = true; feishuFailed = false;
+      var d = new Date();
+      function p2(n){ return (n < 10 ? "0" : "") + n; }
+      feishuSyncTime = p2(d.getHours()) + ":" + p2(d.getMinutes());
+      editingIndex = -1; editDraft = null; // 飛書重新載入，顯示次序可能變，取消緊嘅編輯免得改錯行
+    } else {
+      feishuFailed = true;
+    }
+    renderRecords();
+  }).catch(function(){
+    if (timer) clearTimeout(timer);
+    feishuFailed = true;
+    renderRecords();
+  });
+}
+// 將一飛書行嘅最新內容寫返入本地記錄做後備（有 feishuId 就對返嗰行，冇就加一行），唔會開多咗重複行。
+function mirrorLocalRow(r){
+  var copy = {};
+  for (var k in r) { if (k !== "_fromFeishu") copy[k] = r[k]; }
+  var arr = loadRecords();
+  var done = false;
+  for (var i = 0; i < arr.length; i++) {
+    if (copy.feishuId && arr[i].feishuId === copy.feishuId) { arr[i] = copy; done = true; break; }
+    if (!copy.feishuId && arr[i].order === copy.order && arr[i].product === copy.product && arr[i].store === copy.store && arr[i].time === copy.time) { arr[i] = copy; done = true; break; }
+  }
+  if (!done) arr.unshift(copy);
+  saveRecords(arr);
+}
+function removeLocalMirror(feishuId){
+  if (!feishuId) return;
+  saveRecords(loadRecords().filter(function(r){ return r.feishuId !== feishuId; }));
+}
 function setRecordsDate(v){ recordsDateFilter = v || ""; }
 function clearRecordsDate(){
   recordsDateFilter = "";
@@ -228,7 +330,6 @@ function saveRecords(arr){
   try { localStorage.setItem(RECORDS_KEY, JSON.stringify(arr)); } catch (e) {}
 }
 function renderRecords(){
-  var arr = loadRecords();
   var shop = getRecordsShop();
   var sel = document.getElementById("recordsShopFilter");
   if (sel) sel.value = shop;
@@ -237,14 +338,20 @@ function renderRecords(){
   if (dateEl) dateEl.value = recordsDateFilter;
   var btn = document.getElementById("clearRecordsBtn");
   if (btn) btn.textContent = shop ? "清空「" + shop + "」記錄" : "清空全部記錄";
-  var pairs = arr.map(function(r, i){ return { r: r, i: i }; });
+  // 顯示用嘅行 = 飛書行＋本地未同步行（已合併、已排序）；editingIndex 係呢個顯示清單入面嘅位置，唔係 localStorage 位置。
+  var pairs = buildDisplayPairs();
   if (shop) pairs = pairs.filter(function(p){ return p.r.store === shop; });
   if (recordsDateFilter) pairs = pairs.filter(function(p){ return splitRecordTime(p.r.time).date === recordsDateFilter; });
+  if (editingIndex >= pairs.length) { editingIndex = -1; editDraft = null; }
   lastShownPairs = pairs;
+  var unsyncedCount = pairs.filter(function(p){ return p.unsynced; }).length;
   var cnt = document.getElementById("recordsCount");
-  if (cnt) cnt.textContent = (shop ? shop : "全部店舖") + (recordsDateFilter ? "｜" + recordsDateFilter : "") + "：共 " + pairs.length + " 行";
+  if (cnt) cnt.textContent = (shop ? shop : "全部店舖") + (recordsDateFilter ? "｜" + recordsDateFilter : "") + "：共 " + pairs.length + " 行" + (unsyncedCount ? "（其中 " + unsyncedCount + " 行只喺呢部機，未同步去飛書）" : "");
   var exBtn = document.getElementById("exportBtn");
   if (exBtn) exBtn.disabled = !pairs.length;
+  var rsBtn = document.getElementById("resyncBtn");
+  if (rsBtn) rsBtn.disabled = !unsyncedCount;
+  updateFeishuSyncStatus();
   var html = "";
   if (!pairs.length) {
     var emptyMsg = "暫時未有記錄";
@@ -253,27 +360,30 @@ function renderRecords(){
     else if (recordsDateFilter) emptyMsg = "呢個日期暫時未有記錄";
     html = '<tr><td colspan="11" style="color:#8a7f70;text-align:center;">' + emptyMsg + '</td></tr>';
   } else {
-    pairs.forEach(function(p){
+    pairs.forEach(function(p, di){
       var r = p.r;
       var prod = (r.product !== undefined) ? esc(r.product) : esc(r.items || "");
       var qty = (r.qty !== undefined) ? esc(r.qty) : "—";
       var rt = splitRecordTime(r.time);
-      if (p.i === editingIndex && editDraft) {
-        html += '<tr><td style="white-space:nowrap;">' + esc(r.order || "—") + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td class="prodcol">' + prod + '</td>' +
+      var orderCell = esc(r.order || "—") + (p.unsynced ? '<br><span style="color:#b3402e;font-size:12px;">只喺呢部機，未同步去飛書</span>' : "");
+      var actions = '<button class="del" onclick="editRecord(' + di + ')">編輯</button> <button class="del" onclick="deleteRecord(' + di + ')">刪除</button>' +
+        (p.unsynced ? ' <button class="del" onclick="resyncOneRecord(' + di + ')">重新同步</button>' : "");
+      if (di === editingIndex && editDraft) {
+        html += '<tr><td style="white-space:nowrap;">' + orderCell + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td class="prodcol">' + prod + '</td>' +
           '<td><input class="eqty" type="number" step="1" min="1" value="' + esc(editDraft.qty) + '" oninput="editDraft.qty=this.value;recomputeEditSub()"></td>' +
           '<td><input class="eprice" type="number" step="any" min="0" value="' + esc(editDraft.price) + '" oninput="editDraft.price=this.value;recomputeEditSub()"></td>' +
           '<td id="edsub">' + (r.subtotal != null ? fmtMoney(r.subtotal) : "—") + '</td>' +
           '<td><select class="ereason" onchange="editDraft.reason=this.value;toggleEditDetail()">' + reasonOptions(editDraft.reason) + '</select>' +
           '<input class="ereasonDetail" id="eddetail" type="text" placeholder="其他原因說明（可空）" style="display:' + (editDraft.reason === '其他' ? 'block' : 'none') + ';margin-top:4px;" value="' + esc(editDraft.reasonDetail || '') + '" oninput="editDraft.reasonDetail=this.value"></td>' +
           '<td>' + esc(r.remarks) + '</td>' +
-          '<td style="white-space:nowrap;"><button class="del" onclick="saveEditedRecord(' + p.i + ')">儲存</button> <button class="del" onclick="cancelEdit()">取消</button></td></tr>';
+          '<td style="white-space:nowrap;"><button class="del" onclick="saveEditedRecord(' + di + ')">儲存</button> <button class="del" onclick="cancelEdit()">取消</button></td></tr>';
       } else {
-        html += '<tr><td style="white-space:nowrap;">' + esc(r.order || "—") + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td class="prodcol">' + prod + '</td><td>' + qty + '</td>' +
+        html += '<tr><td style="white-space:nowrap;">' + orderCell + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td class="prodcol">' + prod + '</td><td>' + qty + '</td>' +
           '<td>' + (r.price != null ? fmtMoney(r.price) : "—") + '</td>' +
           '<td>' + (r.subtotal != null ? fmtMoney(r.subtotal) : "—") + '</td>' +
           '<td>' + (r.reason ? esc(r.reason) : "—") + '</td>' +
           '<td>' + esc(r.remarks) + '</td>' +
-          '<td style="white-space:nowrap;"><button class="del" onclick="editRecord(' + p.i + ')">編輯</button> <button class="del" onclick="deleteRecord(' + p.i + ')">刪除</button></td></tr>';
+          '<td style="white-space:nowrap;">' + actions + '</td></tr>';
       }
     });
   }
@@ -351,7 +461,9 @@ var SALES_WORKER_URL = "https://bettereat-sales-proxy.yan-lam.workers.dev";
 function recordToLine(r){
   if (!r) return null;
   var rt = splitRecordTime(r.time);
-  if (!r.order || !/^B\d{8}-\d{3}$/.test(r.order)) return null;
+  // ⚠️ 2026-11-17 修正：舊版只接受舊格式 B20261106-002，新格式 BMJF20261106-002 會返 null，
+  // 令提交／編輯同步靜靜哋漏單。宜家同 Worker 一樣，兩種格式都接受。
+  if (!r.order || !/^B([A-Z]{3})?\d{8}-\d{3}$/.test(r.order)) return null;
   if (!rt.date || rt.date === "—" || !/^\d{4}-\d{2}-\d{2}$/.test(rt.date)) return null;
   var q = parseInt(r.qty, 10);
   var p = parseFloat(r.price), s = parseFloat(r.subtotal);
@@ -382,12 +494,26 @@ function syncEditToFeishu(r){
   if (st) { st.textContent = "已更新本地記錄，同步緊去飛書…"; st.className = "status"; }
   var ctrl = null, timer = null;
   try { ctrl = new AbortController(); timer = setTimeout(function(){ try { ctrl.abort(); } catch (e) {} }, 20000); } catch (e) { ctrl = null; }
-  var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "update", line: line }) };
+  // 有 feishuId 就直接更新嗰行（唔使再靠配對，撞號都唔會掂錯行）；冇就 Worker 會按訂單編號＋產品＋門店搵，搵唔到就補返成行。
+  var body = { action: "update", line: line };
+  if (r.feishuId) body.recordId = r.feishuId;
+  var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
   if (ctrl) opts.signal = ctrl.signal;
   fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
     if (timer) clearTimeout(timer);
     if (!st) return;
     if (j && j.ok) {
+      // Worker 補返／更新嗰陣返埋 recordId，存返入本地記錄，之後可以直接用 recordId 定位。
+      if (j.recordId && !r.feishuId) {
+        r.feishuId = j.recordId;
+        try {
+          var _arr = loadRecords();
+          for (var k = 0; k < _arr.length; k++) {
+            if (_arr[k].order === r.order && _arr[k].product === r.product && _arr[k].store === r.store) { _arr[k].feishuId = j.recordId; break; }
+          }
+          saveRecords(_arr);
+        } catch (e) {}
+      }
       st.textContent = j.created ? "已同步更新去飛書「銷售紀錄」（原本冇嗰行，已經補返）。" : "已同步更新去飛書「銷售紀錄」。";
       st.className = "status ok";
     } else {
@@ -399,14 +525,78 @@ function syncEditToFeishu(r){
     if (st) { st.textContent = "更新未能同步去飛書（記錄已存喺呢部裝置）。"; st.className = "status err"; }
   });
 }
+// 將一本地未同步行補返去飛書（經 update upsert：飛書有就更新，冇就開新行，唔會開多重複行）。
+// 成功之後重新讀飛書，嗰行就會由「未同步」變返正常顯示。
+function resyncOneRecord(di){
+  var pair = lastShownPairs[di];
+  if (!pair || !pair.unsynced) return;
+  var st = document.getElementById("recordsStatus");
+  var line = recordToLine(pair.r);
+  if (!line) {
+    if (st) { st.textContent = "重新同步失敗：記錄資料不完整。"; st.className = "status err"; }
+    return;
+  }
+  if (st) { st.textContent = "重新同步緊「" + pair.r.product + "」去飛書…"; st.className = "status"; }
+  var ctrl = null, timer = null;
+  try { ctrl = new AbortController(); timer = setTimeout(function(){ try { ctrl.abort(); } catch (e) {} }, 20000); } catch (e) { ctrl = null; }
+  var body = { action: "update", line: line };
+  if (pair.r.feishuId) body.recordId = pair.r.feishuId;
+  var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
+  if (ctrl) opts.signal = ctrl.signal;
+  fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
+    if (timer) clearTimeout(timer);
+    if (j && j.ok) {
+      if (st) { st.textContent = "已重新同步「" + pair.r.product + "」去飛書，重新載入緊記錄…"; st.className = "status ok"; }
+      loadFeishuRecords();
+    } else if (st) {
+      st.textContent = "重新同步失敗，記錄仍然留喺呢部裝置，稍後可以再試。";
+      st.className = "status err";
+    }
+  }).catch(function(){
+    if (timer) clearTimeout(timer);
+    if (st) { st.textContent = "重新同步失敗，記錄仍然留喺呢部裝置，稍後可以再試。"; st.className = "status err"; }
+  });
+}
+// 將全部未同步行逐行補返去飛書，完咗重新讀飛書。
+function resyncUnsynced(){
+  var pairs = buildDisplayPairs().filter(function(p){ return p.unsynced; });
+  if (!pairs.length) return;
+  var st = document.getElementById("recordsStatus");
+  var done = 0, okCount = 0, idx = 0;
+  if (st) { st.textContent = "重新同步緊 " + pairs.length + " 行未同步記錄去飛書…"; st.className = "status"; }
+  function next(){
+    if (idx >= pairs.length) {
+      if (st) {
+        st.textContent = okCount === pairs.length
+          ? "已重新同步全部 " + okCount + " 行去飛書，重新載入緊記錄…"
+          : "已重新同步 " + okCount + "／" + pairs.length + " 行，其餘仍然留喺呢部裝置，稍後可以再試。";
+        st.className = okCount === pairs.length ? "status ok" : "status err";
+      }
+      loadFeishuRecords();
+      return;
+    }
+    var pair = pairs[idx++];
+    var line = recordToLine(pair.r);
+    if (!line) { done++; next(); return; }
+    var body = { action: "update", line: line };
+    if (pair.r.feishuId) body.recordId = pair.r.feishuId;
+    fetch(SALES_WORKER_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .then(function(res){ return res.json(); }).then(function(j){ done++; if (j && j.ok) okCount++; next(); })
+      .catch(function(){ done++; next(); });
+  }
+  next();
+}
 // 刪除一行記錄之後，將飛書「銷售紀錄」嗰行刪埋。飛書本來已經冇嗰行都算成功。
 // 注意：成個記錄表「清空」唔會同步——嗰個只係清呢部裝置嘅記錄，唔係刪除飛書數據。
-function syncDeleteToFeishu(order, product, store){
+function syncDeleteToFeishu(order, product, store, recordId){
   var st = document.getElementById("recordsStatus");
   if (st) { st.textContent = "已刪除本地記錄，同步緊去飛書…"; st.className = "status"; }
   var ctrl = null, timer = null;
   try { ctrl = new AbortController(); timer = setTimeout(function(){ try { ctrl.abort(); } catch (e) {} }, 20000); } catch (e) { ctrl = null; }
-  var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "delete", order: order, product: product, store: store || "" }) };
+  // 有 feishuId 就直接刪嗰行；冇就按訂單編號＋產品＋門店搵嚟刪（舊做法）。
+  var body = recordId ? { action: "delete", recordId: recordId }
+    : { action: "delete", order: order, product: product, store: store || "" };
+  var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
   if (ctrl) opts.signal = ctrl.signal;
   fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
     if (timer) clearTimeout(timer);
@@ -423,11 +613,12 @@ function syncDeleteToFeishu(order, product, store){
     if (st) { st.textContent = "刪除未能同步去飛書（本地記錄已刪除）。"; st.className = "status err"; }
   });
 }
-function editRecord(i){
-  var arr = loadRecords();
-  var r = arr[i];
+function editRecord(di){
+  // di 係顯示清單入面嘅位置（lastShownPairs），唔係 localStorage 位置——飛書行 localIndex 係 null。
+  var pair = lastShownPairs[di];
+  var r = pair && pair.r;
   if (!r) return;
-  editingIndex = i;
+  editingIndex = di;
   var parsed = parseReason(r.reason);
   editDraft = { price: (r.price == null ? "" : r.price), qty: r.qty, reason: parsed.reason, reasonDetail: parsed.detail };
   renderRecords();
@@ -454,9 +645,9 @@ function recomputeOrderTotal(orderNo, arr){
   }
   rows.forEach(function(r){ r.orderTotal = total; });
 }
-function saveEditedRecord(i){
-  var arr = loadRecords();
-  var r = arr[i];
+function saveEditedRecord(di){
+  var pair = lastShownPairs[di];
+  var r = pair && pair.r;
   if (!r || !editDraft) return;
   var p = parseFloat(editDraft.price), q = parseFloat(editDraft.qty);
   if (!validPrice(p)) { alert("請輸入有效嘅單價。"); return; }
@@ -466,22 +657,41 @@ function saveEditedRecord(i){
   var qtyChanged = (r.qty != null && q !== parseFloat(r.qty));
   if ((priceChanged || qtyChanged) && !reason) { alert("金額有改動，請選擇改價原因。"); return; }
   r.price = p; r.qty = q; r.subtotal = Math.round(p * q * 100) / 100; r.reason = reason;
-  recomputeOrderTotal(r.order, arr);
-  saveRecords(arr);
+  if (pair.localIndex != null) {
+    // 本地行：照舊更新 localStorage 嗰行。
+    var arr = loadRecords();
+    var lr = arr[pair.localIndex];
+    if (lr) { lr.price = p; lr.qty = q; lr.subtotal = r.subtotal; lr.reason = reason; }
+    recomputeOrderTotal(r.order, arr);
+    saveRecords(arr);
+  } else {
+    // 飛書行：更新顯示嗰行嘅內容，同時寫返入本地做後備（之後飛書讀唔到都仲睇到）。
+    var fr = feishuRows.filter(function(x){ return x.feishuId && x.feishuId === r.feishuId; })[0];
+    if (fr) { fr.price = p; fr.qty = q; fr.subtotal = r.subtotal; fr.reason = reason; }
+    mirrorLocalRow(r);
+  }
   editingIndex = -1; editDraft = null;
   renderRecords();
   syncEditToFeishu(r);
 }
-function deleteRecord(i){
-  var arr = loadRecords();
-  var r = arr[i];
+function deleteRecord(di){
+  var pair = lastShownPairs[di];
+  var r = pair && pair.r;
   if (!r) return;
-  var order = r.order, product = r.product, store = r.store;
-  arr.splice(i, 1);
-  saveRecords(arr);
+  var order = r.order, product = r.product, store = r.store, recordId = r.feishuId || "";
+  if (pair.localIndex != null) {
+    var arr = loadRecords();
+    arr.splice(pair.localIndex, 1);
+    saveRecords(arr);
+  }
+  if (recordId) {
+    // 飛書行：由飛書清單剔走，同時清埋本地後備嗰行。
+    feishuRows = feishuRows.filter(function(x){ return x.feishuId !== recordId; });
+    removeLocalMirror(recordId);
+  }
   editingIndex = -1; editDraft = null;
   renderRecords();
-  syncDeleteToFeishu(order, product, store);
+  syncDeleteToFeishu(order, product, store, recordId);
 }
 function clearRecords(){
   var shop = getRecordsShop();
@@ -518,6 +728,7 @@ function logout(){
   }
   if (barEl) barEl.style.display = "flex";
   renderRecords();
+  loadFeishuRecords(); // 記錄頁以飛書為準：入頁即讀飛書全部記錄，失敗就留返本地記錄顯示
 })();
 
 </script>
