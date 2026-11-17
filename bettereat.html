@@ -37,7 +37,7 @@
   header.top .brand span { color: #c98a2d; }
   #userLabel { font-size: 13px; color: #6d6152; margin-right: 8px; }
   #logoutBtn { background: #fff; border: 1px solid #d8cfc0; color: #6d6152; padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; }
-  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 0; }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 0; align-items: center; }
   .tabbtn { padding: 10px 18px; font-size: 15px; border: 1px solid #d8cbb6; color: #6d6152; background: #fff; border-radius: 999px; cursor: pointer; }
   .tabbtn.active { color: #fff; background: #2b2620; border-color: #2b2620; font-weight: 700; }
   .tabpanel { margin-top: 12px; }
@@ -99,15 +99,14 @@
   <div class="topbar">
     <header class="top">
       <div class="brand">🍰 BETTEREAT <span>門店系統</span></div>
+      <div class="tabs" id="tabBar">
+        <button class="tabbtn" id="tabBtn-order" onclick="switchTab('order')">🛒 落單</button>
+        <button class="tabbtn" id="tabBtn-report" onclick="switchTab('report')">📊 報表</button>
+        <button class="tabbtn" id="tabBtn-records" onclick="switchTab('records')">📋 訂單記錄</button>
+        <button class="tabbtn" id="tabBtn-byitem" onclick="switchTab('byitem')">📦 按產品檢視</button>
+      </div>
       <div><span id="userLabel"></span><button id="logoutBtn" onclick="logout()">登出</button></div>
     </header>
-
-    <div class="tabs" id="tabBar">
-      <button class="tabbtn" id="tabBtn-order" onclick="switchTab('order')">🛒 落單</button>
-      <button class="tabbtn" id="tabBtn-report" onclick="switchTab('report')">📊 報表</button>
-      <button class="tabbtn" id="tabBtn-records" onclick="switchTab('records')">📋 訂單記錄</button>
-      <button class="tabbtn" id="tabBtn-byitem" onclick="switchTab('byitem')">📦 按產品檢視</button>
-    </div>
   </div>
 
   <div id="panel-report" class="tabpanel" style="display:none;">
