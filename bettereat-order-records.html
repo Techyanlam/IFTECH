@@ -167,7 +167,7 @@
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
     <button class="xbtn" id="resyncBtn" onclick="resyncUnsynced()" disabled>重新同步全部未同步</button>
     <button class="xbtn" id="clearRecordsBtn" onclick="clearRecords()">清空全部記錄</button>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">記錄而家係由飛書「銷售紀錄」表讀返嚟，任何一部機登入都睇到晒所有店嘅單，唔再淨係得呢部機先睇到。記錄係喺訂購頁確認提交嗰陣生成，一個產品一行，同一次提交嘅各行會共用同一個訂單編號，同時即刻傳送去飛書「銷售紀錄」表。喺呢頁可以撳「編輯」改單價、數量同原因，或者撳「刪除」刪走一行；改動會即刻同步去飛書「銷售紀錄」，如果同步失敗，記錄仍然會存喺呢部裝置，下次再改同一行會再試同步。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示。仲未同步去飛書嘅行會標明「只喺呢部機，未同步去飛書」，入頁嗰陣會自動同步去飛書，唔使逐行撳；如果自動同步失敗，可以撳「重新同步」或者「重新同步全部未同步」再試。登入嗰陣揀邊間店，記錄就睇邊間店；管理員登入可以睇晒全部店。「清空」只會清呢部裝置嘅本地記錄，唔會刪除飛書嘅數據。</div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">記錄而家係由飛書「銷售紀錄」表讀返嚟，任何一部機登入都睇到晒所有店嘅單，唔再淨係得呢部機先睇到。記錄係喺訂購頁確認提交嗰陣生成，一個產品一行，同一次提交嘅各行會共用同一個訂單編號，同時即刻傳送去飛書「銷售紀錄」表。喺呢頁可以撳「編輯」改單價、數量同原因，或者撳「刪除」刪走一行；改動會即刻同步去飛書「銷售紀錄」，如果同步失敗，記錄仍然會存喺呢部裝置，下次再改同一行會再試同步。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示。入頁嗰陣未同步嘅行會自動同步去飛書，唔使逐行撳；如果自動同步失敗，可以撳「重新同步」或者「重新同步全部未同步」再試。登入嗰陣揀邊間店，記錄就睇邊間店；管理員登入可以睇晒全部店。「清空」只會清呢部裝置嘅本地記錄，唔會刪除飛書嘅數據。</div>
   </div>
   <div class="foot">數據來源：BETTEREAT 飛書系統 · 餐牌以飛書產品主檔為準</div>
 </div>
@@ -236,9 +236,7 @@ function updateFeishuSyncStatus(){
   var st = document.getElementById("feishuSyncStatus");
   if (!st) return;
   if (feishuLoaded) {
-    var unsynced = buildDisplayPairs().filter(function(p){ return p.unsynced; }).length;
-    st.textContent = "已同步飛書：" + feishuRows.length + " 行，更新時間 " + feishuSyncTime +
-      (unsynced ? "，有 " + unsynced + " 行只喺呢部機，未同步去飛書" : "。");
+    st.textContent = "已同步飛書：" + feishuRows.length + " 行，更新時間 " + feishuSyncTime + "。";
   } else if (feishuFailed) {
     st.textContent = "未能連接飛書，只顯示呢部機嘅記錄。";
   } else {
@@ -351,7 +349,7 @@ function renderRecords(){
   lastShownPairs = pairs;
   var unsyncedCount = pairs.filter(function(p){ return p.unsynced; }).length;
   var cnt = document.getElementById("recordsCount");
-  if (cnt) cnt.textContent = (shop ? shop : "全部店舖") + (recordsDateFilter ? "｜" + recordsDateFilter : "") + "：共 " + pairs.length + " 行" + (unsyncedCount ? "（其中 " + unsyncedCount + " 行只喺呢部機，未同步去飛書）" : "");
+  if (cnt) cnt.textContent = (shop ? shop : "全部店舖") + (recordsDateFilter ? "｜" + recordsDateFilter : "") + "：共 " + pairs.length + " 行";
   var exBtn = document.getElementById("exportBtn");
   if (exBtn) exBtn.disabled = !pairs.length;
   var rsBtn = document.getElementById("resyncBtn");
@@ -370,7 +368,7 @@ function renderRecords(){
       var prod = (r.product !== undefined) ? esc(r.product) : esc(r.items || "");
       var qty = (r.qty !== undefined) ? esc(r.qty) : "—";
       var rt = splitRecordTime(r.time);
-      var orderCell = esc(r.order || "—") + (p.unsynced ? '<br><span style="color:#b3402e;font-size:12px;">只喺呢部機，未同步去飛書</span>' : "");
+      var orderCell = esc(r.order || "—");
       var actions = '<button class="del" onclick="editRecord(' + di + ')">編輯</button> <button class="del" onclick="deleteRecord(' + di + ')">刪除</button>' +
         (p.unsynced ? ' <button class="del" onclick="resyncOneRecord(' + di + ')">重新同步</button>' : "");
       if (di === editingIndex && editDraft) {
