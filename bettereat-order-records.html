@@ -334,6 +334,7 @@ function saveRecords(arr){
   try { localStorage.setItem(RECORDS_KEY, JSON.stringify(arr)); } catch (e) {}
 }
 function renderRecords(){
+  updateFeishuSyncStatus(); // 載入完成／失敗都要即刻更新狀態，唔好留返「載入飛書記錄緊…」
   var shop = getRecordsShop();
   var sel = document.getElementById("recordsShopFilter");
   if (sel) sel.value = shop;

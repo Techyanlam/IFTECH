@@ -151,6 +151,7 @@
         <button class="shopbtn" id="shopBtn-MKH" onclick="selectShop('Aeon (MKH)')">Aeon</button>
         <button class="shopbtn" id="shopBtn-MMCP" onclick="selectShop('將軍澳 (MMCP)')">將軍澳</button>
       </div>
+      <button class="cartbtn" id="adminReportBtn" style="display:none;" onclick="window.open('https://iftech.dpdns.org/bettereat.html','_blank')">📊 管理員報告</button>
       <button class="cartbtn" onclick="openChangePw()">🔑 改密碼</button>
       <button class="cartbtn" onclick="refreshPrices()">🔄 價格更新</button>
       <button class="cartbtn" onclick="scrollToCart()">🛒 已選 <span id="cartCountTop">0</span> 件</button>
@@ -556,13 +557,16 @@ function unlockPage(){
   var who = document.getElementById("loginWho");
   var barEl = document.getElementById("loginBar");
   var shopBtns = document.getElementById("shopBtns");
+  var reportBtn = document.getElementById("adminReportBtn");
   if (s.role === "admin") {
     if (who) who.textContent = "已登入：管理員（可自由轉店）";
     if (shopBtns) shopBtns.style.display = "";
+    if (reportBtn) reportBtn.style.display = "";
     applyRecordsShopFromUrl(); // 管理員可用 ?shop= 連結預選一間店，否則睇晒全部
   } else {
     if (who) who.textContent = "已登入：" + s.shop;
     if (shopBtns) shopBtns.style.display = "none";
+    if (reportBtn) reportBtn.style.display = "none";
     setRecordsShop(s.shop);
   }
   if (barEl) barEl.style.display = "flex";
