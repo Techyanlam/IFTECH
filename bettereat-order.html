@@ -16,9 +16,10 @@
   header.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; row-gap: 8px; padding: 14px 0; background: rgba(246,244,239,.96); border-bottom: 1px solid #e8e0d2; }
   header.top .brand { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
   header.top .brand span { color: #c98a2d; }
-  header.top .cartbtn { font-size: 14px; color: #a06a14; border: 1px solid #c98a2d; background: #fdf8ef; padding: 6px 14px; border-radius: 20px; cursor: pointer; }
-  header.top .shopbtns { margin-bottom: 0; }
-  header.top .shopbtn { padding: 6px 14px; font-size: 14px; }
+  header.top .cartbtn { font-size: 13px; color: #a06a14; border: 1px solid #c98a2d; background: #fdf8ef; padding: 6px 10px; border-radius: 20px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+  header.top .shopbtns { margin-bottom: 0; flex-wrap: nowrap; gap: 6px; }
+  header.top .shopbtn { padding: 6px 10px; font-size: 13px; white-space: nowrap; flex-shrink: 0; }
+  header.top .toolbar { flex-wrap: nowrap; gap: 6px; overflow-x: auto; }
   .meta { color: #8a7f70; font-size: 13px; margin: 14px 0; line-height: 1.6; }
   h2.sec { font-size: 16px; margin: 22px 0 10px; padding-left: 10px; border-left: 4px solid #c98a2d; }
   .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
@@ -143,7 +144,7 @@
 <div class="wrap" id="mainWrap" style="display:none;">
   <header class="top">
     <div class="brand">🍰 BETTEREAT <span>訂購</span></div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+    <div class="toolbar" style="display:flex;gap:6px;flex-wrap:nowrap;align-items:center;overflow-x:auto;">
       <div class="shopbtns" id="shopBtns">
         <button class="shopbtn" id="shopBtn-MJF" onclick="selectShop('謝斐 (MJF)')">謝斐</button>
         <button class="shopbtn" id="shopBtn-MAP" onclick="selectShop('淘大 (MAP)')">淘大</button>
