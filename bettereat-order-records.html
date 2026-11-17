@@ -167,7 +167,7 @@
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
     <button class="xbtn" id="resyncBtn" onclick="resyncUnsynced()" disabled>重新同步全部未同步</button>
     <button class="xbtn" id="clearRecordsBtn" onclick="clearRecords()">清空全部記錄</button>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">記錄而家係由飛書「銷售紀錄」表讀返嚟，任何一部機登入都睇到晒所有店嘅單，唔再淨係得呢部機先睇到。記錄係喺訂購頁確認提交嗰陣生成，一個產品一行，同一次提交嘅各行會共用同一個訂單編號，同時即刻傳送去飛書「銷售紀錄」表。喺呢頁可以撳「編輯」改單價、數量同原因，或者撳「刪除」刪走一行；改動會即刻同步去飛書「銷售紀錄」，如果同步失敗，記錄仍然會存喺呢部裝置，下次再改同一行會再試同步。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示。仲未同步去飛書嘅行會標明「只喺呢部機，未同步去飛書」，可以撳「重新同步」或者「重新同步全部未同步」補返去飛書。登入嗰陣揀邊間店，記錄就睇邊間店；管理員登入可以睇晒全部店。「清空」只會清呢部裝置嘅本地記錄，唔會刪除飛書嘅數據。</div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">記錄而家係由飛書「銷售紀錄」表讀返嚟，任何一部機登入都睇到晒所有店嘅單，唔再淨係得呢部機先睇到。記錄係喺訂購頁確認提交嗰陣生成，一個產品一行，同一次提交嘅各行會共用同一個訂單編號，同時即刻傳送去飛書「銷售紀錄」表。喺呢頁可以撳「編輯」改單價、數量同原因，或者撳「刪除」刪走一行；改動會即刻同步去飛書「銷售紀錄」，如果同步失敗，記錄仍然會存喺呢部裝置，下次再改同一行會再試同步。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示。仲未同步去飛書嘅行會標明「只喺呢部機，未同步去飛書」，入頁嗰陣會自動同步去飛書，唔使逐行撳；如果自動同步失敗，可以撳「重新同步」或者「重新同步全部未同步」再試。登入嗰陣揀邊間店，記錄就睇邊間店；管理員登入可以睇晒全部店。「清空」只會清呢部裝置嘅本地記錄，唔會刪除飛書嘅數據。</div>
   </div>
   <div class="foot">數據來源：BETTEREAT 飛書系統 · 餐牌以飛書產品主檔為準</div>
 </div>
@@ -192,6 +192,9 @@ var feishuRows = [];
 var feishuLoaded = false;
 var feishuFailed = false;
 var feishuSyncTime = "";
+// 自動同步守衛：每頁載入最多自動同步一次；autoSyncRunning 進行緊嗰陣，手動重新同步要等一等，免得同一行重複傳送。
+var autoSyncDone = false;
+var autoSyncRunning = false;
 function feishuRowToLocal(rec){
   return {
     order: rec.order || "",
@@ -262,6 +265,7 @@ function loadFeishuRecords(){
       feishuFailed = true;
     }
     renderRecords();
+    if (j && j.ok && Array.isArray(j.records)) maybeAutoSyncUnsynced();
   }).catch(function(){
     if (timer) clearTimeout(timer);
     feishuFailed = true;
@@ -526,65 +530,110 @@ function syncEditToFeishu(r){
   });
 }
 // 將一本地未同步行補返去飛書（經 update upsert：飛書有就更新，冇就開新行，唔會開多重複行）。
-// 成功之後重新讀飛書，嗰行就會由「未同步」變返正常顯示。
+// 返 Promise<boolean>：成功 true，失敗／資料不完整 false。成功嗰陣如果 Worker 返咗 recordId，
+// 存返入本地行，之後可以直接用 recordId 定位（同 syncEditToFeishu 嘅做法一樣）。
+function postUnsyncedRow(pair){
+  var line = recordToLine(pair.r);
+  if (!line) return Promise.resolve(false);
+  var body = { action: "update", line: line };
+  if (pair.r.feishuId) body.recordId = pair.r.feishuId;
+  return fetch(SALES_WORKER_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
+    .then(function(res){ return res.json(); })
+    .then(function(j){
+      if (j && j.ok) {
+        if (j.recordId && !pair.r.feishuId) {
+          pair.r.feishuId = j.recordId;
+          try {
+            var _arr = loadRecords();
+            for (var k = 0; k < _arr.length; k++) {
+              if (_arr[k].order === pair.r.order && _arr[k].product === pair.r.product && _arr[k].store === pair.r.store && _arr[k].time === pair.r.time) { _arr[k].feishuId = j.recordId; break; }
+            }
+            saveRecords(_arr);
+          } catch (e) {}
+        }
+        return true;
+      }
+      return false;
+    })
+    .catch(function(){ return false; });
+}
+// 逐行順序同步一組未同步行（唔會並行，失敗嗰行唔會阻住其餘行），完咗叫 done(okCount)。
+function syncUnsyncedSequentially(pairs, done){
+  var okCount = 0, idx = 0;
+  function next(){
+    if (idx >= pairs.length) { done(okCount); return; }
+    var pair = pairs[idx++];
+    postUnsyncedRow(pair).then(function(ok){ if (ok) okCount++; next(); });
+  }
+  next();
+}
+// 入頁讀到飛書之後，如果而家畫面睇到嘅未同步行有剩，自動逐行補返去飛書，唔使逐行撳重新同步。
+// 只會跑一次：第一次成功讀到飛書嗰陣；重載清單唔會再觸發；讀飛書失敗嗰陣唔會自動做任何嘢。
+// 只同步畫面睇到嘅行（跟上面嘅門店／日期篩選；門店登入只會睇到自己店）。
+function maybeAutoSyncUnsynced(){
+  if (autoSyncDone || autoSyncRunning || !feishuLoaded) return;
+  var pairs = (lastShownPairs || []).filter(function(p){ return p.unsynced; });
+  if (!pairs.length) { autoSyncDone = true; return; }
+  autoSyncDone = true; // 未開始已經標咗，之後重載清單嗰陣唔會再觸發第二輪
+  autoSyncRunning = true;
+  var st = document.getElementById("recordsStatus");
+  if (st) { st.textContent = "自動同步緊 " + pairs.length + " 行未同步記錄去飛書…"; st.className = "status"; }
+  syncUnsyncedSequentially(pairs, function(okCount){
+    autoSyncRunning = false;
+    if (st) {
+      if (okCount === pairs.length) {
+        st.textContent = "已自動同步 " + okCount + " 行去飛書，重新載入緊記錄…";
+        st.className = "status ok";
+      } else {
+        st.textContent = "已自動同步 " + okCount + "／" + pairs.length + " 行，其餘 " + (pairs.length - okCount) + " 行仍然留喺呢部裝置";
+        st.className = "status err";
+      }
+    }
+    loadFeishuRecords(); // 重讀一次飛書，同步好嘅行就唔再標做未同步
+  });
+}
+// 將一本地未同步行補返去飛書，成功之後重新讀飛書，嗰行就會由「未同步」變返正常顯示。
 function resyncOneRecord(di){
+  if (autoSyncRunning) {
+    var st0 = document.getElementById("recordsStatus");
+    if (st0) { st0.textContent = "自動同步緊，請稍候再試。"; st0.className = "status"; }
+    return;
+  }
   var pair = lastShownPairs[di];
   if (!pair || !pair.unsynced) return;
   var st = document.getElementById("recordsStatus");
-  var line = recordToLine(pair.r);
-  if (!line) {
-    if (st) { st.textContent = "重新同步失敗：記錄資料不完整。"; st.className = "status err"; }
-    return;
-  }
   if (st) { st.textContent = "重新同步緊「" + pair.r.product + "」去飛書…"; st.className = "status"; }
-  var ctrl = null, timer = null;
-  try { ctrl = new AbortController(); timer = setTimeout(function(){ try { ctrl.abort(); } catch (e) {} }, 20000); } catch (e) { ctrl = null; }
-  var body = { action: "update", line: line };
-  if (pair.r.feishuId) body.recordId = pair.r.feishuId;
-  var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) };
-  if (ctrl) opts.signal = ctrl.signal;
-  fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
-    if (timer) clearTimeout(timer);
-    if (j && j.ok) {
+  postUnsyncedRow(pair).then(function(ok){
+    if (ok) {
       if (st) { st.textContent = "已重新同步「" + pair.r.product + "」去飛書，重新載入緊記錄…"; st.className = "status ok"; }
       loadFeishuRecords();
     } else if (st) {
       st.textContent = "重新同步失敗，記錄仍然留喺呢部裝置，稍後可以再試。";
       st.className = "status err";
     }
-  }).catch(function(){
-    if (timer) clearTimeout(timer);
-    if (st) { st.textContent = "重新同步失敗，記錄仍然留喺呢部裝置，稍後可以再試。"; st.className = "status err"; }
   });
 }
-// 將全部未同步行逐行補返去飛書，完咗重新讀飛書。
+// 將畫面睇到嘅全部未同步行逐行補返去飛書，完咗重新讀飛書。
+// （同上面顯示嘅數一致：只會計而家揀咗嘅門店／日期，唔會靜靜哋同步埋其他店嘅行。）
 function resyncUnsynced(){
-  var pairs = buildDisplayPairs().filter(function(p){ return p.unsynced; });
+  if (autoSyncRunning) {
+    var st0 = document.getElementById("recordsStatus");
+    if (st0) { st0.textContent = "自動同步緊，請稍候再試。"; st0.className = "status"; }
+    return;
+  }
+  var pairs = (lastShownPairs || []).filter(function(p){ return p.unsynced; });
   if (!pairs.length) return;
   var st = document.getElementById("recordsStatus");
-  var done = 0, okCount = 0, idx = 0;
   if (st) { st.textContent = "重新同步緊 " + pairs.length + " 行未同步記錄去飛書…"; st.className = "status"; }
-  function next(){
-    if (idx >= pairs.length) {
-      if (st) {
-        st.textContent = okCount === pairs.length
-          ? "已重新同步全部 " + okCount + " 行去飛書，重新載入緊記錄…"
-          : "已重新同步 " + okCount + "／" + pairs.length + " 行，其餘仍然留喺呢部裝置，稍後可以再試。";
-        st.className = okCount === pairs.length ? "status ok" : "status err";
-      }
-      loadFeishuRecords();
-      return;
+  syncUnsyncedSequentially(pairs, function(okCount){
+    if (st) {
+      st.textContent = okCount === pairs.length
+        ? "已重新同步全部 " + okCount + " 行去飛書，重新載入緊記錄…"
+        : "已重新同步 " + okCount + "／" + pairs.length + " 行，其餘仍然留喺呢部裝置，稍後可以再試。";
+      st.className = okCount === pairs.length ? "status ok" : "status err";
     }
-    var pair = pairs[idx++];
-    var line = recordToLine(pair.r);
-    if (!line) { done++; next(); return; }
-    var body = { action: "update", line: line };
-    if (pair.r.feishuId) body.recordId = pair.r.feishuId;
-    fetch(SALES_WORKER_URL, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
-      .then(function(res){ return res.json(); }).then(function(j){ done++; if (j && j.ok) okCount++; next(); })
-      .catch(function(){ done++; next(); });
-  }
-  next();
+    loadFeishuRecords();
+  });
 }
 // 刪除一行記錄之後，將飛書「銷售紀錄」嗰行刪埋。飛書本來已經冇嗰行都算成功。
 // 注意：成個記錄表「清空」唔會同步——嗰個只係清呢部裝置嘅記錄，唔係刪除飛書數據。
