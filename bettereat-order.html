@@ -400,8 +400,8 @@ function nextOrderNo(){
   // 訂單編號跟店名＋日期出：B + 店代碼 + 日期 + 序號（例如 BMJF20261106-002）。
   // 序號按店＋日期獨立計，唔同店唔會再撞號（舊格式 B20261106-002 係全店共用序號，
   // 每部裝置各自計，撞號先搞到飛書改價會掂埋其他店嗰行）。舊格式嘅記錄照舊可以編輯／刪除。
-  // ⚠️ 同一間店用多部裝置嗰陣，序號仍然係每部裝置各自計，同一日同一間店仍有可能撞號；
-  // 要完全杜絕就要 Worker 派號（伺服器計數），嗰個改動大啲，未做。
+  // 2026-11-17 起，提交嗰陣優先由 Worker 派號（requestWorkerOrderNo，以飛書做準，唔同裝置唔會再撞號）；
+  // 呢個本機 nextOrderNo() 只係 Worker 唔得嗰陣嘅後備，同一日同一間店用多部裝置仍有可能撞號。
   var shop = getRecordsShop();
   var code = (shop && SHOP_CODES[shop]) ? SHOP_CODES[shop] : "";
   var seq = 1;
@@ -779,6 +779,37 @@ function cartMatchesVerify(){
   return verifyOrig.every(function(o){ return map[o.code] === o.qty; });
 }
 var SALES_WORKER_URL = "https://bettereat-sales-proxy.yan-lam.workers.dev";
+// Worker 派單號：提交嗰陣問 Worker 攞下一個單號（以飛書已同步嘅單做準，唔同裝置唔會再撞號）。
+// 成功返訂單編號字串；失敗／逾時（8 秒）／回覆唔啱格式就返 null，提交會跌返去用本機 nextOrderNo()。
+function requestWorkerOrderNo(store){
+  return new Promise(function(resolve){
+    var done = false;
+    function finish(v){ if (done) return; done = true; resolve(v); }
+    var ctrl = null, timer = null;
+    try {
+      ctrl = new AbortController();
+      timer = setTimeout(function(){ try { ctrl.abort(); } catch (e) {} finish(null); }, 8000);
+    } catch (e) { ctrl = null; }
+    var opts = { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "nextOrderNo", store: store }) };
+    if (ctrl) opts.signal = ctrl.signal;
+    fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
+      if (timer) clearTimeout(timer);
+      var code = (store && SHOP_CODES[store]) ? SHOP_CODES[store] : "";
+      if (j && j.ok && typeof j.order === "string" && new RegExp("^B" + code + "\\d{8}-\\d{3}$").test(j.order)) {
+        // Worker 派咗嘅號寫返入本機計數器，等之後萬一 Worker 唔得、跌返本機派號嗰陣唔會倒退重用舊號。
+        try {
+          var seq = parseInt(j.order.slice(-3), 10);
+          var ymd = (typeof j.date === "string" && /^\d{8}$/.test(j.date)) ? j.date : j.order.slice(4, 12);
+          if (seq >= 1) localStorage.setItem(ORDER_SEQ_KEY, JSON.stringify({ date: ymd, shop: code, seq: seq }));
+        } catch (e) {}
+        finish(j.order);
+      } else finish(null);
+    }).catch(function(){
+      if (timer) clearTimeout(timer);
+      finish(null);
+    });
+  });
+}
 // 一行本地記錄轉做 Worker 收嘅 line 格式；唔合規格返 null（提交／編輯同步共用）
 function recordToLine(r){
   if (!r) return null;
@@ -876,20 +907,24 @@ function confirmVerifiedSubmit(){
   var _nd = new Date();
   function _p2(n){ return (n < 10 ? "0" : "") + n; }
   var time = _nd.getFullYear() + "-" + _p2(_nd.getMonth() + 1) + "-" + _p2(_nd.getDate()) + " " + _p2(_nd.getHours()) + ":" + _p2(_nd.getMinutes());
-  var orderNo = nextOrderNo();
-  var meta = { time: time, store: getRecordsShop(), name: "", phone: "", date: "", time2: "", remarks: "" };
-  var rows = lines.map(function(l){
-    return { order: orderNo, time: meta.time, store: meta.store, name: meta.name, phone: meta.phone, date: meta.date, time2: meta.time2, product: l.name, qty: l.qty, price: l.price, subtotal: l.subtotal, orderTotal: total, reason: l.reason, remarks: meta.remarks };
+  // 單號優先由 Worker 派（以飛書做準，唔同裝置唔會撞號）；Worker 唔得先跌返去用本機號碼。
+  requestWorkerOrderNo(getRecordsShop()).then(function(workerNo){
+    var orderNo = workerNo, fromWorker = !!workerNo;
+    if (!orderNo) orderNo = nextOrderNo();
+    var meta = { time: time, store: getRecordsShop(), name: "", phone: "", date: "", time2: "", remarks: "" };
+    var rows = lines.map(function(l){
+      return { order: orderNo, time: meta.time, store: meta.store, name: meta.name, phone: meta.phone, date: meta.date, time2: meta.time2, product: l.name, qty: l.qty, price: l.price, subtotal: l.subtotal, orderTotal: total, reason: l.reason, remarks: meta.remarks };
+    });
+    saveRecords(rows.concat(loadRecords()));
+    clearCart();
+    verifyLines = null; verifyOrig = null;
+    var sec = document.getElementById("verifySection");
+    if (sec) sec.style.display = "none";
+    var st = document.getElementById("submitStatus");
+    if (st) { st.textContent = "已提交：新增 " + rows.length + " 行記錄（一個產品一行），訂單編號：" + orderNo + "，訂單總金額：" + fmtMoney(total) + "。" + (fromWorker ? "" : "（單號由呢部機發出，Worker 未能派號，之後喺訂單記錄頁會自動同步去飛書。）"); st.className = "status ok"; }
+    syncSalesToFeishu(rows, st);
+    if (st && st.scrollIntoView) st.scrollIntoView();
   });
-  saveRecords(rows.concat(loadRecords()));
-  clearCart();
-  verifyLines = null; verifyOrig = null;
-  var sec = document.getElementById("verifySection");
-  if (sec) sec.style.display = "none";
-  var st = document.getElementById("submitStatus");
-  if (st) { st.textContent = "已提交：新增 " + rows.length + " 行記錄（一個產品一行），訂單編號：" + orderNo + "，訂單總金額：" + fmtMoney(total) + "。"; st.className = "status ok"; }
-  syncSalesToFeishu(rows, st);
-  if (st && st.scrollIntoView) st.scrollIntoView();
 }
 function cancelVerify(){
   verifyLines = null; verifyOrig = null;
