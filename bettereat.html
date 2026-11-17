@@ -350,12 +350,13 @@ function applyDate(){
   document.getElementById("statCount").textContent = allRecords.length;
   renderChips(); renderStores(); renderTable();
 }
+var ALL_STORES = ["MAP", "MJF", "MKH", "MMCP"]; // 四間舖固定顯示，冇數嗰間都顯示 0（2026-11-17 Yan：MMCP 加返）
 function renderStores(){
   var byStore = {}, total = 0;
   allRecords.forEach(function(r){ var s = r.store || "—"; byStore[s] = (byStore[s] || 0) + (r.sold_pcs || 0); total += r.sold_pcs || 0; });
-  var stores = Object.keys(byStore).sort();
+  var stores = ALL_STORES.slice();
   document.getElementById("storeCards").innerHTML = stores.map(function(s){
-    var v = byStore[s], pct = total ? Math.round(v / total * 100) : 0;
+    var v = byStore[s] || 0, pct = total ? Math.round(v / total * 100) : 0;
     return '<div class="store"><div class="s">' + s + '</div><div class="n">' + fmt(v) + ' <small>件</small></div><div class="p">佔 ' + pct + '%</div></div>';
   }).join("");
 }
@@ -373,8 +374,7 @@ function downloadCSV(name, rows){
   setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
 }
 function renderChips(){
-  var stores = ["ALL"], seen = {};
-  allRecords.forEach(function(r){ if(!seen[r.store]){ seen[r.store]=1; stores.push(r.store); } });
+  var stores = ["ALL"].concat(ALL_STORES);
   document.getElementById("chips").innerHTML = stores.map(function(s){
     return '<span class="chip' + (s===curStore ? " on" : "") + '" data-store="' + s + '">' +
       (s==="ALL" ? "全部門店" : s) + "</span>";
