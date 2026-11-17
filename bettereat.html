@@ -14,26 +14,32 @@
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f6f4ef; color: #2b2620; }
-  .wrap { max-width: 920px; margin: 0 auto; padding: 20px 16px 48px; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 16px 48px; }
   /* login */
   #loginView { max-width: 380px; margin: 12vh auto 0; background: #fff; border-radius: 20px; padding: 40px 28px; box-shadow: 0 12px 36px rgba(60,45,20,.12); text-align: center; }
   #loginView .logo { font-size: 44px; }
   #loginView h1 { font-size: 24px; margin: 12px 0 4px; letter-spacing: 2px; }
   #loginView p.sub { color: #8a7f70; font-size: 14px; margin-bottom: 24px; }
-  #userInput, #codeInput { width: 100%; padding: 13px; font-size: 17px; border: 1.5px solid #ddd3c3; border-radius: 12px; text-align: center; background: #fdfbf7; }
-  #userInput { letter-spacing: 0; margin-bottom: 10px; }
-  #codeInput { letter-spacing: 2px; }
-  #userInput:focus, #codeInput:focus { outline: none; border-color: #c98a2d; background: #fff; }
+  .loginshop { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 14px; }
+  .shopbtn { padding: 10px 16px; font-size: 15px; border: 1px solid #d8cbb6; color: #6d6152; background: #fff; border-radius: 999px; cursor: pointer; }
+  .shopbtn.active { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border-color: #b97a1e; font-weight: 700; }
+  #loginPw { width: 100%; padding: 13px; font-size: 17px; border: 1.5px solid #ddd3c3; border-radius: 12px; text-align: center; background: #fdfbf7; letter-spacing: 2px; }
+  #loginPw:focus { outline: none; border-color: #c98a2d; background: #fff; }
   #loginBtn { width: 100%; margin-top: 16px; padding: 13px; font-size: 16px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border: none; border-radius: 12px; cursor: pointer; }
   #loginBtn:active { opacity: .85; }
   #loginErr { color: #c0392b; font-size: 14px; min-height: 20px; margin-top: 10px; }
-  /* dashboard */
-  #dashView { display: none; }
+  /* shell */
+  #shellView { display: none; }
   header.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; padding: 14px 0; background: rgba(246,244,239,.96); border-bottom: 1px solid #e8e0d2; }
   header.top .brand { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
   header.top .brand span { color: #c98a2d; }
   #userLabel { font-size: 13px; color: #6d6152; margin-right: 8px; }
   #logoutBtn { background: #fff; border: 1px solid #d8cfc0; color: #6d6152; padding: 6px 14px; border-radius: 20px; font-size: 13px; cursor: pointer; }
+  .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 16px 0 4px; }
+  .tabbtn { padding: 10px 18px; font-size: 15px; border: 1px solid #d8cbb6; color: #6d6152; background: #fff; border-radius: 999px; cursor: pointer; }
+  .tabbtn.active { color: #fff; background: #2b2620; border-color: #2b2620; font-weight: 700; }
+  .tabpanel { margin-top: 12px; }
+  .tabframe { width: 100%; border: 0; display: block; height: calc(100vh - 200px); min-height: 620px; background: #fff; border-radius: 14px; }
   .meta { color: #8a7f70; font-size: 13px; margin: 14px 0; line-height: 1.6; }
   .cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 8px; }
   .card { background: #fff; border-radius: 14px; padding: 14px 12px; box-shadow: 0 2px 10px rgba(60,45,20,.06); border-top: 3px solid #c98a2d; }
@@ -47,7 +53,7 @@
   .store .n small { font-size: 12px; color: #8a7f70; font-weight: 400; }
   .store .p { font-size: 12px; color: #8a7f70; margin-top: 2px; }
   .actions { display: grid; grid-template-columns: 1fr; gap: 12px; margin-bottom: 8px; }
-  .action { display: block; text-decoration: none; border-radius: 14px; padding: 20px 16px; color: #fff; }
+  .action { display: block; text-decoration: none; border-radius: 14px; padding: 20px 16px; color: #fff; cursor: pointer; }
   .action.a { background: linear-gradient(135deg, #d99a35, #b97a1e); }
   .action.b { background: linear-gradient(135deg, #5b8c5a, #3f6b3e); }
   .action .t { font-size: 18px; font-weight: 700; }
@@ -75,75 +81,241 @@
   <div class="logo">🍰</div>
   <h1>BETTEREAT</h1>
   <p class="sub">門店系統 · 請登入</p>
-  <input id="userInput" type="text" placeholder="帳號" autocomplete="username" value="admin" readonly>
-  <input id="codeInput" type="password" inputmode="text" placeholder="密碼" autocomplete="current-password">
-  <button id="loginBtn">登入</button>
+  <div class="loginshop" id="loginShopBtns">
+    <button class="shopbtn" id="loginBtn-MJF" onclick="selectLoginShop('MJF')">謝斐</button>
+    <button class="shopbtn" id="loginBtn-MAP" onclick="selectLoginShop('MAP')">淘大</button>
+    <button class="shopbtn" id="loginBtn-MKH" onclick="selectLoginShop('MKH')">Aeon</button>
+    <button class="shopbtn" id="loginBtn-MMCP" onclick="selectLoginShop('MMCP')">將軍澳</button>
+    <button class="shopbtn" id="loginBtn-ADMIN" onclick="selectLoginShop('ADMIN')">管理員</button>
+  </div>
+  <input id="loginPw" type="password" placeholder="密碼" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+  <button id="loginBtn" onclick="doLogin()">登入</button>
   <div id="loginErr"></div>
 </div>
 
-<div class="wrap" id="dashView">
+<div class="wrap" id="shellView">
   <header class="top">
     <div class="brand">🍰 BETTEREAT <span>門店系統</span></div>
-    <div><span id="userLabel"></span><button id="logoutBtn">登出</button></div>
+    <div><span id="userLabel"></span><button id="logoutBtn" onclick="logout()">登出</button></div>
   </header>
 
-  <div class="meta" id="metaLine">載入中…</div>
-  <div class="cards">
-    <div class="card"><div class="k">已銷售（件）</div><div class="v" id="statSold">–</div></div>
-    <div class="card"><div class="k">總件數 No of pcs</div><div class="v" id="statTotal">–</div></div>
-    <div class="card"><div class="k">剩餘（件）</div><div class="v" id="statRemain">–</div></div>
-    <div class="card"><div class="k">記錄數</div><div class="v" id="statCount">–</div></div>
+  <div class="tabs" id="tabBar">
+    <button class="tabbtn" id="tabBtn-order" onclick="switchTab('order')">🛒 落單</button>
+    <button class="tabbtn" id="tabBtn-report" onclick="switchTab('report')">📊 報表</button>
+    <button class="tabbtn" id="tabBtn-records" onclick="switchTab('records')">📋 訂單記錄</button>
+    <button class="tabbtn" id="tabBtn-byitem" onclick="switchTab('byitem')">📦 按產品檢視</button>
   </div>
 
-  <h2 class="sec">各店已銷售</h2>
-  <div class="stores" id="storeCards"></div>
+  <div id="panel-report" class="tabpanel" style="display:none;">
+    <div class="meta" id="metaLine">載入中…</div>
+    <div class="cards">
+      <div class="card"><div class="k">已銷售（件）</div><div class="v" id="statSold">–</div></div>
+      <div class="card"><div class="k">總件數 No of pcs</div><div class="v" id="statTotal">–</div></div>
+      <div class="card"><div class="k">剩餘（件）</div><div class="v" id="statRemain">–</div></div>
+      <div class="card"><div class="k">記錄數</div><div class="v" id="statCount">–</div></div>
+    </div>
 
-  <div class="actions">
-    <a class="action a" id="btnFormA" href="#" target="_blank" rel="noopener">
-      <div class="t">📋 紙單上載</div>
-      <div class="d">每日分貨紙單影相上載<br>紙要攤平 · 鏡頭正上方 · 成頁入鏡</div>
-    </a>
-    <a class="action b" href="bettereat-by-item.html">
-      <div class="t">📊 按產品檢視</div>
-      <div class="d">一行一款，齊睇四間門店嘅分配、已售、剩餘<br>可剔選多款產品並排比較</div>
-    </a>
+    <h2 class="sec">各店已銷售</h2>
+    <div class="stores" id="storeCards"></div>
+
+    <div class="actions">
+      <a class="action a" id="btnFormA" href="#" target="_blank" rel="noopener">
+        <div class="t">📋 紙單上載</div>
+        <div class="d">每日分貨紙單影相上載<br>紙要攤平 · 鏡頭正上方 · 成頁入鏡</div>
+      </a>
+      <a class="action b" id="btnByItem" href="#" onclick="switchTab('byitem');return false;">
+        <div class="t">📊 按產品檢視</div>
+        <div class="d">一行一款，齊睇四間門店嘅分配、已售、剩餘<br>可剔選多款產品並排比較</div>
+      </a>
+    </div>
+
+    <h2 class="sec">每日已銷售清單</h2>
+    <div class="controls">
+      <label>日期 <select id="dateSel"></select></label>
+      <button class="xbtn" id="expDay">⬇ 匯出本日 CSV</button>
+      <button class="xbtn" id="expAll">⬇ 匯出全部歷史 CSV</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <table>
+      <thead><tr>
+        <th>門店</th><th>產品編號</th><th>產品名稱</th>
+        <th class="num">分配（盤）</th><th class="num">件數</th><th class="num">剩餘</th><th class="num">已銷售</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div class="foot">數據來源：BETTEREAT 飛書系統 · 每晚自動更新</div>
   </div>
 
-  <h2 class="sec">每日已銷售清單</h2>
-  <div class="controls">
-    <label>日期 <select id="dateSel"></select></label>
-    <button class="xbtn" id="expDay">⬇ 匯出本日 CSV</button>
-    <button class="xbtn" id="expAll">⬇ 匯出全部歷史 CSV</button>
+  <div id="panel-order" class="tabpanel" style="display:none;">
+    <iframe class="tabframe" id="frame-order" title="落單"></iframe>
   </div>
-  <div class="chips" id="chips"></div>
-  <table>
-    <thead><tr>
-      <th>門店</th><th>產品編號</th><th>產品名稱</th>
-      <th class="num">分配（盤）</th><th class="num">件數</th><th class="num">剩餘</th><th class="num">已銷售</th>
-    </tr></thead>
-    <tbody id="tbody"></tbody>
-  </table>
-  <div class="foot">數據來源：BETTEREAT 飛書系統 · 每晚自動更新</div>
+  <div id="panel-records" class="tabpanel" style="display:none;">
+    <iframe class="tabframe" id="frame-records" title="訂單記錄"></iframe>
+  </div>
+  <div id="panel-byitem" class="tabpanel" style="display:none;">
+    <iframe class="tabframe" id="frame-byitem" title="按產品檢視"></iframe>
+  </div>
 </div>
 
 <script>
-var ACCESS_CODE = "BETTEREAT"; // 登入密碼（可隨時更改）
+// ===== BETTEREAT 統一系統（bettereat.html）=====
+// 一個入口，四個分頁：落單 / 報表 / 訂單記錄 / 按產品檢視。
+// 落單、訂單記錄、按產品檢視係 iframe（原頁面邏輯完全唔郁，獨立開嗰啲連結照舊用得）；報表係舊主頁嘅 Dashboard，inline 喺呢頁。
+// 登入統一喺呢頁做：揀身份（4 間店或管理員）+ 密碼。
+// - 門店密碼經 Worker 驗證（KV 優先），Worker 連唔到就跌返頁面預設密碼（同訂購頁一樣嘅做法；呢啲係頁面級公開碼，唔係真正帳號系統）。
+// - 管理員密碼 ADMIN_PASSWORD = "admin1234"，喺呢頁本地核對（頁面級鎖，同舊主頁一樣）。
+//   舊主頁密碼 ACCESS_CODE "BETTEREAT" 已經改做 admin1234。
+//   注意：訂購頁本身直接登入嗰陣，管理員密碼仍然係佢自己嗰個 admin123，冇改過；經呢個統一入口登入會直接寫入訂購頁嘅登入狀態，唔使再入一次。
+var ADMIN_PASSWORD = "admin1234";
+var SHOP_PASSWORDS = { "MJF": "MJF123", "MAP": "MAP123", "MKH": "MKH123", "MMCP": "MMCP123" };
+var SHOP_LABELS = ["謝斐 (MJF)", "淘大 (MAP)", "Aeon (MKH)", "將軍澳 (MMCP)"];
+var SHOP_CODES = { "謝斐 (MJF)": "MJF", "淘大 (MAP)": "MAP", "Aeon (MKH)": "MKH", "將軍澳 (MMCP)": "MMCP" };
+var SALES_WORKER_URL = "https://bettereat-sales-proxy.yan-lam.workers.dev";
+var LOGIN_KEY = "bettereat_order_login";
 var FORM_A_URL = "https://fcnnkklc0uhr.feishu.cn/share/base/form/shrcnySrPjIwg3IiovaafcoOfgc";
-var FORM_B_URL = "https://fcnnkklc0uhr.feishu.cn/share/base/form/shrcnZSBT4V0IgC3WAhvq9fhV5g";
-var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/BETTEREAT/main/bettereat_sold_data.json";
+var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_sold_data.json";
 var allRecords = [], curStore = "ALL", payload = null, curDate = "";
+var loginShopChoice = "";
+var currentTab = "";
+var frameLoaded = {};
 
-function fmt(n){ return (Math.round(n * 10) / 10).toLocaleString("en-US"); }
-
-function showUser(){
-  var u = localStorage.getItem("bettereat_user") || "";
-  document.getElementById("userLabel").textContent = u ? "👤 " + u : "";
+// ===== 登入 =====
+function getLoginSession(){
+  try {
+    var raw = localStorage.getItem(LOGIN_KEY);
+    if (!raw) return null;
+    var s = JSON.parse(raw);
+    if (s && s.role === "admin") return s;
+    if (s && s.role === "shop" && SHOP_LABELS.indexOf(s.shop) >= 0) return s;
+    return null;
+  } catch (e) { return null; }
 }
-function showDash(){
+function selectLoginShop(code){
+  loginShopChoice = code;
+  ["MJF", "MAP", "MKH", "MMCP", "ADMIN"].forEach(function(c){
+    var el = document.getElementById("loginBtn-" + c);
+    if (el) el.className = "shopbtn" + (c === code ? " active" : "");
+  });
+  var err = document.getElementById("loginErr");
+  if (err) err.textContent = "";
+}
+// 經 Worker 核對門店密碼（KV 優先）。回 "ok" / "wrong" / "unavailable"（連唔到／Worker 未就緒）。
+function verifyPwRemote(role, label, pw, timeoutMs){
+  return new Promise(function(resolve){
+    var done = false;
+    var timer = setTimeout(function(){ if (!done) { done = true; resolve("unavailable"); } }, timeoutMs || 8000);
+    var ctrl = null;
+    try { ctrl = new AbortController(); } catch (e) { ctrl = null; }
+    var opts = { method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "verify", role: role, shop: label, password: pw }) };
+    if (ctrl) opts.signal = ctrl.signal;
+    fetch(SALES_WORKER_URL, opts).then(function(res){ return res.json(); }).then(function(j){
+      if (done) return; done = true; clearTimeout(timer);
+      if (j && j.ok) resolve("ok");
+      else if (j && j.error === "wrong_password") resolve("wrong");
+      else resolve("unavailable");
+    }).catch(function(){
+      if (done) return; done = true; clearTimeout(timer);
+      resolve("unavailable");
+    });
+  });
+}
+// 登入成功寫入兩個 key，等 iframe 入面嘅訂購頁／記錄頁／按產品檢視頁開嗰陣已經登入咗，唔使再入一次。
+function writeSession(s){
+  try {
+    localStorage.setItem(LOGIN_KEY, JSON.stringify(s));
+    localStorage.setItem("bettereat_auth", "1");
+    localStorage.setItem("bettereat_user", s.role === "admin" ? "admin" : s.shop);
+  } catch (e) {}
+}
+function doLogin(){
+  var pwEl = document.getElementById("loginPw");
+  var pw = pwEl ? pwEl.value : "";
+  var err = document.getElementById("loginErr");
+  function fail(msg){ if (err) err.textContent = msg; if (pwEl) pwEl.value = ""; }
+  if (!loginShopChoice) { fail("請先揀邊間店（或者管理員）。"); return; }
+  if (!pw) { fail("請輸入密碼。"); return; }
+  if (loginShopChoice === "ADMIN") {
+    if (pw === ADMIN_PASSWORD) { writeSession({ role: "admin" }); unlockShell(); }
+    else fail("密碼唔啱，請再試。");
+    return;
+  }
+  var label = SHOP_LABELS.filter(function(s){ return SHOP_CODES[s] === loginShopChoice; })[0];
+  if (err) err.textContent = "登入緊…";
+  verifyPwRemote("shop", label, pw, 8000).then(function(res){
+    if (res === "ok") { writeSession({ role: "shop", shop: label }); unlockShell(); }
+    else if (res === "wrong") { fail("密碼唔啱，請再試。"); }
+    else {
+      // Worker 連唔到：跌返本地預設密碼（同訂購頁一樣）
+      if (pw === SHOP_PASSWORDS[loginShopChoice]) { writeSession({ role: "shop", shop: label }); unlockShell(); }
+      else fail("密碼唔啱，請再試。");
+    }
+  });
+}
+function showLogin(){
+  var shell = document.getElementById("shellView");
+  if (shell) shell.style.display = "none";
+  document.getElementById("loginView").style.display = "block";
+}
+function unlockShell(){
+  var s = getLoginSession();
+  if (!s) { showLogin(); return; }
   document.getElementById("loginView").style.display = "none";
-  document.getElementById("dashView").style.display = "block";
-  showUser(); setupActions(); loadData();
+  var shell = document.getElementById("shellView");
+  if (shell) shell.style.display = "block";
+  var who = document.getElementById("userLabel");
+  if (who) who.textContent = s.role === "admin" ? "👤 管理員" : "👤 " + s.shop;
+  applyRole(s);
+  switchTab(s.role === "admin" ? "report" : "order");
 }
+function applyRole(s){
+  // 門店只見落單 + 訂單記錄；報表 + 按產品檢視只限管理員
+  ["report", "byitem"].forEach(function(t){
+    var b = document.getElementById("tabBtn-" + t);
+    if (b) b.style.display = (s.role === "admin") ? "" : "none";
+  });
+}
+function logout(){
+  try {
+    localStorage.removeItem("bettereat_auth");
+    localStorage.removeItem("bettereat_user");
+    localStorage.removeItem(LOGIN_KEY);
+  } catch (e) {}
+  frameLoaded = {};
+  ["order", "records", "byitem"].forEach(function(t){
+    var f = document.getElementById("frame-" + t);
+    if (f) f.src = "";
+  });
+  var pwEl = document.getElementById("loginPw");
+  if (pwEl) pwEl.value = "";
+  showLogin();
+}
+
+// ===== 分頁 =====
+function switchTab(name){
+  var s = getLoginSession();
+  if (!s) { showLogin(); return; }
+  // 門店撳唔到報表／按產品檢視：就算直接叫 switchTab 都會跌返去落單
+  if (s.role !== "admin" && (name === "report" || name === "byitem")) name = "order";
+  currentTab = name;
+  ["order", "report", "records", "byitem"].forEach(function(t){
+    var p = document.getElementById("panel-" + t);
+    if (p) p.style.display = (t === name) ? "block" : "none";
+    var b = document.getElementById("tabBtn-" + t);
+    if (b) b.className = "tabbtn" + (t === name ? " active" : "");
+  });
+  // iframe 分頁第一次打開先至載入（登入後先載，等舊快取頁面唔會喺登入前就用咗舊登入狀態）
+  var frames = { order: "bettereat-order.html", records: "bettereat-order-records.html", byitem: "bettereat-by-item.html" };
+  if (frames[name] && !frameLoaded[name]) {
+    frameLoaded[name] = true;
+    var f = document.getElementById("frame-" + name);
+    if (f) f.src = frames[name];
+  }
+  if (name === "report") loadData();
+}
+
+// ===== 報表（舊主頁 Dashboard 原樣搬過嚟）=====
+function fmt(n){ return (Math.round(n * 10) / 10).toLocaleString("en-US"); }
 function setupActions(){
   var a = document.getElementById("btnFormA");
   if (FORM_A_URL) { a.href = FORM_A_URL; } else { a.classList.add("pending"); }
@@ -216,28 +388,6 @@ function renderTable(){
       '</td><td class="num">' + fmt(r.remaining_pcs||0) + '</td><td class="num"><b>' + fmt(r.sold_pcs||0) + "</b></td></tr>";
   }).join("");
 }
-
-document.getElementById("loginBtn").onclick = function(){
-  var u = "admin";
-  var v = document.getElementById("codeInput").value.trim();
-  if (!u) { document.getElementById("loginErr").textContent = "請輸入帳號。"; return; }
-  if (v === ACCESS_CODE) {
-    localStorage.setItem("bettereat_auth", "1");
-    localStorage.setItem("bettereat_user", u);
-    showDash();
-  }
-  else { document.getElementById("loginErr").textContent = "密碼唔正確，請再試。"; }
-};
-["userInput", "codeInput"].forEach(function(id){
-  document.getElementById(id).addEventListener("keydown", function(e){
-    if (e.key === "Enter") document.getElementById("loginBtn").click();
-  });
-});
-document.getElementById("logoutBtn").onclick = function(){
-  localStorage.removeItem("bettereat_auth");
-  localStorage.removeItem("bettereat_user");
-  location.reload();
-};
 document.getElementById("dateSel").addEventListener("change", function(){
   curDate = this.value; applyDate();
 });
@@ -258,8 +408,23 @@ document.getElementById("expAll").onclick = function(){
   });
   downloadCSV("bettereat_sold_all.csv", rows);
 };
-if (localStorage.getItem("bettereat_auth") === "1") showDash();
-setInterval(function(){ if (localStorage.getItem("bettereat_auth") === "1") loadData(); }, 300000);
+
+// ===== 入口：由已存登入狀態恢復，否則顯示登入畫面 =====
+(function(){
+  setupActions();
+  var s = getLoginSession();
+  if (s) { unlockShell(); return; }
+  // 舊主頁登入狀態（bettereat_auth）兼容：之前用舊密碼登入過嘅管理員，直接當管理員入。
+  try {
+    if (localStorage.getItem("bettereat_auth") === "1") {
+      writeSession({ role: "admin" });
+      unlockShell();
+      return;
+    }
+  } catch (e) {}
+  showLogin();
+})();
+setInterval(function(){ if (getLoginSession() && currentTab === "report") loadData(); }, 300000);
 </script>
 </body>
 </html>
