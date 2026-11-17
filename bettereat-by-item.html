@@ -62,7 +62,7 @@
 <body>
 
 <div class="wrap" id="dashView">
-  <header class="top">
+  <header class="top" id="pageHeader">
     <div class="brand">🍰 BETTEREAT <span>按產品檢視</span></div>
     <div>
       <nav style="display:inline;"><a href="bettereat.html">← 每日清單</a></nav>
@@ -139,6 +139,11 @@ function showUser(){
 }
 function showDash(){
   document.getElementById("dashView").style.display = "block";
+  // 喺入口 iframe 入面開嗰陣，唔顯示自己嗰行頂欄（入口本身已經有一行），免得兩行重疊；直接開呢頁嗰陣保留
+  if (window.self !== window.top) {
+    var ph = document.getElementById("pageHeader");
+    if (ph) ph.style.display = "none";
+  }
   showUser(); loadData();
 }
 function loadData(){
