@@ -373,14 +373,18 @@ function fmtMoney(n){ return "$" + (Math.round(n * 100) / 100).toLocaleString("e
 function priceOf(code){ var p = productsByCode[code]; return (p && p.price !== null && p.price !== undefined) ? p.price : null; }
 function costOf(code){ var p = productsByCode[code]; return (p && p.cost !== null && p.cost !== undefined) ? p.cost : null; }
 function catOf(code){ var p = productsByCode[code]; return (p && p.category) ? p.category : ""; }
-// 單行計數：amount = 已銷售 × 單價；profit = (單價 − 成本) × 已銷售；冇單價／冇成本就 null（顯示 —／待填成本，唔扮有數）
+// 單行計數：amount 有實際金額（優惠後，sync v6 寫入）就用佢，冇就標準價 × 已銷售；
+// profit = 實際金額 − 成本 × 已銷售；冇單價／冇成本就 null（顯示 —／待填成本，唔扮有數）
 function enrichRow(r){
   var price = priceOf(r.product_code), cost = costOf(r.product_code);
   var sold = r.sold_pcs || 0;
+  var actual = (typeof r.amount === "number" && isFinite(r.amount)) ? r.amount : null;
   return {
     price: price, cost: cost,
-    amount: (price === null) ? null : price * sold,
-    profit: (price === null || cost === null) ? null : (price - cost) * sold
+    amount: (actual !== null) ? actual : ((price === null) ? null : price * sold),
+    profit: (actual !== null)
+      ? ((cost === null) ? null : actual - cost * sold)
+      : ((price === null || cost === null) ? null : (price - cost) * sold)
   };
 }
 // 日期範圍：有填開始／結束日期就用範圍模式，取代單日下拉
@@ -418,9 +422,17 @@ function baseRows(){
       m.sold_pcs += r.sold_pcs || 0;
       m.remaining_pcs = r.remaining_pcs || 0;
       m.product_name = r.product_name; m.unit = r.unit;
+      // 實際金額（優惠後）：範圍內每一日都有 amount 先加總，有一日冇就跌返標準價（唔可以將實際同標準價撈埋一齊）
+      if (typeof r.amount === "number" && isFinite(r.amount)) { m.amount = (m.amount || 0) + r.amount; }
+      else { m._amountMissing = true; }
     });
   });
-  return order.map(function(k){ return map[k]; });
+  return order.map(function(k){
+    var m = map[k];
+    if (m._amountMissing) delete m.amount;
+    delete m._amountMissing;
+    return m;
+  });
 }
 function passProdCat(r){
   if (curProduct !== "ALL" && r.product_code !== curProduct) return false;

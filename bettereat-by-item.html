@@ -195,11 +195,26 @@ function buildItems(){
   var map = {}, order = [];
   recs.forEach(function(r){
     var code = r.product_code;
+    if (!code) return; // 滿減行（冇產品編號）唔顯示——金額已經攤分入各產品行嘅 amount
     if (!map[code]) { map[code] = { code: code, name: r.product_name, unit: r.unit, stores: {} }; order.push(code); }
-    map[code].stores[storeCode(r.store)] = { alloc: allocPcs(r), sold: r.sold_pcs || 0, rem: r.remaining_pcs || 0 };
+    map[code].stores[storeCode(r.store)] = { alloc: allocPcs(r), sold: r.sold_pcs || 0, rem: r.remaining_pcs || 0,
+      amt: (typeof r.amount === "number" && isFinite(r.amount)) ? r.amount : null };
   });
   order.sort();
   return order.map(function(c){ return map[c]; });
+}
+// 每款金額：各店有實際金額（優惠後）就用佢加總，冇就用標準價 × 已售；
+// 有任何一間店兩個都冇就唔知實際金額，返 null（顯示 —）
+function itemAmount(it, price){
+  var amt = 0;
+  for (var i = 0; i < STORES.length; i++) {
+    var d = it.stores[STORES[i]];
+    if (!d) continue;
+    if (d.amt !== null && d.amt !== undefined) { amt += d.amt; continue; }
+    if (price === null) return null;
+    amt += price * d.sold;
+  }
+  return amt;
 }
 function visibleItems(items){
   return items.filter(function(it){
@@ -236,9 +251,9 @@ function renderTable(items, vis){
                  : '<td class="num dash">—</td><td class="num dash">—</td><td class="num dash">—</td><td class="num dash">—</td>';
     });
     tot.alloc += tAlloc; tot.sold += tSold; tot.rem += tRem;
-    // 單價（T1 標準售價）＋金額（合計已售 × 單價）；搵唔到單價顯示 —
+    // 單價（T1 標準售價）＋金額（有實際金額就用佢，冇就合計已售 × 單價）；搵唔到單價顯示 —
     var price = priceOf(it.code);
-    var amt = (price === null) ? null : price * tSold;
+    var amt = itemAmount(it, price);
     if (amt !== null) tot.amt += amt;
     var priceCell = (price === null) ? '<td class="num dash">—</td>' : '<td class="num">' + fmtMoney(price) + "</td>";
     var amtCell = (amt === null) ? '<td class="num dash">—</td>' : '<td class="num"><b>' + fmtMoney(amt) + "</b></td>";
@@ -285,7 +300,8 @@ function exportCSV(){
     });
     row.push(tA);
     var price = priceOf(it.code);
-    var amt = (price === null) ? "" : Math.round(price * tS * 100) / 100;
+    var amtV = itemAmount(it, price);
+    var amt = (amtV === null) ? "" : Math.round(amtV * 100) / 100;
     lines.push(row.concat(parts).concat([tA, tS, tR, price === null ? "" : price, amt]).map(csvCell).join(","));
   });
   var blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
