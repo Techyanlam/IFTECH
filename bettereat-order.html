@@ -212,7 +212,7 @@
   <div class="status" id="submitStatus"></div>
     </div>
   </div>
-    <div class="note">撳產品圖就加 1 件；左邊「已選訂單」會即時見到揀咗咩同總金額。已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。如果飛書改咗價，撳頂部「🔄 價格更新」就會即時讀取最新價錢，唔使重新載入成頁。訂單會記落你登入嗰間店；揀好產品之後，下面會直接出「核實金額」表，確認之後記錄會生成（一個產品一行），去「📋 訂單記錄」嗰頁睇同改。</div>
+    <div class="note">撳產品圖就加 1 件；左邊「已選訂單」會即時見到揀咗咩同總金額。已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。如果飛書改咗價或者優惠，撳頂部「🔄 價格更新」就會即時讀取最新價錢同優惠，唔使重新載入成頁。訂單會記落你登入嗰間店；揀好產品之後，下面會直接出「核實金額」表，確認之後記錄會生成（一個產品一行），去「📋 訂單記錄」嗰頁睇同改。</div>
 </div>
 
 <div class="cartbar" id="mainCartbar" style="display:none;">
@@ -290,7 +290,9 @@ function loadData(){
     document.getElementById("metaLine").textContent = "餐牌更新：" + j.date + " ｜ 共 " + products.length + " 款產品 ｜ 撳圖即加 1 件";
     renderGrid();
     updateCart();
-    fetchPromoRules(); // 餐牌讀完先讀優惠規則；讀唔到就當冇優惠，唔阻落單
+    // 等埋優惠規則先算讀完：等「價格更新」嗰陣，掣顯示完成嗰下規則已經係最新。
+    // 讀唔到規則唔會阻住成頁（fetchPromoRules 自己會保留舊規則）。
+    return fetchPromoRules();
   }).catch(function(){
     document.getElementById("metaLine").textContent = "暫時讀取唔到餐牌，請稍後重新整理。";
   });
@@ -314,11 +316,11 @@ function refreshPrices(){
   var p = loadData();
   var m = document.getElementById("metaLine");
   if (m) m.textContent = "更新緊價錢…";
-  if (p && p.then) p.then(function(){
+  if (p && p.then) p.then(function(ok){
     var m2 = document.getElementById("metaLine");
     var d = new Date();
     function p2(n){ return (n < 10 ? "0" : "") + n; }
-    if (m2 && m2.textContent.indexOf("餐牌更新") === 0) m2.textContent += " ｜ 已於 " + p2(d.getHours()) + ":" + p2(d.getMinutes()) + " 更新價格";
+    if (m2 && m2.textContent.indexOf("餐牌更新") === 0) m2.textContent += " ｜ 已於 " + p2(d.getHours()) + ":" + p2(d.getMinutes()) + " 更新價格" + (ok ? "及優惠" : "（優惠未能更新，請重新載入頁面）");
   });
 }
 function visibleProducts(){
@@ -944,7 +946,9 @@ function applyPromos(items, rules, store, today){
     freeLines: alloc.freeLines, totalFree: alloc.totalFree };
 }
 function fetchPromoRules(){
-  // 開頁嗰陣經 Worker 讀優惠規則；讀唔到（Worker 斷線／未設表）就當冇優惠，唔阻落單。
+  // 開頁／撳「價格更新」嗰陣經 Worker 讀優惠規則；回 true = 已更新，false = 失敗。
+  // 讀唔到（Worker 斷線／未設表）就保留舊規則，唔好靜靜清走，免得購物車突然冇晒優惠；
+  // 2026-11-18 之前失敗嗰陣會將 promoRules 清做 []，撳「價格更新」有機會拎唔到新規則。
   var ctrl = null, timer = null;
   try { ctrl = new AbortController(); } catch (e) { ctrl = null; }
   if (ctrl) timer = setTimeout(function(){ try { ctrl.abort(); } catch (e) {} }, 8000);
@@ -955,9 +959,12 @@ function fetchPromoRules(){
     if (timer) clearTimeout(timer);
     if (j && j.ok === true && Array.isArray(j.records)) {
       promoRules = j.records.map(normalizePromoRule).filter(function(r){ return !!r; });
-    } else { promoRules = []; }
-    updateCart();
-  }).catch(function(){ if (timer) clearTimeout(timer); promoRules = []; });
+      updateCart();
+      if (verifyLines) recomputeVerify();
+      return true;
+    }
+    return false;
+  }).catch(function(){ if (timer) clearTimeout(timer); return false; });
 }
 function validPrice(v){ return isFinite(v) && v >= 0; }
 function validQty(v){ return isFinite(v) && v >= 1 && Math.floor(v) === v; }
