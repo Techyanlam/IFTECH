@@ -810,13 +810,39 @@ function promoForLine(item, rules, store, today, manual){
   }
   return { unitPrice: unitPrice, freeQty: freeQty, buyRule: buyRule, discRule: effDiscRule };
 }
-function promoNoteFor(pl, manual){
+function promoNoteFor(pl, manual, giftName, ownName){
   var parts = [];
   if (pl.freeQty > 0 && pl.buyRule) {
-    parts.push("買" + pl.buyRule.buyX + "送" + pl.buyRule.getY + "：送 " + pl.freeQty + " 件");
+    // 贈品唔同款先寫明款名（同一款維持原樣「送 N 件」，等舊測試唔使改）
+    if (giftName && ownName && giftName !== ownName) parts.push("買" + pl.buyRule.buyX + "送" + pl.buyRule.getY + "：送 " + giftName + " " + pl.freeQty + " 件");
+    else parts.push("買" + pl.buyRule.buyX + "送" + pl.buyRule.getY + "：送 " + pl.freeQty + " 件");
   }
   if (!manual && pl.discRule) parts.push(pl.discRule.discount + "折");
   return parts.join(" · ");
+}
+// 贈品選擇（跨款贈品，設計 §9）：按產品編號搵名；搵唔到返 ""。
+function productNameByCode(code){
+  for (var i = 0; i < products.length; i++) if (products[i].code === code) return products[i].name || "";
+  return "";
+}
+// 核實行而家揀咗送邊款（未揀 = 本行產品）
+function giftNameFor(ln){
+  var n = ln.giftCode ? productNameByCode(ln.giftCode) : "";
+  return n || ln.name || "";
+}
+function giftOptionsFor(ln){
+  return products.map(function(p){
+    return '<option value="' + esc(p.code) + '"' + (p.code === ln.giftCode ? ' selected' : '') + '>' + esc(p.name) + '</option>';
+  }).join('');
+}
+// 核實面板揀贈品款：記低選擇，更新註明（唔使重計金額，贈品 $0）
+function setGiftChoice(i, code){
+  if (!verifyLines || !verifyLines[i]) return;
+  verifyLines[i].giftCode = code;
+  verifyLines[i].giftName = productNameByCode(code) || verifyLines[i].name;
+  var noteCell = document.getElementById("vnote" + i);
+  if (noteCell) noteCell.textContent = verifyLines[i].promoNote || "";
+  recomputeVerify();
 }
 function promoRuleNameFor(pl, manual){
   if (pl.freeQty > 0 && pl.buyRule) return pl.buyRule.name;
@@ -911,11 +937,14 @@ function buildVerifyLines(){
       else { manual = true; price = parseFloat(old.price); }
     }
     var eff = manual ? promoForLine(it, promoRules, store, today, true) : pl;
+    var giftCode = (old && old.giftCode) ? old.giftCode : it.code;
+    var giftName = productNameByCode(giftCode) || it.name;
     return { code: it.code, name: it.name, unit: it.unit, qty: it.qty, qty0: it.qty, stdPrice: it.price,
       price: price, manual: manual,
       promoPrice: pl.unitPrice, promoFreeQty: eff.freeQty,
       promoRule: promoRuleNameFor(eff, manual), promoType: promoTypeFor(eff, manual),
-      promoNote: promoNoteFor(eff, manual),
+      promoNote: promoNoteFor(eff, manual, giftName, it.name),
+      giftCode: giftCode, giftName: giftName,
       reason: (old && old.manual) ? old.reason : "", reasonDetail: (old && old.manual) ? old.reasonDetail : "" };
   });
 }
@@ -939,7 +968,8 @@ function renderVerify(){
   var html = "";
   list.forEach(function(ln, i){
     var sub = (validPrice(parseFloat(ln.price)) && validQty(parseFloat(ln.qty))) ? fmtMoney(parseFloat(ln.price) * parseFloat(ln.qty)) : "—";
-    html += '<tr><td class="prodcol">' + esc(ln.name) + '（' + esc(ln.unit) + '）<div id="vnote' + i + '" style="font-size:12px;color:#a06a14;">' + esc(ln.promoNote || "") + '</div></td>' +
+    html += '<tr><td class="prodcol">' + esc(ln.name) + '（' + esc(ln.unit) + '）<div id="vnote' + i + '" style="font-size:12px;color:#a06a14;">' + esc(ln.promoNote || "") + '</div>' +
+      '<div id="vgift' + i + '" style="font-size:12px;margin-top:4px;display:' + ((ln.promoFreeQty > 0) ? 'block' : 'none') + ';">送邊款：<select onchange="setGiftChoice(' + i + ', this.value)">' + giftOptionsFor(ln) + '</select></div></td>' +
       '<td><input class="vprice" type="number" step="any" min="0" value="' + esc(ln.price == null ? "" : ln.price) + '" oninput="verifyLines[' + i + '].price=this.value;verifyLines[' + i + '].manual=true;recomputeVerify()"></td>' +
       '<td><input class="vqty" type="number" step="1" min="1" value="' + esc(ln.qty) + '" oninput="verifyLines[' + i + '].qty=this.value;recomputeVerify()"></td>' +
       '<td id="vsub' + i + '">' + sub + '</td>' +
@@ -963,9 +993,11 @@ function recomputeVerify(){
     ln.promoFreeQty = pl.freeQty;
     ln.promoRule = promoRuleNameFor(pl, !!ln.manual);
     ln.promoType = promoTypeFor(pl, !!ln.manual);
-    ln.promoNote = promoNoteFor(pl, !!ln.manual);
+    ln.promoNote = promoNoteFor(pl, !!ln.manual, giftNameFor(ln), ln.name);
     var noteCell = document.getElementById("vnote" + i);
     if (noteCell) noteCell.textContent = ln.promoNote || "";
+    var giftCell = document.getElementById("vgift" + i);
+    if (giftCell) giftCell.style.display = (pl.freeQty > 0 && pl.buyRule) ? "block" : "none";
     if (validPrice(p) && validQty(q)) {
       total += p * q;
       if (cell) cell.textContent = fmtMoney(p * q);
@@ -1055,7 +1087,10 @@ function recordToLine(r){
     status: normStatus(r.status),
     // 優惠：freeQty 係送嘅件數（$0 行），unitPrice 係折後單價（同 price 一致），
     // promoRule/promoType 係邊條規則生效；冇優惠嗰陣 freeQty 0、promoRule/promoType 空字串。
+    // 跨款贈品（設計 §9）：giftProduct/giftProductCode 係送邊款（名／編號）；唔傳／空白 = 送同一款。
     freeQty: (typeof r.freeQty === "number" && isFinite(r.freeQty) && r.freeQty >= 0 && Math.floor(r.freeQty) === r.freeQty) ? r.freeQty : 0,
+    giftProduct: (r.giftProduct ? String(r.giftProduct).slice(0, 100) : ""),
+    giftProductCode: (r.giftCode ? String(r.giftCode).slice(0, 50) : ""),
     unitPrice: p,
     promoRule: (r.promoRule ? String(r.promoRule).slice(0, 100) : ""),
     promoType: (r.promoType ? String(r.promoType).slice(0, 100) : "")
@@ -1141,7 +1176,8 @@ function confirmVerifiedSubmit(status){
     if ((priceChanged || qtyChanged) && !ln.reason) { alert("「" + ln.name + "」嘅金額有改動，請選擇改價原因。"); return; }
     var pl = promoForLine({ code: ln.code, qty: q, price: ln.stdPrice }, promoRules, store, today, !!ln.manual);
     promoLines.push({ freeQty: pl.freeQty, unitPrice: p,
-      promoRule: promoRuleNameFor(pl, !!ln.manual), promoType: promoTypeFor(pl, !!ln.manual) });
+      promoRule: promoRuleNameFor(pl, !!ln.manual), promoType: promoTypeFor(pl, !!ln.manual),
+      giftCode: ln.giftCode || ln.code, giftProduct: giftNameFor(ln) });
     var sub = Math.round(p * q * 100) / 100;
     discountedSubtotal += sub;
     lines.push({ code: ln.code, name: ln.name, qty: q, price: p, subtotal: sub, reason: storedReason(ln.reason, ln.reasonDetail) });
@@ -1160,7 +1196,8 @@ function confirmVerifiedSubmit(status){
     var rows = lines.map(function(l, idx){
       var pl = promoLines[idx];
       return { order: orderNo, time: meta.time, store: meta.store, name: meta.name, phone: meta.phone, date: meta.date, time2: meta.time2, product: l.name, qty: l.qty, price: l.price, subtotal: l.subtotal, orderTotal: total, status: submitStatus, reason: l.reason, remarks: meta.remarks,
-        freeQty: pl.freeQty, unitPrice: pl.unitPrice, promoRule: pl.promoRule, promoType: pl.promoType };
+        freeQty: pl.freeQty, unitPrice: pl.unitPrice, promoRule: pl.promoRule, promoType: pl.promoType,
+        giftCode: pl.giftCode || "", giftProduct: pl.giftProduct || "" };
     });
     saveRecords(rows.concat(loadRecords()));
     clearCart();
