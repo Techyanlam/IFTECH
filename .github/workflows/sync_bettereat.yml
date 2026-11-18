@@ -8,7 +8,7 @@ on:
 concurrency:
   group: sync-bettereat
   cancel-in-progress: true
-    permissions:
+permissions:
   contents: write
 jobs:
   sync:
