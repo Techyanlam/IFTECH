@@ -195,9 +195,9 @@
     <div style="font-size:13px;color:#8a7f70;line-height:1.7;">改動原有單價或者數量就要揀原因（外觀不良／到期／其他，揀其他可以打埋補充）。本身冇標準售價嘅產品，請直接輸入單價。</div>
     <div style="font-size:13px;color:#8a7f70;line-height:1.7;">「暫存訂單」只係留低記錄，唔會扣庫存；之後去「訂單記錄」嗰頁撳「確認」先至正式扣數。</div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-      <button class="xbtn primary" onclick="confirmVerifiedSubmit('已確認')">確認提交</button>
+      <button class="xbtn primary" id="confirmSubmitBtn" onclick="confirmVerifiedSubmit('已確認')">確認提交</button>
       <button class="xbtn" id="saveDraftBtn" onclick="confirmVerifiedSubmit('待確認')">暫存訂單</button>
-      <button class="xbtn" onclick="cancelVerify()">返回修改</button>
+      <button class="xbtn" id="cancelVerifyBtn" onclick="cancelVerify()">返回修改</button>
     </div>
   </div>
   <div class="foot">數據來源：BETTEREAT 飛書系統 · 餐牌以飛書產品主檔為準<br>產品相片陸續補上，現時未有相片嘅產品會顯示圖示。</div>
@@ -919,6 +919,16 @@ function toggleVerifyDetail(i){
   if (el && verifyLines && verifyLines[i]) el.style.display = (verifyLines[i].reason === '其他') ? 'block' : 'none';
 }
 var verifyLines = null;
+// 提交中鎖掣（2026-11-18：連撳「確認提交」會重複提交同一張單，飛書出重複行＋重複扣數；
+// 派號＋寫入係非同步，同一秒內撳兩次會攞到同一個單號）。提交緊嗰陣兩個提交掣＋返回修改掣全部 disable，
+// 完成（或失敗）先開返。
+var submitInFlight = false;
+function setSubmitButtonsDisabled(dis){
+  ["confirmSubmitBtn", "saveDraftBtn", "cancelVerifyBtn"].forEach(function(id){
+    var b = document.getElementById(id);
+    if (b) b.disabled = dis;
+  });
+}
 var verifyOrig = null;
 function buildVerifyLines(){
   var items = cartItems();
@@ -1128,9 +1138,15 @@ function syncSalesToFeishu(rows, statusEl, status, orderDiscount){
       if (Array.isArray(j.recordIds) && j.recordIds.length === lines.length) {
         try {
           var _arr = loadRecords();
+          // 2026-11-18 修正：舊版用 _arr[k]（位置）配對——同一張單連續提交嗰陣，
+          // 幾個回調先後讀到同一個 _arr，全部寫入 _arr[0]，其餘本地行永遠冇 feishuId，
+          // 之後記錄頁自動同步會將佢哋當未同步行再補一次，喺飛書開多重複行。
+          // 宜家每行 id 派去第一行「未有 feishuId」嘅同單同產品行，每個 id 只派一次。
           for (var k = 0; k < lines.length; k++) {
-            var _r = _arr[k];
-            if (_r && _r.order === rows[k].order && _r.product === rows[k].product && _r.store === rows[k].store) _r.feishuId = j.recordIds[k];
+            for (var m = 0; m < _arr.length; m++) {
+              var _r = _arr[m];
+              if (_r && !_r.feishuId && _r.order === rows[k].order && _r.product === rows[k].product && _r.store === rows[k].store) { _r.feishuId = j.recordIds[k]; break; }
+            }
           }
           saveRecords(_arr);
         } catch (e) {}
@@ -1150,6 +1166,7 @@ function syncSalesToFeishu(rows, statusEl, status, orderDiscount){
 // 注意：成個記錄表「清空」唔會同步——嗰個只係清呢部裝置嘅記錄，唔係刪除飛書數據。
 function confirmVerifiedSubmit(status){
   // status：「已確認」（確認提交，扣庫存）／「待確認」（暫存，唔扣庫存）；唔傳就預設已確認。
+  if (submitInFlight) return; // 提交緊，唔好重複入
   var submitStatus = normStatus(status);
   if (!verifyLines || !verifyLines.length) return;
   if (!getRecordsShop()) { alert("請先喺上面揀邊間店"); return; }
@@ -1189,7 +1206,10 @@ function confirmVerifiedSubmit(status){
   function _p2(n){ return (n < 10 ? "0" : "") + n; }
   var time = _nd.getFullYear() + "-" + _p2(_nd.getMonth() + 1) + "-" + _p2(_nd.getDate()) + " " + _p2(_nd.getHours()) + ":" + _p2(_nd.getMinutes());
   // 單號優先由 Worker 派（以飛書做準，唔同裝置唔會撞號）；Worker 唔得先跌返去用本機號碼。
+  submitInFlight = true;
+  setSubmitButtonsDisabled(true);
   requestWorkerOrderNo(getRecordsShop()).then(function(workerNo){
+    try {
     var orderNo = workerNo, fromWorker = !!workerNo;
     if (!orderNo) orderNo = nextOrderNo();
     var meta = { time: time, store: getRecordsShop(), name: "", phone: "", date: "", time2: "", remarks: "" };
@@ -1215,6 +1235,10 @@ function confirmVerifiedSubmit(status){
       : "已確認提交：新增 " + rows.length + " 行記錄（一個產品一行），訂單編號：" + orderNo + "，訂單總金額：" + fmtMoney(total) + promoSuffix + "。") + (fromWorker ? "" : "（單號由呢部機發出，Worker 未能派號，之後喺訂單記錄頁會自動同步去飛書。）"); st.className = "status ok"; }
     syncSalesToFeishu(rows, st, submitStatus, orderDiscount);
     if (st && st.scrollIntoView) st.scrollIntoView();
+    } finally {
+      submitInFlight = false;
+      setSubmitButtonsDisabled(false);
+    }
   });
 }
 function cancelVerify(){

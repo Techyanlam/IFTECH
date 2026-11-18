@@ -614,6 +614,9 @@ function recordToLine(r){
   var q = parseInt(r.qty, 10);
   var p = parseFloat(r.price), s = parseFloat(r.subtotal);
   if (!validQty(q) || !validPrice(p) || !validPrice(s)) return null;
+  // 優惠（2026-11-18：跟訂購頁 recordToLine 一致——舊版冇呢啲欄，記錄頁自動同步補行嗰陣
+  // 會開返一行冇優惠資料嘅實付行（BMAP20261118-001 嗰單就係咁多咗第 4 行實付）。
+  // 備註唔喺度加「［優惠：規則名］」——Worker 補行嗰陣會經 promoRemarksOf 加，喺度加會重複兩次。
   return {
     order: r.order,
     recordDate: rt.date,
@@ -625,6 +628,12 @@ function recordToLine(r){
     subtotal: s,
     reason: r.reason || "",
     remarks: r.remarks || "",
+    freeQty: parseInt(r.freeQty, 10) || 0,
+    unitPrice: (r.unitPrice === undefined || r.unitPrice === null || r.unitPrice === "") ? p : parseFloat(r.unitPrice),
+    promoRule: r.promoRule || "",
+    promoType: r.promoType || "",
+    giftProduct: r.giftProduct || "",
+    giftProductCode: r.giftCode || "",
     // 狀態照跟返行本身（編輯一待確認行唔會靜靜哋變已確認）；冇就預設「已確認」。
     status: normStatus(r.status)
   };
