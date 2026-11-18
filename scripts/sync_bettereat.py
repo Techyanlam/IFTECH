@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-# BETTEREAT sold-list sync v4 — SNAPSHOT archive (V1 Base migration 2026-10-28).
+# BETTEREAT sold-list sync v5 — 取代 repo 內 scripts/sync_bettereat.py（v4）。
+# *** 未推上 GitHub：呢份只係放喺 ~/workspace/bettereat-order-page/ 等 parent 處理 ***
+# v5 唯一改動（P0 第 2 項）：fetch_products() 加 "cost": num(f.get("成本"))，
+# 等 T1_產品主檔嘅「成本」欄同步入 bettereat_products.json，供報表計毛利。
+# T1 未有「成本」欄／未填數嗰陣 cost = null，網站顯示「待填成本」。
+# 其餘邏輯同 v4 一字不改（SNAPSHOT archive 規則、V1 Base、history 保留）。
 # Reads the BETTEREAT HONG KONG LIMITED org's "BETTEREAT - Dessert V1" base.
 # V1 differences vs the old base: remaining is split per store, and
 # Total 剩餘量 equals the row's store remaining on every row (verified
@@ -127,6 +132,9 @@ def fetch_products(token):
         price = num(f.get("標準售價"))
         if price is not None and price == int(price):
             price = int(price)
+        cost = num(f.get("成本"))
+        if cost is not None and cost == int(cost):
+            cost = int(cost)
         rows.append({
             "product_code": code,
             "product_name": text_of(f.get("產品名稱")),
@@ -136,6 +144,7 @@ def fetch_products(token):
             "unit": text_of(f.get("計量單位")),
             "no_of_pcs": pcs,
             "standard_price": price,
+            "cost": cost,
             "sku": text_of(f.get("E365商品編號SKU")),
             "status": text_of(f.get("狀態")),
             "remarks": text_of(f.get("備註")),

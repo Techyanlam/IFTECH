@@ -107,14 +107,14 @@
           <th class="grp" colspan="4">淘大 MAP</th>
           <th class="grp" colspan="4">Aeon MKH</th>
           <th class="grp" colspan="4">將軍澳 MMCP</th>
-          <th class="grp" colspan="3">合計</th>
+          <th class="grp" colspan="5">合計</th>
         </tr>
         <tr>
           <th class="num">分配</th><th class="num">已售</th><th class="num">剩餘</th><th class="num">報廢</th>
           <th class="num">分配</th><th class="num">已售</th><th class="num">剩餘</th><th class="num">報廢</th>
           <th class="num">分配</th><th class="num">已售</th><th class="num">剩餘</th><th class="num">報廢</th>
           <th class="num">分配</th><th class="num">已售</th><th class="num">剩餘</th><th class="num">報廢</th>
-          <th class="num">分配</th><th class="num">已售</th><th class="num">剩餘</th>
+          <th class="num">分配</th><th class="num">已售</th><th class="num">剩餘</th><th class="num">單價</th><th class="num">金額</th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -126,12 +126,17 @@
 
 <script>
 var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_sold_data.json";
+var PRODUCTS_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_products.json";
+var productsByCode = {}; // product_code -> { price, cost }（T1 產品主檔；讀唔到就留空，單價／金額顯示 —）
 var STORES = ["MJF", "MAP", "MKH", "MMCP"];
 var STORE_NAMES = { MJF: "謝斐", MAP: "淘大", MKH: "Aeon", MMCP: "將軍澳" };
 var payload = null, curDate = "", selected = {}, selOnly = false, searchText = "";
 
 function fmt(n){ return (Math.round(n * 10) / 10).toLocaleString("en-US"); }
 function esc(s){ return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+
+function fmtMoney(n){ return "$" + (Math.round(n * 100) / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function priceOf(code){ var p = productsByCode[code]; return (p && p.price !== null && p.price !== undefined) ? p.price : null; }
 
 function showUser(){
   var u = localStorage.getItem("bettereat_user") || "";
@@ -147,6 +152,8 @@ function showDash(){
   showUser(); loadData();
 }
 function loadData(){
+  // 產品主檔另外抓：失敗唔拖垮銷售數據，只係單價／金額顯示 —
+  var productsP = fetch(PRODUCTS_URL + "?t=" + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; });
   fetch(DATA_URL + "?t=" + Date.now()).then(function(r){ return r.json(); }).then(function(j){
     payload = j;
     if (!payload.history) { payload.history = {}; payload.history[j.date] = j.records || []; }
@@ -159,6 +166,17 @@ function loadData(){
     document.getElementById("metaLine").textContent =
       "最新日期：" + j.date + " ｜ 更新時間：" + j.generated_at + " ｜ 來源：" + j.source +
       " ｜ 已存歷史：" + dates.length + " 日";
+    return productsP;
+  }).then(function(pj){
+    productsByCode = {};
+    if (pj && pj.products) {
+      pj.products.forEach(function(p){
+        productsByCode[p.product_code] = {
+          price: (p.standard_price === null || p.standard_price === undefined) ? null : p.standard_price,
+          cost: (p.cost === null || p.cost === undefined) ? null : p.cost
+        };
+      });
+    }
     applyDate();
   }).catch(function(){
     document.getElementById("metaLine").textContent = "暫時讀取唔到數據，請稍後重新整理。";
@@ -204,7 +222,7 @@ function applyDate(){
   renderTable(items, vis);
 }
 function renderTable(items, vis){
-  var html = "", tot = { alloc: 0, sold: 0, rem: 0 };
+  var html = "", tot = { alloc: 0, sold: 0, rem: 0, amt: 0 };
   vis.forEach(function(it){
     var tAlloc = 0, tSold = 0, tRem = 0, row = "";
     STORES.forEach(function(s){
@@ -214,18 +232,26 @@ function renderTable(items, vis){
                  : '<td class="num dash">—</td><td class="num dash">—</td><td class="num dash">—</td><td class="num dash">—</td>';
     });
     tot.alloc += tAlloc; tot.sold += tSold; tot.rem += tRem;
+    // 單價（T1 標準售價）＋金額（合計已售 × 單價）；搵唔到單價顯示 —
+    var price = priceOf(it.code);
+    var amt = (price === null) ? null : price * tSold;
+    if (amt !== null) tot.amt += amt;
+    var priceCell = (price === null) ? '<td class="num dash">—</td>' : '<td class="num">' + fmtMoney(price) + "</td>";
+    var amtCell = (amt === null) ? '<td class="num dash">—</td>' : '<td class="num"><b>' + fmtMoney(amt) + "</b></td>";
     var checked = selected[it.code] ? " checked" : "";
     var cls = selected[it.code] ? ' class="sel"' : "";
     html += "<tr" + cls + "><td class=\"chk sticky\"><input type=\"checkbox\" data-code=\"" + esc(it.code) + "\"" + checked + "></td>" +
       '<td class="sticky2">' + esc(it.code) + " " + esc(it.name) + "</td><td>" + esc(it.unit) + "</td>" +
       '<td class="num"><b>' + fmt(tAlloc) + "</b></td>" + row +
-      '<td class="num"><b>' + fmt(tAlloc) + '</b></td><td class="num"><b>' + fmt(tSold) + '</b></td><td class="num"><b>' + fmt(tRem) + '</b></td></tr>';
+      '<td class="num"><b>' + fmt(tAlloc) + '</b></td><td class="num"><b>' + fmt(tSold) + '</b></td><td class="num"><b>' + fmt(tRem) + "</b></td>" +
+      priceCell + amtCell + "</tr>";
   });
   document.getElementById("tbody").innerHTML = html || '<tr><td colspan="25" style="text-align:center;color:#8a7f70;padding:20px;">冇符合條件嘅產品</td></tr>';
   document.getElementById("tfootRow").innerHTML =
     '<td class="chk sticky"></td><td class="sticky2">合計（目前檢視）</td><td></td><td class="num">' + fmt(tot.alloc) + "</td>" +
     '<td colspan="16"></td>' +
-    '<td class="num">' + fmt(tot.alloc) + '</td><td class="num">' + fmt(tot.sold) + '</td><td class="num">' + fmt(tot.rem) + "</td>";
+    '<td class="num">' + fmt(tot.alloc) + '</td><td class="num">' + fmt(tot.sold) + '</td><td class="num">' + fmt(tot.rem) + "</td>" +
+    '<td class="num dash">—</td><td class="num">' + fmtMoney(tot.amt) + "</td>";
   Array.prototype.forEach.call(document.querySelectorAll("#tbody input[type=checkbox]"), function(cb){
     cb.onchange = function(){ selected[cb.getAttribute("data-code")] = cb.checked; applyDate(); };
   });
@@ -243,7 +269,7 @@ function exportCSV(){
   var items = buildItems(), vis = visibleItems(items);
   var head = ["日期","產品編號","產品名稱","單位","生產量(件)"];
   STORES.forEach(function(s){ head.push(STORE_NAMES[s] + "分配", STORE_NAMES[s] + "已售", STORE_NAMES[s] + "剩餘", STORE_NAMES[s] + "報廢"); });
-  head.push("合計分配", "合計已售", "合計剩餘");
+  head.push("合計分配", "合計已售", "合計剩餘", "單價", "金額");
   var lines = [head.map(csvCell).join(",")];
   vis.forEach(function(it){
     var row = [curDate, it.code, it.name, it.unit], tA = 0, tS = 0, tR = 0;
@@ -254,7 +280,9 @@ function exportCSV(){
       else parts.push("", "", "", "");
     });
     row.push(tA);
-    lines.push(row.concat(parts).concat([tA, tS, tR]).map(csvCell).join(","));
+    var price = priceOf(it.code);
+    var amt = (price === null) ? "" : Math.round(price * tS * 100) / 100;
+    lines.push(row.concat(parts).concat([tA, tS, tR, price === null ? "" : price, amt]).map(csvCell).join(","));
   });
   var blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
   var a = document.createElement("a");

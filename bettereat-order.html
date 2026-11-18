@@ -29,7 +29,10 @@
   .shopbtn { padding: 10px 20px; font-size: 15px; border: 1px solid #d8cbb6; color: #6d6152; background: #fff; border-radius: 999px; cursor: pointer; }
   .shopbtn.active { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border-color: #b97a1e; font-weight: 700; }
   .rectable .prodcol { min-width: 160px; }
-  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+  .cathead { grid-column: 1 / -1; font-size: 16px; font-weight: 700; color: #6d6152; margin: 14px 0 2px; padding-left: 8px; border-left: 4px solid #c98a2d; }
+  .cathead:first-child { margin-top: 0; }
+  .cathead span { font-weight: 400; font-size: 13px; color: #8a7f70; }
   .main { display: flex; gap: 16px; align-items: flex-start; }
   .side { width: 300px; flex: 0 0 300px; position: sticky; top: 74px; background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(60,45,20,.06); }
   .maincol { flex: 1; min-width: 0; }
@@ -104,8 +107,8 @@
   .cartbar .go { background: linear-gradient(135deg, #d99a35, #b97a1e); color: #fff; }
   .cartbar button:disabled { opacity: .45; cursor: not-allowed; }
   .foot { color: #a2937f; font-size: 12px; margin-top: 16px; text-align: center; line-height: 1.8; }
-  @media (max-width: 1180px) { .grid { grid-template-columns: repeat(3, 1fr); } }
-  @media (max-width: 860px) { .grid { grid-template-columns: repeat(2, 1fr); } .side { width: 260px; flex-basis: 260px; top: 112px; } }
+  @media (max-width: 1180px) { .grid { grid-template-columns: repeat(6, 1fr); gap: 8px; } .card { border-radius: 10px; } .card .imgwrap { padding-top: 62%; } .card .imgwrap .ph { font-size: 32px; } .card .body { padding: 7px 8px 8px; } .card .name { font-size: 12px; min-height: 32px; line-height: 1.35; } .card .sub { font-size: 11px; } .card .price { font-size: 12px; margin-top: 2px; } .card .step { margin-top: 6px; } .card .step .add { padding: 6px; font-size: 13px; border-radius: 8px; } .card .step .minus, .card .step .plus { width: 28px; height: 28px; font-size: 16px; border-radius: 8px; } .card .step .qty { font-size: 14px; min-width: 20px; } .cathead { font-size: 14px; margin: 10px 0 0; } }
+  @media (max-width: 860px) { .grid { grid-template-columns: repeat(4, 1fr); } .side { width: 260px; flex-basis: 260px; top: 112px; } }
   @media (max-width: 640px) { .main { flex-direction: column; } .side { width: 100%; flex: none; position: static; } }
   @media (max-width: 560px) { .cartbar { flex-wrap: wrap; } .checkout .fields { grid-template-columns: 1fr; } }
   .loginbox { max-width: 420px; margin: 60px auto 0; background: #fff; border-radius: 16px; padding: 28px 24px; box-shadow: 0 4px 20px rgba(60,45,20,.10); text-align: center; }
@@ -190,8 +193,10 @@
     </div>
     <div class="vtotal" id="verifyTotal"></div>
     <div style="font-size:13px;color:#8a7f70;line-height:1.7;">改動原有單價或者數量就要揀原因（外觀不良／到期／其他，揀其他可以打埋補充）。本身冇標準售價嘅產品，請直接輸入單價。</div>
+    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">「暫存訂單」只係留低記錄，唔會扣庫存；之後去「訂單記錄」嗰頁撳「確認」先至正式扣數。</div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
-      <button class="xbtn primary" onclick="confirmVerifiedSubmit()">確認提交</button>
+      <button class="xbtn primary" onclick="confirmVerifiedSubmit('已確認')">確認提交</button>
+      <button class="xbtn" id="saveDraftBtn" onclick="confirmVerifiedSubmit('待確認')">暫存訂單</button>
       <button class="xbtn" onclick="cancelVerify()">返回修改</button>
     </div>
   </div>
@@ -264,7 +269,7 @@ function loadData(){
     var map = {};
     // T1 主檔優先：飛書 T1 改咗，下次同步呢度就跟住改
     if (pj && pj.products) pj.products.forEach(function(p){
-      if (p.product_code) map[p.product_code] = { code: p.product_code, name: p.product_name, unit: p.unit, price: p.standard_price };
+      if (p.product_code) map[p.product_code] = { code: p.product_code, name: p.product_name, unit: p.unit, price: p.standard_price, cat: p.category || "", sub: p.subcategory || "" };
     });
     // 銷售記錄補齊：只補返主檔已有產品嘅名／單位；銷售記錄有、主檔冇嘅產品（已喺 T1 刪除）唔再出餐牌，唔會留低冇價錢嘅卡
     recs.forEach(function(r){
@@ -303,19 +308,28 @@ function visibleProducts(){
 }
 function renderGrid(){
   var vis = visibleProducts();
-  var html = "";
+  var groups = {}, order = [];
   vis.forEach(function(p){
-    var q = cart[p.code] || 0;
-    var cls = q > 0 ? "card incart" : "card";
-    var step = q > 0
-      ? '<button class="minus" onclick="event.stopPropagation();removeItem(\'' + esc(p.code) + '\')">−</button><span class="qty">' + q + '</span><button class="plus" onclick="event.stopPropagation();addItem(\'' + esc(p.code) + '\')">＋</button>'
-      : '<button class="add" onclick="event.stopPropagation();addItem(\'' + esc(p.code) + '\')">＋ 加 1 件</button>';
-    html += '<div class="' + cls + '" onclick="addItem(\'' + esc(p.code) + '\')">' +
-      '<div class="imgwrap"><img src="images/products/' + esc(p.code) + '.jpg" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><div class="ph" style="display:none;">🍰</div></div>' +
-      '<div class="body"><div class="name">' + esc(p.name) + '</div>' +
-      '<div class="sub">' + esc(p.code) + ' · 單位：' + esc(p.unit) + '</div>' +
-      (p.price !== undefined && p.price !== null && p.price !== "" ? '<div class="price">標準售價：$' + esc(p.price) + (p.unit ? "/" + esc(p.unit) : "") + '</div>' : '') +
-      '<div class="step">' + step + '</div></div></div>';
+    var c = p.sub || "其他";
+    if (!groups[c]) { groups[c] = []; order.push(c); }
+    groups[c].push(p);
+  });
+  var html = "";
+  order.forEach(function(c){
+    html += '<div class="cathead">' + esc(c) + ' <span>（' + groups[c].length + '款）</span></div>';
+    groups[c].forEach(function(p){
+      var q = cart[p.code] || 0;
+      var cls = q > 0 ? "card incart" : "card";
+      var step = q > 0
+        ? '<button class="minus" onclick="event.stopPropagation();removeItem(\'' + esc(p.code) + '\')">−</button><span class="qty">' + q + '</span><button class="plus" onclick="event.stopPropagation();addItem(\'' + esc(p.code) + '\')">＋</button>'
+        : '<button class="add" onclick="event.stopPropagation();addItem(\'' + esc(p.code) + '\')">＋ 加 1 件</button>';
+      html += '<div class="' + cls + '" onclick="addItem(\'' + esc(p.code) + '\')">' +
+        '<div class="imgwrap"><img src="images/products/' + esc(p.code) + '.jpg" alt="" onerror="this.style.display=\'none\';this.nextElementSibling.style.display=\'flex\'"><div class="ph" style="display:none;">🍰</div></div>' +
+        '<div class="body"><div class="name">' + esc(p.name) + '</div>' +
+        '<div class="sub">' + esc(p.code) + ' · ' + esc(p.unit) + '</div>' +
+        (p.price !== undefined && p.price !== null && p.price !== "" ? '<div class="price">$' + esc(p.price) + (p.unit ? "/" + esc(p.unit) : "") + '</div>' : '') +
+        '<div class="step">' + step + '</div></div></div>';
+    });
   });
   document.getElementById("grid").innerHTML = html || '<div style="color:#8a7f70;padding:20px;">冇符合條件嘅產品</div>';
 }
@@ -822,6 +836,8 @@ function requestWorkerOrderNo(store){
     });
   });
 }
+// 訂單狀態歸一：只認「待確認」／「已確認」／「已取消」，其他／冇就預設「已確認」（向後兼容）。
+function normStatus(s){ return (s === "待確認" || s === "已確認" || s === "已取消") ? s : "已確認"; }
 // 一行本地記錄轉做 Worker 收嘅 line 格式；唔合規格返 null（提交／編輯同步共用）
 function recordToLine(r){
   if (!r) return null;
@@ -841,13 +857,17 @@ function recordToLine(r){
     price: p,
     subtotal: s,
     reason: r.reason || "",
-    remarks: r.remarks || ""
+    remarks: r.remarks || "",
+    // 狀態：冇就預設「已確認」（向後兼容舊記錄）；「待確認」即係暫存，唔扣庫存。
+    status: normStatus(r.status)
   };
 }
 // 確認提交嗰下，將呢張單嘅行即刻 POST 去 Cloudflare Worker，寫入飛書「銷售紀錄」表。
 // localStorage 記錄一定先存好，同步失敗唔會影響本地記錄；Worker 未加 FEISHU_APP_SECRET 之前一定失敗（屬正常）。
-function syncSalesToFeishu(rows, statusEl){
+function syncSalesToFeishu(rows, statusEl, status){
   if (!rows || !rows.length) return;
+  // 邊種提交由第三個參數定，冇傳就跟第一行嘅狀態（再冇就預設已確認）。
+  var syncStatus = normStatus(status || (rows[0] && rows[0].status));
   var lines = [];
   for (var i = 0; i < rows.length; i++) {
     var line = recordToLine(rows[i]);
@@ -880,7 +900,7 @@ function syncSalesToFeishu(rows, statusEl){
           saveRecords(_arr);
         } catch (e) {}
       }
-      finish("已同步去飛書「銷售紀錄」（" + lines.length + " 行）。");
+      finish("已同步去飛書「銷售紀錄」（" + lines.length + " 行）。" + (syncStatus === "待確認" ? "（已暫存，未扣庫存）" : ""));
     }
     else finish("未能同步去飛書（記錄已存喺呢部裝置），稍後可再提交。");
   }).catch(function(){
@@ -893,7 +913,9 @@ function syncSalesToFeishu(rows, statusEl){
 // 如果飛書嗰邊搵唔到嗰行（例如原本提交嗰陣同步失敗），Worker 會補返成行。
 // 刪除一行記錄之後，將飛書「銷售紀錄」嗰行刪埋。飛書本來已經冇嗰行都算成功。
 // 注意：成個記錄表「清空」唔會同步——嗰個只係清呢部裝置嘅記錄，唔係刪除飛書數據。
-function confirmVerifiedSubmit(){
+function confirmVerifiedSubmit(status){
+  // status：「已確認」（確認提交，扣庫存）／「待確認」（暫存，唔扣庫存）；唔傳就預設已確認。
+  var submitStatus = normStatus(status);
   if (!verifyLines || !verifyLines.length) return;
   if (!getRecordsShop()) { alert("請先喺上面揀邊間店"); return; }
   if (!cartMatchesVerify()) {
@@ -925,7 +947,7 @@ function confirmVerifiedSubmit(){
     if (!orderNo) orderNo = nextOrderNo();
     var meta = { time: time, store: getRecordsShop(), name: "", phone: "", date: "", time2: "", remarks: "" };
     var rows = lines.map(function(l){
-      return { order: orderNo, time: meta.time, store: meta.store, name: meta.name, phone: meta.phone, date: meta.date, time2: meta.time2, product: l.name, qty: l.qty, price: l.price, subtotal: l.subtotal, orderTotal: total, reason: l.reason, remarks: meta.remarks };
+      return { order: orderNo, time: meta.time, store: meta.store, name: meta.name, phone: meta.phone, date: meta.date, time2: meta.time2, product: l.name, qty: l.qty, price: l.price, subtotal: l.subtotal, orderTotal: total, status: submitStatus, reason: l.reason, remarks: meta.remarks };
     });
     saveRecords(rows.concat(loadRecords()));
     clearCart();
@@ -933,8 +955,10 @@ function confirmVerifiedSubmit(){
     var sec = document.getElementById("verifySection");
     if (sec) sec.style.display = "none";
     var st = document.getElementById("submitStatus");
-    if (st) { st.textContent = "已提交：新增 " + rows.length + " 行記錄（一個產品一行），訂單編號：" + orderNo + "，訂單總金額：" + fmtMoney(total) + "。" + (fromWorker ? "" : "（單號由呢部機發出，Worker 未能派號，之後喺訂單記錄頁會自動同步去飛書。）"); st.className = "status ok"; }
-    syncSalesToFeishu(rows, st);
+    if (st) { st.textContent = (submitStatus === "待確認"
+      ? "已暫存：新增 " + rows.length + " 行記錄（一個產品一行），訂單編號：" + orderNo + "，訂單總金額：" + fmtMoney(total) + "，未扣庫存。之後去訂單記錄頁確認。"
+      : "已確認提交：新增 " + rows.length + " 行記錄（一個產品一行），訂單編號：" + orderNo + "，訂單總金額：" + fmtMoney(total) + "。") + (fromWorker ? "" : "（單號由呢部機發出，Worker 未能派號，之後喺訂單記錄頁會自動同步去飛書。）"); st.className = "status ok"; }
+    syncSalesToFeishu(rows, st, submitStatus);
     if (st && st.scrollIntoView) st.scrollIntoView();
   });
 }

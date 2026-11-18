@@ -62,7 +62,7 @@
   .action .d { font-size: 13px; opacity: .9; margin-top: 5px; line-height: 1.5; }
   .action.pending { opacity: .55; pointer-events: none; }
   .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
-  .controls select { padding: 7px 10px; font-size: 14px; border: 1px solid #d8cfc0; border-radius: 8px; background: #fff; }
+  .controls select, .controls input[type="date"] { padding: 7px 10px; font-size: 14px; border: 1px solid #d8cfc0; border-radius: 8px; background: #fff; }
   .xbtn { padding: 8px 14px; font-size: 13.5px; border: 1px solid #c98a2d; color: #a06a14; background: #fdf8ef; border-radius: 8px; cursor: pointer; }
   .xbtn:active { opacity: .8; }
   .chips { margin-bottom: 10px; }
@@ -104,6 +104,7 @@
         <button class="tabbtn" id="tabBtn-report" onclick="switchTab('report')">📊 報表</button>
         <button class="tabbtn" id="tabBtn-records" onclick="switchTab('records')">📋 訂單記錄</button>
         <button class="tabbtn" id="tabBtn-byitem" onclick="switchTab('byitem')">📦 按產品檢視</button>
+        <button class="tabbtn" id="tabBtn-stock" onclick="switchTab('stock')">📦 庫存</button>
       </div>
       <div><span id="userLabel"></span><button id="logoutBtn" onclick="logout()">登出</button></div>
     </header>
@@ -116,6 +117,7 @@
       <div class="card"><div class="k">總件數 No of pcs</div><div class="v" id="statTotal">–</div></div>
       <div class="card"><div class="k">剩餘（件）</div><div class="v" id="statRemain">–</div></div>
       <div class="card"><div class="k">記錄數</div><div class="v" id="statCount">–</div></div>
+      <div class="card"><div class="k">毛利</div><div class="v" id="statProfit">–</div></div>
     </div>
 
     <h2 class="sec">各店已銷售</h2>
@@ -135,6 +137,10 @@
     <h2 class="sec">每日已銷售清單</h2>
     <div class="controls">
       <label>日期 <select id="dateSel"></select></label>
+      <label>產品 <select id="prodSel"><option value="ALL">全部產品</option></select></label>
+      <label>類別 <select id="catSel"><option value="ALL">全部類別</option></select></label>
+      <label>開始日期 <input type="date" id="dateFrom"></label>
+      <label>結束日期 <input type="date" id="dateTo"></label>
       <button class="xbtn" id="expDay">⬇ 匯出本日 CSV</button>
       <button class="xbtn" id="expAll">⬇ 匯出全部歷史 CSV</button>
     </div>
@@ -143,8 +149,10 @@
       <thead><tr>
         <th>門店</th><th>產品編號</th><th>產品名稱</th>
         <th class="num">分配（盤）</th><th class="num">件數</th><th class="num">剩餘</th><th class="num">已銷售</th>
+        <th class="num">單價</th><th class="num">金額</th><th class="num">毛利</th>
       </tr></thead>
       <tbody id="tbody"></tbody>
+      <tfoot id="tfoot"></tfoot>
     </table>
     <div class="foot">數據來源：BETTEREAT 飛書系統 · 每晚自動更新</div>
   </div>
@@ -158,11 +166,14 @@
   <div id="panel-byitem" class="tabpanel" style="display:none;">
     <iframe class="tabframe" id="frame-byitem" title="按產品檢視"></iframe>
   </div>
+  <div id="panel-stock" class="tabpanel" style="display:none;">
+    <iframe class="tabframe" id="frame-stock" title="庫存"></iframe>
+  </div>
 </div>
 
 <script>
 // ===== BETTEREAT 統一系統（bettereat.html）=====
-// 一個入口，四個分頁：落單 / 報表 / 訂單記錄 / 按產品檢視。
+// 一個入口，五個分頁：落單 / 報表 / 訂單記錄 / 按產品檢視 / 庫存（2026-11-18 P0 新增；庫存分頁門店同管理員都見到，頁內再按角色分權）。
 // 落單、訂單記錄、按產品檢視係 iframe（原頁面邏輯完全唔郁，獨立開嗰啲連結照舊用得）；報表係舊主頁嘅 Dashboard，inline 喺呢頁。
 // 登入統一喺呢頁做：揀身份（4 間店或管理員）+ 密碼。
 // - 門店密碼經 Worker 驗證（KV 優先），Worker 連唔到就跌返頁面預設密碼（同訂購頁一樣嘅做法；呢啲係頁面級公開碼，唔係真正帳號系統）。
@@ -177,7 +188,10 @@ var SALES_WORKER_URL = "https://bettereat-sales-proxy.yan-lam.workers.dev";
 var LOGIN_KEY = "bettereat_order_login";
 var FORM_A_URL = "https://fcnnkklc0uhr.feishu.cn/share/base/form/shrcnySrPjIwg3IiovaafcoOfgc";
 var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_sold_data.json";
+var PRODUCTS_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_products.json";
 var allRecords = [], curStore = "ALL", payload = null, curDate = "";
+var productsByCode = {}; // product_code -> { price, cost, category }（T1 產品主檔；讀唔到就留空，單價／毛利顯示 —／待填成本）
+var curProduct = "ALL", curCategory = "ALL";
 var loginShopChoice = "";
 var currentTab = "";
 var frameLoaded = {};
@@ -285,7 +299,7 @@ function logout(){
     localStorage.removeItem(LOGIN_KEY);
   } catch (e) {}
   frameLoaded = {};
-  ["order", "records", "byitem"].forEach(function(t){
+  ["order", "records", "byitem", "stock"].forEach(function(t){
     var f = document.getElementById("frame-" + t);
     if (f) f.src = "";
   });
@@ -301,14 +315,14 @@ function switchTab(name){
   // 門店撳唔到報表／按產品檢視：就算直接叫 switchTab 都會跌返去落單
   if (s.role !== "admin" && (name === "report" || name === "byitem")) name = "order";
   currentTab = name;
-  ["order", "report", "records", "byitem"].forEach(function(t){
+  ["order", "report", "records", "byitem", "stock"].forEach(function(t){
     var p = document.getElementById("panel-" + t);
     if (p) p.style.display = (t === name) ? "block" : "none";
     var b = document.getElementById("tabBtn-" + t);
     if (b) b.className = "tabbtn" + (t === name ? " active" : "");
   });
   // iframe 分頁第一次打開先至載入（登入後先載，等舊快取頁面唔會喺登入前就用咗舊登入狀態）
-  var frames = { order: "bettereat-order.html", records: "bettereat-order-records.html", byitem: "bettereat-by-item.html" };
+  var frames = { order: "bettereat-order.html", records: "bettereat-order-records.html", byitem: "bettereat-by-item.html", stock: "bettereat-stock.html" };
   if (frames[name] && !frameLoaded[name]) {
     frameLoaded[name] = true;
     var f = document.getElementById("frame-" + name);
@@ -324,6 +338,8 @@ function setupActions(){
   if (FORM_A_URL) { a.href = FORM_A_URL; } else { a.classList.add("pending"); }
 }
 function loadData(){
+  // 產品主檔另外抓：失敗（離線／未發佈）唔可以拖垮銷售數據，只係單價／毛利顯示 —／待填成本
+  var productsP = fetch(PRODUCTS_URL + "?t=" + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; });
   fetch(DATA_URL + "?t=" + Date.now()).then(function(r){ return r.json(); }).then(function(j){
     payload = j;
     if (!payload.history) { payload.history = {}; payload.history[j.date] = j.records || []; }
@@ -335,19 +351,122 @@ function loadData(){
     document.getElementById("metaLine").textContent =
       "最新日期：" + j.date + " ｜ 更新時間：" + j.generated_at + " ｜ 來源：" + j.source +
       " ｜ 已存歷史：" + dates.length + " 日";
+    return productsP;
+  }).then(function(pj){
+    productsByCode = {};
+    if (pj && pj.products) {
+      pj.products.forEach(function(p){
+        productsByCode[p.product_code] = {
+          price: (p.standard_price === null || p.standard_price === undefined) ? null : p.standard_price,
+          cost: (p.cost === null || p.cost === undefined) ? null : p.cost,
+          category: p.category || ""
+        };
+      });
+    }
     applyDate();
   }).catch(function(){
     document.getElementById("metaLine").textContent = "暫時讀取唔到數據，請稍後重新整理。";
   });
 }
+// ===== 單價／成本／毛利（P0 第 1、2 項）=====
+function fmtMoney(n){ return "$" + (Math.round(n * 100) / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function priceOf(code){ var p = productsByCode[code]; return (p && p.price !== null && p.price !== undefined) ? p.price : null; }
+function costOf(code){ var p = productsByCode[code]; return (p && p.cost !== null && p.cost !== undefined) ? p.cost : null; }
+function catOf(code){ var p = productsByCode[code]; return (p && p.category) ? p.category : ""; }
+// 單行計數：amount = 已銷售 × 單價；profit = (單價 − 成本) × 已銷售；冇單價／冇成本就 null（顯示 —／待填成本，唔扮有數）
+function enrichRow(r){
+  var price = priceOf(r.product_code), cost = costOf(r.product_code);
+  var sold = r.sold_pcs || 0;
+  return {
+    price: price, cost: cost,
+    amount: (price === null) ? null : price * sold,
+    profit: (price === null || cost === null) ? null : (price - cost) * sold
+  };
+}
+// 日期範圍：有填開始／結束日期就用範圍模式，取代單日下拉
+function getRange(){
+  var f = document.getElementById("dateFrom"), t = document.getElementById("dateTo");
+  var from = f ? (f.value || "") : "", to = t ? (t.value || "") : "";
+  if (from && to && from > to) { var tmp = from; from = to; to = tmp; }
+  return { from: from, to: to, active: !!(from || to) };
+}
+// 單日：當日記錄原樣；範圍：按（門店，產品編號）聚合，已銷售／分配／件數跨日加總，剩餘取範圍內最尾一日
+function baseRows(){
+  if (!payload || !payload.history) return [];
+  var rg = getRange();
+  if (!rg.active) {
+    return ((payload.history[curDate]) || []).map(function(r){
+      var o = {}; for (var k in r) o[k] = r[k]; o._d = curDate; return o;
+    });
+  }
+  var dates = Object.keys(payload.history).sort().filter(function(d){
+    return (!rg.from || d >= rg.from) && (!rg.to || d <= rg.to);
+  });
+  var label = (rg.from || "…") + " ~ " + (rg.to || "…");
+  var map = {}, order = [];
+  dates.forEach(function(d){
+    (payload.history[d] || []).forEach(function(r){
+      var key = (r.store || "") + "｜" + r.product_code;
+      if (!map[key]) {
+        map[key] = { store: r.store, product_code: r.product_code, product_name: r.product_name,
+          unit: r.unit, allocated_pans: 0, no_of_pcs: 0, remaining_pcs: 0, sold_pcs: 0, _d: label };
+        order.push(key);
+      }
+      var m = map[key];
+      m.allocated_pans += r.allocated_pans || 0;
+      m.no_of_pcs += r.no_of_pcs || 0;
+      m.sold_pcs += r.sold_pcs || 0;
+      m.remaining_pcs = r.remaining_pcs || 0;
+      m.product_name = r.product_name; m.unit = r.unit;
+    });
+  });
+  return order.map(function(k){ return map[k]; });
+}
+function passProdCat(r){
+  if (curProduct !== "ALL" && r.product_code !== curProduct) return false;
+  if (curCategory !== "ALL" && catOf(r.product_code) !== curCategory) return false;
+  return true;
+}
 function applyDate(){
-  allRecords = (payload.history && payload.history[curDate]) || payload.records || [];
-  var sold = 0, tot = 0, rem = 0;
-  allRecords.forEach(function(r){ sold += r.sold_pcs||0; tot += r.no_of_pcs||0; rem += r.remaining_pcs||0; });
+  var base = baseRows();
+  // 產品下拉：按當前日期／範圍記錄入面出現的款；揀咗嘅款唔喺入面就跌返「全部產品」
+  var codes = {}, codeList = [];
+  base.forEach(function(r){ if (!codes[r.product_code]) { codes[r.product_code] = r.product_name; codeList.push(r.product_code); } });
+  codeList.sort();
+  if (curProduct !== "ALL" && !codes[curProduct]) curProduct = "ALL";
+  var ps = document.getElementById("prodSel");
+  if (ps) {
+    ps.innerHTML = '<option value="ALL">全部產品</option>' + codeList.map(function(c){
+      return '<option value="' + c + '">' + c + " " + (codes[c] || "") + "</option>";
+    }).join("");
+    ps.value = curProduct;
+  }
+  // 類別下拉：大類嚟自 products JSON；products 讀唔到都照出設計定嘅六個大類
+  var cs = document.getElementById("catSel");
+  if (cs) {
+    var cats = ["蒸糕", "凍糕", "蛋糕", "糯米糍", "飲品", "涼粉+布甸"];
+    Object.keys(productsByCode).forEach(function(c){
+      var cat = productsByCode[c].category;
+      if (cat && cats.indexOf(cat) < 0) cats.push(cat);
+    });
+    cs.innerHTML = '<option value="ALL">全部類別</option>' + cats.map(function(c){
+      return '<option value="' + c + '">' + c + "</option>";
+    }).join("");
+    cs.value = curCategory;
+  }
+  var filtered = base.filter(passProdCat);
+  allRecords = filtered; // 已按產品／類別篩過，未按門店篩（renderStores 用佢，renderTable 再按門店篩）
+  var sold = 0, tot = 0, rem = 0, profit = 0, hasCost = false;
+  filtered.forEach(function(r){
+    sold += r.sold_pcs || 0; tot += r.no_of_pcs || 0; rem += r.remaining_pcs || 0;
+    var e = enrichRow(r);
+    if (e.profit !== null) { profit += e.profit; hasCost = true; }
+  });
   document.getElementById("statSold").textContent = fmt(sold);
   document.getElementById("statTotal").textContent = fmt(tot);
   document.getElementById("statRemain").textContent = fmt(rem);
-  document.getElementById("statCount").textContent = allRecords.length;
+  document.getElementById("statCount").textContent = filtered.length;
+  document.getElementById("statProfit").textContent = hasCost ? fmtMoney(profit) : "待填成本";
   renderChips(); renderStores(); renderTable();
 }
 var ALL_STORES = ["MAP", "MJF", "MKH", "MMCP"]; // 四間舖固定顯示，冇數嗰間都顯示 0（2026-11-17 Yan：MMCP 加返）
@@ -362,11 +481,16 @@ function renderStores(){
 }
 function csvCell(v){ v = (v === null || v === undefined) ? "" : String(v); return '"' + v.replace(/"/g, '""') + '"'; }
 function downloadCSV(name, rows){
-  var head = ["日期","門店","產品編號","產品名稱","單位","分配量(盤)","總件數","剩餘(件)","已銷售(件)"];
+  var head = ["日期","門店","產品編號","產品名稱","單位","分配量(盤)","總件數","剩餘(件)","已銷售(件)","單價","銷售額","成本","毛利"];
   var lines = [head.map(csvCell).join(",")];
   rows.forEach(function(r){
+    var e = enrichRow(r);
     lines.push([r._d, r.store, r.product_code, r.product_name, r.unit,
-      r.allocated_pans, r.no_of_pcs, r.remaining_pcs, r.sold_pcs].map(csvCell).join(","));
+      r.allocated_pans, r.no_of_pcs, r.remaining_pcs, r.sold_pcs,
+      e.price === null ? "" : e.price,
+      e.amount === null ? "" : Math.round(e.amount * 100) / 100,
+      e.cost === null ? "" : e.cost,
+      e.profit === null ? "待填成本" : Math.round(e.profit * 100) / 100].map(csvCell).join(","));
   });
   var blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
   var a = document.createElement("a");
@@ -386,20 +510,51 @@ function renderChips(){
 function renderTable(){
   var rows = allRecords.filter(function(r){ return curStore==="ALL" || r.store===curStore; });
   document.getElementById("tbody").innerHTML = rows.map(function(r){
+    var e = enrichRow(r);
+    var priceCell = e.price === null ? '<td class="num">—</td>' : '<td class="num">' + fmtMoney(e.price) + "</td>";
+    var amtCell = e.amount === null ? '<td class="num">—</td>' : '<td class="num">' + fmtMoney(e.amount) + "</td>";
+    var profCell = e.profit === null ? '<td class="num">待填成本</td>' : '<td class="num">' + fmtMoney(e.profit) + "</td>";
     return "<tr><td>" + r.store + "</td><td>" + r.product_code + "</td><td>" + r.product_name +
       '</td><td class="num">' + fmt(r.allocated_pans||0) + '</td><td class="num">' + fmt(r.no_of_pcs||0) +
-      '</td><td class="num">' + fmt(r.remaining_pcs||0) + '</td><td class="num"><b>' + fmt(r.sold_pcs||0) + "</b></td></tr>";
+      '</td><td class="num">' + fmt(r.remaining_pcs||0) + '</td><td class="num"><b>' + fmt(r.sold_pcs||0) + "</b></td>" +
+      priceCell + amtCell + profCell + "</tr>";
   }).join("");
+  // 合計行（篩選後）：總銷售額＋總毛利
+  var tAlloc = 0, tPcs = 0, tRem = 0, tSold = 0, tAmt = 0, tProf = 0, hasCost = false;
+  rows.forEach(function(r){
+    tAlloc += r.allocated_pans || 0; tPcs += r.no_of_pcs || 0; tRem += r.remaining_pcs || 0; tSold += r.sold_pcs || 0;
+    var e = enrichRow(r);
+    if (e.amount !== null) tAmt += e.amount;
+    if (e.profit !== null) { tProf += e.profit; hasCost = true; }
+  });
+  var tf = document.getElementById("tfoot");
+  if (tf) {
+    tf.innerHTML = '<tr><td colspan="3"><b>合計（篩選後）</b></td>' +
+      '<td class="num"><b>' + fmt(tAlloc) + '</b></td><td class="num"><b>' + fmt(tPcs) + '</b></td>' +
+      '<td class="num"><b>' + fmt(tRem) + '</b></td><td class="num"><b>' + fmt(tSold) + '</b></td>' +
+      '<td class="num">—</td><td class="num"><b>' + fmtMoney(tAmt) + '</b></td>' +
+      '<td class="num"><b>' + (hasCost ? fmtMoney(tProf) : "待填成本") + '</b></td></tr>';
+  }
 }
 document.getElementById("dateSel").addEventListener("change", function(){
   curDate = this.value; applyDate();
 });
+document.getElementById("prodSel").addEventListener("change", function(){
+  curProduct = this.value; applyDate();
+});
+document.getElementById("catSel").addEventListener("change", function(){
+  curCategory = this.value; applyDate();
+});
+document.getElementById("dateFrom").addEventListener("change", function(){ applyDate(); });
+document.getElementById("dateTo").addEventListener("change", function(){ applyDate(); });
 document.getElementById("expDay").onclick = function(){
   if (!payload) return;
-  var rows = ((payload.history && payload.history[curDate]) || []).map(function(r){
+  var rg = getRange();
+  // 範圍模式：匯出範圍聚合行；單日：匯出當日全部記錄（同舊行為，唔受門店／產品篩選影響）
+  var rows = rg.active ? baseRows() : (((payload.history && payload.history[curDate]) || []).map(function(r){
     var o = {}; for (var k in r) o[k] = r[k]; o._d = curDate; return o;
-  });
-  downloadCSV("bettereat_sold_" + curDate + ".csv", rows);
+  }));
+  downloadCSV("bettereat_sold_" + (rg.active ? (rg.from || "from") + "_" + (rg.to || "to") : curDate) + ".csv", rows);
 };
 document.getElementById("expAll").onclick = function(){
   if (!payload || !payload.history) return;
