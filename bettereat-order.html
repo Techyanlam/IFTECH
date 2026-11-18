@@ -894,11 +894,17 @@ function promoTypeFor(pl, manual){
   return "";
 }
 // 滿減：用折扣後小計計門檻；回 {rule, amount} 或 null。
+// 滿減行可以填「減 $」（固定金額）或者「折扣」（百分比，二揀一；兩個都填就用百分比）。
+// 例：滿 $100、折扣 9 → 小計 $110 減 $11（10%），$200 減 $20。
 function promoForOrder(discountedSubtotal, rules, store, today){
   var rule = firstPromoRule(rules, "滿減", store, null, today);
   if (!rule) return null;
-  if (!(rule.threshold > 0) || !(rule.reduce > 0)) return null;
+  if (!(rule.threshold > 0)) return null;
   if (discountedSubtotal < rule.threshold) return null;
+  if (rule.discount > 0 && rule.discount < 10) {
+    return { rule: rule.name || "", amount: round2(discountedSubtotal * (10 - rule.discount) / 10) };
+  }
+  if (!(rule.reduce > 0)) return null;
   return { rule: rule.name || "", amount: round2(rule.reduce) };
 }
 // 成單計優惠（純函數）：items = [{code, qty, price}]。
@@ -1059,7 +1065,7 @@ function renderVerify(){
       '<input class="vreasonDetail" id="vdetail' + i + '" type="text" placeholder="其他原因說明（可空）" style="display:' + (ln.reason === '其他' ? 'block' : 'none') + ';margin-top:4px;" value="' + esc(ln.reasonDetail || '') + '" oninput="verifyLines[' + i + '].reasonDetail=this.value"></td></tr>';
   });
   // 滿減行（成單一條，冇優惠嗰陣隱藏；金額由 recomputeVerify 更新）
-  html += '<tr id="vDiscountRow" style="display:none;"><td class="prodcol">滿減優惠</td><td>—</td><td>1</td><td id="vDiscountAmt">—</td><td></td></tr>';
+  html += '<tr id="vDiscountRow" style="display:none;"><td class="prodcol" id="vDiscountName">滿減優惠</td><td>—</td><td>1</td><td id="vDiscountAmt">—</td><td></td></tr>';
   document.getElementById("verifyBody").innerHTML = html;
   recomputeVerify();
 }
@@ -1095,6 +1101,8 @@ function recomputeVerify(){
   var dRow = document.getElementById("vDiscountRow"), dAmt = document.getElementById("vDiscountAmt");
   if (dRow) dRow.style.display = orderDiscount ? "" : "none";
   if (dAmt) dAmt.textContent = orderDiscount ? "−" + fmtMoney(orderDiscount.amount) : "—";
+  var dName = document.getElementById("vDiscountName");
+  if (dName) dName.textContent = orderDiscount ? ("滿減優惠" + (orderDiscount.rule ? "（" + orderDiscount.rule + "）" : "")) : "滿減優惠";
   var t = document.getElementById("verifyTotal");
   if (t) {
     if (!ok) t.textContent = "訂單總金額：（有未填好嘅行）";
