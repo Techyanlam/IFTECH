@@ -158,9 +158,9 @@
 
     <h2 class="sec">門店比較</h2>
     <div class="minihead"><span class="sub" id="branchNote"></span><button class="xbtn" id="expBranch">⬇ 匯出門店比較 CSV</button></div>
-    <table><thead><tr><th>門店</th><th class="num">淨銷售額</th><th class="num">已銷售（件）</th><th class="num">佔比</th><th class="num">日均銷售額</th><th class="num">毛利</th><th class="num">較上期</th></tr></thead><tbody id="branchBody"></tbody></table>
+    <table><thead><tr><th>門店</th><th class="num">淨銷售額</th><th class="num">已銷售（件）</th><th class="num">佔比（金額）</th><th class="num">日均銷售額</th><th class="num">毛利</th><th class="num">較上期</th></tr></thead><tbody id="branchBody"></tbody></table>
 
-    <h2 class="sec">類別佔比</h2>
+    <h2 class="sec">類別佔比（金額）</h2>
     <div class="trendbox"><div id="catMixWrap">載入中…</div><div class="sub">按產品小類（中式／泰式…）計；金額用實際金額（有優惠嗰行用優惠後金額，冇就標準價 × 已銷售）。</div></div>
 
     <h2 class="sec">暢銷榜 / 滯銷榜</h2>
@@ -560,7 +560,7 @@ function renderStores(){
   var stores = ALL_STORES.slice();
   document.getElementById("storeCards").innerHTML = stores.map(function(s){
     var v = byStore[s] || 0, pct = total ? Math.round(v / total * 100) : 0;
-    return '<div class="store"><div class="s">' + s + '</div><div class="n">' + fmt(v) + ' <small>件</small></div><div class="p">佔 ' + pct + '%</div></div>';
+    return '<div class="store"><div class="s">' + s + '</div><div class="n">' + fmt(v) + ' <small>件</small></div><div class="p">佔件數 ' + pct + '%</div></div>';
   }).join("");
 }
 function csvCell(v){ v = (v === null || v === undefined) ? "" : String(v); return '"' + v.replace(/"/g, '""') + '"'; }
@@ -996,7 +996,7 @@ if (expBranchBtn) expBranchBtn.onclick = function(){
   var agg = aggByStore(rows, 1);
   var total = agg.reduce(function(s, m){ return s + m.amount; }, 0);
   downloadCSVGeneric("branch_compare_" + (curDate || "all") + ".csv",
-    ["門店", "淨銷售額", "已銷售（件）", "佔比%", "毛利"],
+    ["門店", "淨銷售額", "已銷售（件）", "佔比%（金額）", "毛利"],
     agg.map(function(m){ return [m.store, Math.round(m.amount * 100) / 100, m.sold, total ? Math.round(m.amount / total * 1000) / 10 : 0, m.hasCost ? Math.round(m.profit * 100) / 100 : "待填成本"]; }));
 };
 document.getElementById("dateSel").addEventListener("change", function(){
