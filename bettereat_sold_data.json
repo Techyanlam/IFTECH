@@ -1,7 +1,7 @@
 {
   "source": "BETTEREAT-Feishu-Base",
   "date": "2026-11-18",
-  "generated_at": "2026-11-18T06:34:39+08:00",
+  "generated_at": "2026-11-18T17:35:31+08:00",
   "records": [
     {
       "store": "Aeon (MKH)",
@@ -11,7 +11,8 @@
       "allocated_pans": 1.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 3
+      "sold_pcs": 3,
+      "amount": null
     },
     {
       "store": "Aeon (MKH)",
@@ -21,7 +22,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 15
+      "sold_pcs": 15,
+      "amount": null
     },
     {
       "store": "Aeon (MKH)",
@@ -31,7 +33,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 24
+      "sold_pcs": 24,
+      "amount": null
     },
     {
       "store": "Aeon (MKH)",
@@ -41,7 +44,8 @@
       "allocated_pans": 1.5,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 8
+      "sold_pcs": 8,
+      "amount": null
     },
     {
       "store": "Aeon (MKH)",
@@ -51,7 +55,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "Aeon (MKH)",
@@ -61,7 +66,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "Aeon (MKH)",
@@ -71,7 +77,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "Aeon (MKH)",
@@ -81,7 +88,8 @@
       "allocated_pans": 2.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "Aeon (MKH)",
@@ -91,7 +99,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "Aeon (MKH)",
@@ -101,7 +110,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 5
+      "sold_pcs": 5,
+      "amount": null
     },
     {
       "store": "Aeon (MKH)",
@@ -111,7 +121,8 @@
       "allocated_pans": 20.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "Aeon (MKH)",
@@ -121,7 +132,8 @@
       "allocated_pans": 20.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "Aeon (MKH)",
@@ -131,7 +143,8 @@
       "allocated_pans": 10.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "Aeon (MKH)",
@@ -141,7 +154,8 @@
       "allocated_pans": 8.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 4
+      "sold_pcs": 4,
+      "amount": null
     },
     {
       "store": "將軍澳 (MMCP)",
@@ -151,7 +165,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "將軍澳 (MMCP)",
@@ -161,7 +176,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "將軍澳 (MMCP)",
@@ -171,7 +187,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "將軍澳 (MMCP)",
@@ -181,7 +198,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "淘大 (MAP)",
@@ -191,7 +209,8 @@
       "allocated_pans": 1.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "淘大 (MAP)",
@@ -201,7 +220,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 6
+      "sold_pcs": 8,
+      "amount": 66.0
     },
     {
       "store": "淘大 (MAP)",
@@ -211,7 +231,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 2
+      "sold_pcs": 2,
+      "amount": null
     },
     {
       "store": "淘大 (MAP)",
@@ -221,7 +242,8 @@
       "allocated_pans": 2.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "淘大 (MAP)",
@@ -231,7 +253,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "淘大 (MAP)",
@@ -241,7 +264,8 @@
       "allocated_pans": 10.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "淘大 (MAP)",
@@ -251,7 +275,8 @@
       "allocated_pans": 10.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "淘大 (MAP)",
@@ -261,7 +286,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "淘大 (MAP)",
@@ -271,7 +297,8 @@
       "allocated_pans": 10.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "謝斐 (MJF)",
@@ -281,7 +308,8 @@
       "allocated_pans": 9.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 7
+      "sold_pcs": 7,
+      "amount": null
     },
     {
       "store": "謝斐 (MJF)",
@@ -291,7 +319,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 3
+      "sold_pcs": 3,
+      "amount": null
     },
     {
       "store": "謝斐 (MJF)",
@@ -301,7 +330,8 @@
       "allocated_pans": 0.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "謝斐 (MJF)",
@@ -311,7 +341,8 @@
       "allocated_pans": 12.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     },
     {
       "store": "謝斐 (MJF)",
@@ -321,7 +352,8 @@
       "allocated_pans": 10.0,
       "no_of_pcs": null,
       "remaining_pcs": null,
-      "sold_pcs": 1
+      "sold_pcs": 1,
+      "amount": null
     }
   ],
   "history": {
@@ -17596,7 +17628,8 @@
         "allocated_pans": 1.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 3
+        "sold_pcs": 3,
+        "amount": null
       },
       {
         "store": "Aeon (MKH)",
@@ -17606,7 +17639,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 15
+        "sold_pcs": 15,
+        "amount": null
       },
       {
         "store": "Aeon (MKH)",
@@ -17616,7 +17650,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 24
+        "sold_pcs": 24,
+        "amount": null
       },
       {
         "store": "Aeon (MKH)",
@@ -17626,7 +17661,8 @@
         "allocated_pans": 1.5,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 8
+        "sold_pcs": 8,
+        "amount": null
       },
       {
         "store": "Aeon (MKH)",
@@ -17636,7 +17672,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "Aeon (MKH)",
@@ -17646,7 +17683,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "Aeon (MKH)",
@@ -17656,7 +17694,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "Aeon (MKH)",
@@ -17666,7 +17705,8 @@
         "allocated_pans": 2.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "Aeon (MKH)",
@@ -17676,7 +17716,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "Aeon (MKH)",
@@ -17686,7 +17727,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 5
+        "sold_pcs": 5,
+        "amount": null
       },
       {
         "store": "Aeon (MKH)",
@@ -17696,7 +17738,8 @@
         "allocated_pans": 20.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "Aeon (MKH)",
@@ -17706,7 +17749,8 @@
         "allocated_pans": 20.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "Aeon (MKH)",
@@ -17716,7 +17760,8 @@
         "allocated_pans": 10.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "Aeon (MKH)",
@@ -17726,7 +17771,8 @@
         "allocated_pans": 8.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 4
+        "sold_pcs": 4,
+        "amount": null
       },
       {
         "store": "將軍澳 (MMCP)",
@@ -17736,7 +17782,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "將軍澳 (MMCP)",
@@ -17746,7 +17793,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "將軍澳 (MMCP)",
@@ -17756,7 +17804,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "將軍澳 (MMCP)",
@@ -17766,7 +17815,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "淘大 (MAP)",
@@ -17776,7 +17826,8 @@
         "allocated_pans": 1.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "淘大 (MAP)",
@@ -17786,7 +17837,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 6
+        "sold_pcs": 8,
+        "amount": 66.0
       },
       {
         "store": "淘大 (MAP)",
@@ -17796,7 +17848,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 2
+        "sold_pcs": 2,
+        "amount": null
       },
       {
         "store": "淘大 (MAP)",
@@ -17806,7 +17859,8 @@
         "allocated_pans": 2.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "淘大 (MAP)",
@@ -17816,7 +17870,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "淘大 (MAP)",
@@ -17826,7 +17881,8 @@
         "allocated_pans": 10.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "淘大 (MAP)",
@@ -17836,7 +17892,8 @@
         "allocated_pans": 10.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "淘大 (MAP)",
@@ -17846,7 +17903,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "淘大 (MAP)",
@@ -17856,7 +17914,8 @@
         "allocated_pans": 10.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "謝斐 (MJF)",
@@ -17866,7 +17925,8 @@
         "allocated_pans": 9.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 7
+        "sold_pcs": 7,
+        "amount": null
       },
       {
         "store": "謝斐 (MJF)",
@@ -17876,7 +17936,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 3
+        "sold_pcs": 3,
+        "amount": null
       },
       {
         "store": "謝斐 (MJF)",
@@ -17886,7 +17947,8 @@
         "allocated_pans": 0.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "謝斐 (MJF)",
@@ -17896,7 +17958,8 @@
         "allocated_pans": 12.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       },
       {
         "store": "謝斐 (MJF)",
@@ -17906,7 +17969,8 @@
         "allocated_pans": 10.0,
         "no_of_pcs": null,
         "remaining_pcs": null,
-        "sold_pcs": 1
+        "sold_pcs": 1,
+        "amount": null
       }
     ]
   }

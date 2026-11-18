@@ -1,6 +1,6 @@
 {
   "source": "BETTEREAT-Feishu-Base-T1",
-  "generated_at": "2026-11-18T06:34:22+08:00",
+  "generated_at": "2026-11-18T17:34:55+08:00",
   "count": 49,
   "products": [
     {
@@ -11,7 +11,8 @@
       "cabinet": "常溫",
       "unit": "盤",
       "no_of_pcs": 18,
-      "standard_price": 11,
+      "standard_price": 22,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -25,6 +26,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -37,7 +39,8 @@
       "cabinet": "常溫",
       "unit": "盤",
       "no_of_pcs": 49,
-      "standard_price": 11,
+      "standard_price": 3,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -51,6 +54,7 @@
       "unit": "盤",
       "no_of_pcs": 16,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -64,6 +68,7 @@
       "unit": "盤",
       "no_of_pcs": 16,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -77,6 +82,7 @@
       "unit": "盤",
       "no_of_pcs": 16,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -90,6 +96,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -103,6 +110,7 @@
       "unit": "盤",
       "no_of_pcs": 40,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -116,6 +124,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -129,6 +138,7 @@
       "unit": "盤",
       "no_of_pcs": 40,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -142,6 +152,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -155,6 +166,7 @@
       "unit": "盤",
       "no_of_pcs": 40,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -168,6 +180,7 @@
       "unit": "盤",
       "no_of_pcs": 25,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -181,6 +194,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -194,6 +208,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -207,6 +222,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -220,6 +236,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -233,6 +250,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -246,6 +264,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -259,6 +278,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -272,6 +292,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -285,6 +306,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -298,6 +320,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -311,6 +334,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -324,6 +348,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -337,6 +362,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -350,6 +376,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -363,6 +390,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -376,6 +404,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -389,6 +418,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -402,6 +432,7 @@
       "unit": "盤",
       "no_of_pcs": 1,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -415,6 +446,7 @@
       "unit": "盤",
       "no_of_pcs": 15,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -428,6 +460,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -441,6 +474,7 @@
       "unit": "盤",
       "no_of_pcs": 20,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -454,6 +488,7 @@
       "unit": "盤",
       "no_of_pcs": 20,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -467,6 +502,7 @@
       "unit": "盤",
       "no_of_pcs": 20,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -480,6 +516,7 @@
       "unit": "盤",
       "no_of_pcs": 49,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -493,6 +530,7 @@
       "unit": "盤",
       "no_of_pcs": 1,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -506,6 +544,7 @@
       "unit": "杯",
       "no_of_pcs": 1,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -519,6 +558,7 @@
       "unit": "杯",
       "no_of_pcs": 1,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -532,6 +572,7 @@
       "unit": "杯",
       "no_of_pcs": 1,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -545,6 +586,7 @@
       "unit": "杯",
       "no_of_pcs": 1,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -558,6 +600,7 @@
       "unit": "件",
       "no_of_pcs": 1,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -571,6 +614,7 @@
       "unit": "件",
       "no_of_pcs": 1,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -584,6 +628,7 @@
       "unit": "件",
       "no_of_pcs": 1,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -597,6 +642,7 @@
       "unit": "件",
       "no_of_pcs": 1,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -610,6 +656,7 @@
       "unit": "件",
       "no_of_pcs": 1,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -623,6 +670,7 @@
       "unit": "件",
       "no_of_pcs": 1,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
@@ -636,6 +684,7 @@
       "unit": "件",
       "no_of_pcs": 1,
       "standard_price": 11,
+      "cost": null,
       "sku": "",
       "status": "啟用",
       "remarks": ""
