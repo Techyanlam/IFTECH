@@ -373,13 +373,22 @@ function renderCartPanel(){
   list.forEach(function(it, idx){
     var pl = promo.lines[idx];
     var hasPrice = (typeof it.price === "number" && isFinite(it.price));
-    var sub = (hasPrice && pl.unitPrice !== null && pl.unitPrice !== undefined) ? Math.round(pl.unitPrice * it.qty * 100) / 100 : null;
+    var sub = pl.subtotal;
     html += '<div class="sideItem">'
       + '<div class="sideName">' + esc(it.name) + ' <span>' + esc(it.code) + '</span></div>'
       + (pl.note ? '<div style="font-size:12px;color:#a06a14;">' + esc(pl.note) + '</div>' : '')
       + '<div class="sideRow"><span class="sidePrice">' + (hasPrice ? fmtMoney(pl.unitPrice) + (it.unit ? "/" + esc(it.unit) : "") : "未定價") + '</span>'
       + '<span class="sideStep"><button onclick="event.stopPropagation();removeItem(\'' + esc(it.code) + '\')">−</button><span>' + it.qty + '</span><button onclick="event.stopPropagation();addItem(\'' + esc(it.code) + '\')">＋</button></span>'
       + '<span class="sideSub">' + (sub == null ? "—" : fmtMoney(sub)) + '</span></div></div>';
+  });
+  // 贈品自動入購物車（2026-11-18 最平免費）：免費嗰啲係 $0 行，唔可以加減數量；
+  // 改實付數量／價錢嗰陣，免費嗰款會自動跟住變（最平嗰件）。
+  (promo.freeLines || []).forEach(function(g){
+    html += '<div class="sideItem" style="background:#f7f3e8;">'
+      + '<div class="sideName">🎁 ' + esc(g.name) + ' <span>' + esc(g.code) + ' · 贈品</span></div>'
+      + '<div style="font-size:12px;color:#a06a14;">' + esc(g.ruleName) + '：送 ' + g.qty + ' 件 · $0</div>'
+      + '<div class="sideRow"><span class="sidePrice">$0</span><span class="sideStep"><span>×' + g.qty + '</span></span>'
+      + '<span class="sideSub">$0</span></div></div>';
   });
   el.innerHTML = html;
   if (totalEl) {
@@ -792,15 +801,12 @@ function firstPromoRule(rules, type, store, code, today){
   }
   return null;
 }
-// 每行優惠：買幾送幾（免費件數，唔遞歸）＋折扣（折後單價）。
-// manual=true 嗰陣：人手改價贏優惠，折扣唔計（unitPrice 保持原價）；
-// 送嘅件數係數量賺返嚟，唔係價錢，所以照計（設計 §4：人手改嗰行用改咗嘅價）。
+// 每行優惠：折扣（折後單價）＋買幾送幾規則配對（邊條規則啱呢款）。
+// 免費件數唔喺度計——2026-11-18 起買幾送幾係全單最平免費（見 allocateFreeGifts），
+// 每款免費幾多要睇成單嘅貨，唔係呢行自己嘅數量。
+// manual=true 嗰陣：人手改價贏優惠，折扣唔計（unitPrice 保持原價）。
 function promoForLine(item, rules, store, today, manual){
   var buyRule = firstPromoRule(rules, "買幾送幾", store, item.code, today);
-  var freeQty = 0;
-  if (buyRule && buyRule.buyX > 0 && buyRule.getY > 0) {
-    freeQty = Math.floor((item.qty || 0) / buyRule.buyX) * buyRule.getY;
-  }
   var discRule = firstPromoRule(rules, "折扣", store, item.code, today);
   var unitPrice = item.price, effDiscRule = null;
   if (!manual && discRule && discRule.discount > 0 && discRule.discount < 10
@@ -808,41 +814,54 @@ function promoForLine(item, rules, store, today, manual){
     unitPrice = round2(item.price * discRule.discount / 10);
     effDiscRule = discRule;
   }
-  return { unitPrice: unitPrice, freeQty: freeQty, buyRule: buyRule, discRule: effDiscRule };
+  return { unitPrice: unitPrice, buyRule: buyRule, discRule: effDiscRule };
 }
-function promoNoteFor(pl, manual, giftName, ownName){
+// 優惠註明：贈品一定係本行產品（最平免費嗰件就係呢款本身），唔使再寫款名。
+function promoNoteFor(pl, manual){
   var parts = [];
   if (pl.freeQty > 0 && pl.buyRule) {
-    // 贈品唔同款先寫明款名（同一款維持原樣「送 N 件」，等舊測試唔使改）
-    if (giftName && ownName && giftName !== ownName) parts.push("買" + pl.buyRule.buyX + "送" + pl.buyRule.getY + "：送 " + giftName + " " + pl.freeQty + " 件");
-    else parts.push("買" + pl.buyRule.buyX + "送" + pl.buyRule.getY + "：送 " + pl.freeQty + " 件");
+    parts.push("買" + pl.buyRule.buyX + "送" + pl.buyRule.getY + "：送 " + pl.freeQty + " 件");
   }
   if (!manual && pl.discRule) parts.push(pl.discRule.discount + "折");
   return parts.join(" · ");
 }
-// 贈品選擇（跨款贈品，設計 §9）：按產品編號搵名；搵唔到返 ""。
-function productNameByCode(code){
-  for (var i = 0; i < products.length; i++) if (products[i].code === code) return products[i].name || "";
-  return "";
-}
-// 核實行而家揀咗送邊款（未揀 = 本行產品）
-function giftNameFor(ln){
-  var n = ln.giftCode ? productNameByCode(ln.giftCode) : "";
-  return n || ln.name || "";
-}
-function giftOptionsFor(ln){
-  return products.map(function(p){
-    return '<option value="' + esc(p.code) + '"' + (p.code === ln.giftCode ? ' selected' : '') + '>' + esc(p.name) + '</option>';
-  }).join('');
-}
-// 核實面板揀贈品款：記低選擇，更新註明（唔使重計金額，贈品 $0）
-function setGiftChoice(i, code){
-  if (!verifyLines || !verifyLines[i]) return;
-  verifyLines[i].giftCode = code;
-  verifyLines[i].giftName = productNameByCode(code) || verifyLines[i].name;
-  var noteCell = document.getElementById("vnote" + i);
-  if (noteCell) noteCell.textContent = verifyLines[i].promoNote || "";
-  recomputeVerify();
+// 全單最平免費（2026-11-18，Yan 批准）：買幾送幾唔再每款各自計，成單一齊計。
+// items = [{code, name, qty, effPrice, buyRule}]，effPrice = 實付單價（有折扣計折後價；
+// 未定價嗰行當最貴，唔會免費）。每條規則各自成組：組入面啲件按實付單價由貴到平排，
+// 每 X+Y 件一組，每組最平嗰 Y 件免費（例：買1送1 每 2 件最平嗰件免費；買三送一 每 4 件最平嗰件免費）。
+// 回 { freeByCode: {code: 免費件數}, freeLines: [{code, name, qty, ruleName}], totalFree }。
+function allocateFreeGifts(items){
+  var freeByCode = {}, freeLines = [], totalFree = 0;
+  var groups = [];
+  function groupFor(rule){
+    for (var i = 0; i < groups.length; i++) if (groups[i].rule === rule) return groups[i];
+    var g = { rule: rule, units: [] };
+    groups.push(g);
+    return g;
+  }
+  (items || []).forEach(function(it, idx){
+    if (!it.buyRule || !(it.buyRule.buyX > 0) || !(it.buyRule.getY > 0)) return;
+    var g = groupFor(it.buyRule);
+    for (var k = 0; k < (it.qty || 0); k++) {
+      g.units.push({ code: it.code, name: it.name, effPrice: it.effPrice, idx: idx });
+    }
+  });
+  groups.forEach(function(g){
+    var X = g.rule.buyX, Y = g.rule.getY, units = g.units, size = X + Y;
+    units.sort(function(a, b){ return (b.effPrice - a.effPrice) || (a.idx - b.idx); });
+    for (var s = 0; s + size <= units.length; s += size) {
+      for (var j = size - Y; j < size; j++) {
+        var u = units[s + j];
+        freeByCode[u.code] = (freeByCode[u.code] || 0) + 1;
+        totalFree++;
+      }
+    }
+  });
+  (items || []).forEach(function(it){
+    var fq = freeByCode[it.code] || 0;
+    if (fq > 0) freeLines.push({ code: it.code, name: it.name, qty: fq, ruleName: (it.buyRule && it.buyRule.name) || "" });
+  });
+  return { freeByCode: freeByCode, freeLines: freeLines, totalFree: totalFree };
 }
 function promoRuleNameFor(pl, manual){
   if (pl.freeQty > 0 && pl.buyRule) return pl.buyRule.name;
@@ -863,21 +882,31 @@ function promoForOrder(discountedSubtotal, rules, store, today){
   return { rule: rule.name || "", amount: round2(rule.reduce) };
 }
 // 成單計優惠（純函數）：items = [{code, qty, price}]。
-// 回 { lines, originalSubtotal, discountedSubtotal, orderDiscount, payable, unpriced }。
+// 回 { lines, originalSubtotal, discountedSubtotal, orderDiscount, payable, unpriced,
+//      freeLines, totalFree }。lines 每行多咗 paidQty（實付件數 = qty − freeQty）。
+// 原價小計 = 標準價 × 全部件數；折扣後小計 = 折後單價 × 實付件數（免費嗰啲 $0，唔計入）。
 // 未定價嗰行唔計入小計（但會標 unpriced），其他行照計。
 function applyPromos(items, rules, store, today){
   rules = rules || [];
   store = store || "";
   today = today || promoTodayStr();
-  var lines = [], orig = 0, disc = 0, unpriced = false;
-  (items || []).forEach(function(it){
+  var enriched = (items || []).map(function(it){
     var pl = promoForLine(it, rules, store, today, false);
-    var qty = it.qty || 0;
-    var hasPrice = (typeof it.price === "number" && isFinite(it.price));
-    var stdSub = hasPrice ? round2(it.price * qty) : null;
-    var lineSub = (hasPrice && pl.unitPrice !== null && pl.unitPrice !== undefined) ? round2(pl.unitPrice * qty) : null;
+    var eff = (typeof pl.unitPrice === "number" && isFinite(pl.unitPrice)) ? pl.unitPrice : Infinity;
+    return { code: it.code, name: it.name, qty: it.qty || 0, price: it.price,
+      unitPrice: pl.unitPrice, buyRule: pl.buyRule, discRule: pl.discRule, effPrice: eff };
+  });
+  var alloc = allocateFreeGifts(enriched);
+  var lines = [], orig = 0, disc = 0, unpriced = false;
+  enriched.forEach(function(e){
+    var freeQty = alloc.freeByCode[e.code] || 0;
+    var paidQty = e.qty - freeQty;
+    var pl = { unitPrice: e.unitPrice, freeQty: freeQty, buyRule: e.buyRule, discRule: e.discRule };
+    var hasPrice = (typeof e.price === "number" && isFinite(e.price));
+    var stdSub = hasPrice ? round2(e.price * e.qty) : null;
+    var lineSub = (hasPrice && e.unitPrice !== null && e.unitPrice !== undefined) ? round2(e.unitPrice * paidQty) : null;
     if (stdSub === null || lineSub === null) unpriced = true; else { orig += stdSub; disc += lineSub; }
-    lines.push({ code: it.code, qty: qty, unitPrice: pl.unitPrice, freeQty: pl.freeQty,
+    lines.push({ code: e.code, qty: e.qty, paidQty: paidQty, unitPrice: e.unitPrice, freeQty: freeQty,
       promoRule: promoRuleNameFor(pl, false), promoType: promoTypeFor(pl, false),
       note: promoNoteFor(pl, false), stdSubtotal: stdSub, subtotal: lineSub });
   });
@@ -885,7 +914,8 @@ function applyPromos(items, rules, store, today){
   var payable = round2(disc - (orderDiscount ? orderDiscount.amount : 0));
   return { lines: lines, originalSubtotal: round2(orig),
     discountedSubtotal: round2(disc),
-    orderDiscount: orderDiscount, payable: payable, unpriced: unpriced };
+    orderDiscount: orderDiscount, payable: payable, unpriced: unpriced,
+    freeLines: alloc.freeLines, totalFree: alloc.totalFree };
 }
 function fetchPromoRules(){
   // 開頁嗰陣經 Worker 讀優惠規則；讀唔到（Worker 斷線／未設表）就當冇優惠，唔阻落單。
@@ -946,16 +976,39 @@ function buildVerifyLines(){
       if (pl.unitPrice !== null && pl.unitPrice !== undefined && parseFloat(old.price) === pl.unitPrice) { manual = false; price = pl.unitPrice; }
       else { manual = true; price = parseFloat(old.price); }
     }
-    var eff = manual ? promoForLine(it, promoRules, store, today, true) : pl;
-    var giftCode = (old && old.giftCode) ? old.giftCode : it.code;
-    var giftName = productNameByCode(giftCode) || it.name;
     return { code: it.code, name: it.name, unit: it.unit, qty: it.qty, qty0: it.qty, stdPrice: it.price,
       price: price, manual: manual,
-      promoPrice: pl.unitPrice, promoFreeQty: eff.freeQty,
-      promoRule: promoRuleNameFor(eff, manual), promoType: promoTypeFor(eff, manual),
-      promoNote: promoNoteFor(eff, manual, giftName, it.name),
-      giftCode: giftCode, giftName: giftName,
+      promoPrice: pl.unitPrice, promoFreeQty: 0,
+      promoRule: "", promoType: "",
+      promoNote: "",
       reason: (old && old.manual) ? old.reason : "", reasonDetail: (old && old.manual) ? old.reasonDetail : "" };
+  });
+  refreshVerifyPromos();
+}
+// 按而家核實行嘅數量＋實付單價，全單計最平免費（allocateFreeGifts）：
+// 實付單價 = 人手改咗價就用改咗嘅價，否則用折後單價。人手改價／改數量嗰陣，
+// 免費嗰款會自動跟住變（最平嗰件）。
+function refreshVerifyPromos(){
+  var store = getRecordsShop(), today = promoTodayStr();
+  var items = (verifyLines || []).map(function(ln){
+    var p = parseFloat(ln.price);
+    var pl = promoForLine({ code: ln.code, qty: ln.qty, price: ln.stdPrice }, promoRules, store, today, false);
+    var eff = (ln.manual && isFinite(p)) ? p : pl.unitPrice;
+    return { code: ln.code, name: ln.name, qty: parseInt(ln.qty, 10) || 0,
+      effPrice: (typeof eff === "number" && isFinite(eff)) ? eff : Infinity,
+      buyRule: pl.buyRule, discRule: ln.manual ? null : pl.discRule, promoPrice: pl.unitPrice };
+  });
+  var alloc = allocateFreeGifts(items);
+  (verifyLines || []).forEach(function(ln, i){
+    var it = items[i];
+    var pl = { unitPrice: it.promoPrice, freeQty: alloc.freeByCode[ln.code] || 0, buyRule: it.buyRule, discRule: it.discRule };
+    ln.promoPrice = it.promoPrice;
+    ln.promoFreeQty = pl.freeQty;
+    ln.promoRule = promoRuleNameFor(pl, !!ln.manual);
+    ln.promoType = promoTypeFor(pl, !!ln.manual);
+    ln.promoNote = promoNoteFor(pl, !!ln.manual);
+    var noteCell = document.getElementById("vnote" + i);
+    if (noteCell) noteCell.textContent = ln.promoNote || "";
   });
 }
 function syncVerifyPanel(){
@@ -978,8 +1031,7 @@ function renderVerify(){
   var html = "";
   list.forEach(function(ln, i){
     var sub = (validPrice(parseFloat(ln.price)) && validQty(parseFloat(ln.qty))) ? fmtMoney(parseFloat(ln.price) * parseFloat(ln.qty)) : "—";
-    html += '<tr><td class="prodcol">' + esc(ln.name) + '（' + esc(ln.unit) + '）<div id="vnote' + i + '" style="font-size:12px;color:#a06a14;">' + esc(ln.promoNote || "") + '</div>' +
-      '<div id="vgift' + i + '" style="font-size:12px;margin-top:4px;display:' + ((ln.promoFreeQty > 0) ? 'block' : 'none') + ';">送邊款：<select onchange="setGiftChoice(' + i + ', this.value)">' + giftOptionsFor(ln) + '</select></div></td>' +
+    html += '<tr><td class="prodcol">' + esc(ln.name) + '（' + esc(ln.unit) + '）<div id="vnote' + i + '" style="font-size:12px;color:#a06a14;">' + esc(ln.promoNote || "") + '</div></td>' +
       '<td><input class="vprice" type="number" step="any" min="0" value="' + esc(ln.price == null ? "" : ln.price) + '" oninput="verifyLines[' + i + '].price=this.value;verifyLines[' + i + '].manual=true;recomputeVerify()"></td>' +
       '<td><input class="vqty" type="number" step="1" min="1" value="' + esc(ln.qty) + '" oninput="verifyLines[' + i + '].qty=this.value;recomputeVerify()"></td>' +
       '<td id="vsub' + i + '">' + sub + '</td>' +
@@ -994,24 +1046,22 @@ function renderVerify(){
 function recomputeVerify(){
   var total = 0, ok = true, origTotal = 0, hasPromo = false;
   var store = getRecordsShop(), today = promoTodayStr();
+  // 價錢改返去等於優惠價嗰陣，取消手動狀態（優惠恢復），先至重計免費分配
+  (verifyLines || []).forEach(function(ln){
+    var p = parseFloat(ln.price);
+    if (ln.manual && ln.promoPrice !== null && ln.promoPrice !== undefined && !isNaN(p) && p === ln.promoPrice) ln.manual = false;
+  });
+  // 數量／價錢改咗嗰陣，優惠要跟返而家嘅數量＋實付單價重計（最平免費嗰款會自動變）
+  refreshVerifyPromos();
   (verifyLines || []).forEach(function(ln, i){
     var p = parseFloat(ln.price), q = parseFloat(ln.qty);
+    var paidQty = (validQty(q) ? q : 0) - (ln.promoFreeQty || 0);
+    if (paidQty < 0) paidQty = 0;
     var cell = document.getElementById("vsub" + i);
-    // 數量改咗嗰陣，優惠要跟返而家嘅數量重計（例如買滿 3 件先送 1 件）
-    if (ln.manual && ln.promoPrice !== null && ln.promoPrice !== undefined && !isNaN(p) && p === ln.promoPrice) ln.manual = false;
-    var pl = promoForLine({ code: ln.code, qty: (validQty(q) ? q : ln.qty0), price: ln.stdPrice }, promoRules, store, today, !!ln.manual);
-    ln.promoFreeQty = pl.freeQty;
-    ln.promoRule = promoRuleNameFor(pl, !!ln.manual);
-    ln.promoType = promoTypeFor(pl, !!ln.manual);
-    ln.promoNote = promoNoteFor(pl, !!ln.manual, giftNameFor(ln), ln.name);
-    var noteCell = document.getElementById("vnote" + i);
-    if (noteCell) noteCell.textContent = ln.promoNote || "";
-    var giftCell = document.getElementById("vgift" + i);
-    if (giftCell) giftCell.style.display = (pl.freeQty > 0 && pl.buyRule) ? "block" : "none";
     if (validPrice(p) && validQty(q)) {
-      total += p * q;
-      if (cell) cell.textContent = fmtMoney(p * q);
-      // 原價小計用未折扣嘅價（本身冇標準價嘅產品就用輸入嘅價）
+      total += p * paidQty;
+      if (cell) cell.textContent = fmtMoney(p * paidQty);
+      // 原價小計用未折扣嘅價（本身冇標準價嘅產品就用輸入嘅價）；全部件數（實付＋贈品）都計
       var basePrice = (typeof ln.stdPrice === "number" && isFinite(ln.stdPrice)) ? ln.stdPrice : p;
       origTotal += basePrice * q;
       if (ln.promoNote) hasPromo = true;
@@ -1097,7 +1147,8 @@ function recordToLine(r){
     status: normStatus(r.status),
     // 優惠：freeQty 係送嘅件數（$0 行），unitPrice 係折後單價（同 price 一致），
     // promoRule/promoType 係邊條規則生效；冇優惠嗰陣 freeQty 0、promoRule/promoType 空字串。
-    // 跨款贈品（設計 §9）：giftProduct/giftProductCode 係送邊款（名／編號）；唔傳／空白 = 送同一款。
+    // 2026-11-18 最平免費：贈品一定係本行產品（giftProduct／giftCode = 本行產品），
+    // 跨款揀贈品嗰個下拉已刪（見 PROMO-DESIGN.md §9）。
     freeQty: (typeof r.freeQty === "number" && isFinite(r.freeQty) && r.freeQty >= 0 && Math.floor(r.freeQty) === r.freeQty) ? r.freeQty : 0,
     giftProduct: (r.giftProduct ? String(r.giftProduct).slice(0, 100) : ""),
     giftProductCode: (r.giftCode ? String(r.giftCode).slice(0, 50) : ""),
@@ -1109,15 +1160,18 @@ function recordToLine(r){
 // 確認提交嗰下，將呢張單嘅行即刻 POST 去 Cloudflare Worker，寫入飛書「銷售紀錄」表。
 // localStorage 記錄一定先存好，同步失敗唔會影響本地記錄；Worker 未加 FEISHU_APP_SECRET 之前一定失敗（屬正常）。
 // orderDiscount（第四個參數）：成單滿減 {rule, amount}，Worker 會加一行「滿減優惠」（負金額，唔扣庫存）。
-function syncSalesToFeishu(rows, statusEl, status, orderDiscount){
-  if (!rows || !rows.length) return;
+// extraLines（第五個參數，可選）：成行免費嗰啲產品嘅 Worker line（實付 0 件，本地冇記錄行，
+// 直接用 Worker line 格式傳，唔經 recordToLine）。
+function syncSalesToFeishu(rows, statusEl, status, orderDiscount, extraLines){
+  if ((!rows || !rows.length) && (!extraLines || !extraLines.length)) return;
   // 邊種提交由第三個參數定，冇傳就跟第一行嘅狀態（再冇就預設已確認）。
   var syncStatus = normStatus(status || (rows[0] && rows[0].status));
   var lines = [];
-  for (var i = 0; i < rows.length; i++) {
+  for (var i = 0; i < (rows || []).length; i++) {
     var line = recordToLine(rows[i]);
     if (line) lines.push(line);
   }
+  (extraLines || []).forEach(function(l){ lines.push(l); });
   var done = false;
   function finish(msg){
     if (done) return; done = true;
@@ -1145,7 +1199,7 @@ function syncSalesToFeishu(rows, statusEl, status, orderDiscount){
           for (var k = 0; k < lines.length; k++) {
             for (var m = 0; m < _arr.length; m++) {
               var _r = _arr[m];
-              if (_r && !_r.feishuId && _r.order === rows[k].order && _r.product === rows[k].product && _r.store === rows[k].store) { _r.feishuId = j.recordIds[k]; break; }
+              if (_r && !_r.feishuId && _r.order === lines[k].order && _r.product === lines[k].product && _r.store === lines[k].store) { _r.feishuId = j.recordIds[k]; break; }
             }
           }
           saveRecords(_arr);
@@ -1180,6 +1234,8 @@ function confirmVerifiedSubmit(status){
   var promoLines = [];
   var store = getRecordsShop(), today = promoTodayStr();
   var discountedSubtotal = 0;
+  // 免費分配跟返而家核實行嘅數量＋實付單價（最平嗰件免費）
+  refreshVerifyPromos();
   for (var i = 0; i < verifyLines.length; i++) {
     var ln = verifyLines[i];
     var p = parseFloat(ln.price), q = parseFloat(ln.qty);
@@ -1191,13 +1247,16 @@ function confirmVerifiedSubmit(status){
     var priceChanged = (effPrice !== null && effPrice !== "" && p !== parseFloat(effPrice));
     var qtyChanged = (q !== ln.qty0);
     if ((priceChanged || qtyChanged) && !ln.reason) { alert("「" + ln.name + "」嘅金額有改動，請選擇改價原因。"); return; }
-    var pl = promoForLine({ code: ln.code, qty: q, price: ln.stdPrice }, promoRules, store, today, !!ln.manual);
-    promoLines.push({ freeQty: pl.freeQty, unitPrice: p,
-      promoRule: promoRuleNameFor(pl, !!ln.manual), promoType: promoTypeFor(pl, !!ln.manual),
-      giftCode: ln.giftCode || ln.code, giftProduct: giftNameFor(ln) });
-    var sub = Math.round(p * q * 100) / 100;
+    // qty = 實付件數（總數 − 免費件數）；成行免費嗰陣實付 0 件，淨係得免費行。
+    // 免費行一定係本行產品（最平嗰件就係呢款本身），giftProduct／giftCode 填返本行產品。
+    var freeQty = ln.promoFreeQty || 0;
+    var paidQty = q - freeQty;
+    promoLines.push({ freeQty: freeQty, unitPrice: p,
+      promoRule: ln.promoRule || "", promoType: ln.promoType || "",
+      giftCode: ln.code, giftProduct: ln.name });
+    var sub = Math.round(p * paidQty * 100) / 100;
     discountedSubtotal += sub;
-    lines.push({ code: ln.code, name: ln.name, qty: q, price: p, subtotal: sub, reason: storedReason(ln.reason, ln.reasonDetail) });
+    lines.push({ code: ln.code, name: ln.name, qty: paidQty, price: p, subtotal: sub, reason: storedReason(ln.reason, ln.reasonDetail) });
   }
   discountedSubtotal = Math.round(discountedSubtotal * 100) / 100;
   var orderDiscount = promoForOrder(discountedSubtotal, promoRules, store, today);
@@ -1213,11 +1272,22 @@ function confirmVerifiedSubmit(status){
     var orderNo = workerNo, fromWorker = !!workerNo;
     if (!orderNo) orderNo = nextOrderNo();
     var meta = { time: time, store: getRecordsShop(), name: "", phone: "", date: "", time2: "", remarks: "" };
-    var rows = lines.map(function(l, idx){
+    // 本地記錄淨係存實付行（成行免費嗰款本地冇行，飛書嗰邊有免費行，記錄頁會由飛書讀返）；
+    // 成行免費嗰款要另外經 extraLines 傳去 Worker 開免費行（唔經本地記錄）。
+    var rows = [], extraLines = [];
+    var _dt = time.split(" ");
+    lines.forEach(function(l, idx){
       var pl = promoLines[idx];
-      return { order: orderNo, time: meta.time, store: meta.store, name: meta.name, phone: meta.phone, date: meta.date, time2: meta.time2, product: l.name, qty: l.qty, price: l.price, subtotal: l.subtotal, orderTotal: total, status: submitStatus, reason: l.reason, remarks: meta.remarks,
-        freeQty: pl.freeQty, unitPrice: pl.unitPrice, promoRule: pl.promoRule, promoType: pl.promoType,
-        giftCode: pl.giftCode || "", giftProduct: pl.giftProduct || "" };
+      if (l.qty > 0) {
+        rows.push({ order: orderNo, time: meta.time, store: meta.store, name: meta.name, phone: meta.phone, date: meta.date, time2: meta.time2, product: l.name, qty: l.qty, price: l.price, subtotal: l.subtotal, orderTotal: total, status: submitStatus, reason: l.reason, remarks: meta.remarks,
+          freeQty: pl.freeQty, unitPrice: pl.unitPrice, promoRule: pl.promoRule, promoType: pl.promoType,
+          giftCode: pl.giftCode || "", giftProduct: pl.giftProduct || "" });
+      } else if (pl.freeQty > 0) {
+        extraLines.push({ order: orderNo, recordDate: _dt[0], recordTime: _dt[1] || "", store: meta.store,
+          product: l.name, qty: 0, price: l.price, subtotal: 0, reason: l.reason, remarks: "",
+          status: submitStatus, freeQty: pl.freeQty, giftProduct: l.name, giftProductCode: l.code,
+          unitPrice: l.price, promoRule: pl.promoRule, promoType: pl.promoType });
+      }
     });
     saveRecords(rows.concat(loadRecords()));
     clearCart();
@@ -1233,7 +1303,7 @@ function confirmVerifiedSubmit(status){
     if (st) { st.textContent = (submitStatus === "待確認"
       ? "已暫存：新增 " + rows.length + " 行記錄（一個產品一行），訂單編號：" + orderNo + "，訂單總金額：" + fmtMoney(total) + promoSuffix + "，未扣庫存。之後去訂單記錄頁確認。"
       : "已確認提交：新增 " + rows.length + " 行記錄（一個產品一行），訂單編號：" + orderNo + "，訂單總金額：" + fmtMoney(total) + promoSuffix + "。") + (fromWorker ? "" : "（單號由呢部機發出，Worker 未能派號，之後喺訂單記錄頁會自動同步去飛書。）"); st.className = "status ok"; }
-    syncSalesToFeishu(rows, st, submitStatus, orderDiscount);
+    syncSalesToFeishu(rows, st, submitStatus, orderDiscount, extraLines);
     if (st && st.scrollIntoView) st.scrollIntoView();
     } finally {
       submitInFlight = false;
