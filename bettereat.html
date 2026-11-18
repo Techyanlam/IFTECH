@@ -470,9 +470,13 @@ function applyDate(){
   renderChips(); renderStores(); renderTable();
 }
 var ALL_STORES = ["MAP", "MJF", "MKH", "MMCP"]; // 四間舖固定顯示，冇數嗰間都顯示 0（2026-11-17 Yan：MMCP 加返）
+// 銷售 JSON 嘅 store 係全名（「謝斐 (MJF)」），唔係代號；比較嗰陣一律轉做代號
+// （2026-11-18 修：未轉之前 renderStores 同門店篩選全部對唔上，四間舖顯示 0 件）
+var CODE_BY_LABEL = { "謝斐 (MJF)": "MJF", "淘大 (MAP)": "MAP", "Aeon (MKH)": "MKH", "將軍澳 (MMCP)": "MMCP" };
+function storeCode(s){ if (!s) return "—"; if (CODE_BY_LABEL[s]) return CODE_BY_LABEL[s]; return s; }
 function renderStores(){
   var byStore = {}, total = 0;
-  allRecords.forEach(function(r){ var s = r.store || "—"; byStore[s] = (byStore[s] || 0) + (r.sold_pcs || 0); total += r.sold_pcs || 0; });
+  allRecords.forEach(function(r){ var s = storeCode(r.store); byStore[s] = (byStore[s] || 0) + (r.sold_pcs || 0); total += r.sold_pcs || 0; });
   var stores = ALL_STORES.slice();
   document.getElementById("storeCards").innerHTML = stores.map(function(s){
     var v = byStore[s] || 0, pct = total ? Math.round(v / total * 100) : 0;
@@ -508,7 +512,7 @@ function renderChips(){
   });
 }
 function renderTable(){
-  var rows = allRecords.filter(function(r){ return curStore==="ALL" || r.store===curStore; });
+  var rows = allRecords.filter(function(r){ return curStore==="ALL" || storeCode(r.store)===curStore; });
   document.getElementById("tbody").innerHTML = rows.map(function(r){
     var e = enrichRow(r);
     var priceCell = e.price === null ? '<td class="num">—</td>' : '<td class="num">' + fmtMoney(e.price) + "</td>";

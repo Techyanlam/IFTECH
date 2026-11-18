@@ -129,6 +129,10 @@ var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettere
 var PRODUCTS_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_products.json";
 var productsByCode = {}; // product_code -> { price, cost }（T1 產品主檔；讀唔到就留空，單價／金額顯示 —）
 var STORES = ["MJF", "MAP", "MKH", "MMCP"];
+// 銷售 JSON 嘅 store 係全名（「謝斐 (MJF)」），唔係代號；入 map 嗰陣一律轉做代號
+// （2026-11-18 修：未轉之前按產品檢視頁四間舖全部顯示 —／0 件，同報表同一個 bug）
+var CODE_BY_LABEL = { "謝斐 (MJF)": "MJF", "淘大 (MAP)": "MAP", "Aeon (MKH)": "MKH", "將軍澳 (MMCP)": "MMCP" };
+function storeCode(s){ if (!s) return "—"; if (CODE_BY_LABEL[s]) return CODE_BY_LABEL[s]; return s; }
 var STORE_NAMES = { MJF: "謝斐", MAP: "淘大", MKH: "Aeon", MMCP: "將軍澳" };
 var payload = null, curDate = "", selected = {}, selOnly = false, searchText = "";
 
@@ -192,7 +196,7 @@ function buildItems(){
   recs.forEach(function(r){
     var code = r.product_code;
     if (!map[code]) { map[code] = { code: code, name: r.product_name, unit: r.unit, stores: {} }; order.push(code); }
-    map[code].stores[r.store] = { alloc: allocPcs(r), sold: r.sold_pcs || 0, rem: r.remaining_pcs || 0 };
+    map[code].stores[storeCode(r.store)] = { alloc: allocPcs(r), sold: r.sold_pcs || 0, rem: r.remaining_pcs || 0 };
   });
   order.sort();
   return order.map(function(c){ return map[c]; });
