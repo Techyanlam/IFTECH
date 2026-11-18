@@ -1,6 +1,6 @@
 {
   "source": "BETTEREAT-Feishu-Base-T1",
-  "generated_at": "2026-11-18T20:48:47+08:00",
+  "generated_at": "2026-11-18T20:53:12+08:00",
   "count": 49,
   "products": [
     {
@@ -26,7 +26,7 @@
       "unit": "件",
       "no_of_pcs": 49,
       "standard_price": 11,
-      "cost": 1,
+      "cost": 2,
       "sku": "",
       "status": "啟用",
       "remarks": ""
