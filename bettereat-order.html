@@ -25,6 +25,10 @@
   .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
   .controls input[type="text"] { flex: 1; min-width: 200px; padding: 9px 12px; font-size: 15px; border: 1px solid #d8cfc0; border-radius: 10px; background: #fff; }
   .note { background: #fdf8ef; border: 1px solid #e6d3ac; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #6d6152; margin-bottom: 14px; line-height: 1.7; }
+  .catsum { background: #fdf8ef; border: 1px solid #e6d3ac; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #6d6152; margin-bottom: 14px; line-height: 1.9; }
+  .catsum a { color: #a06a14; text-decoration: none; font-weight: 700; }
+  .catsum a:hover { text-decoration: underline; }
+  .catgroup { scroll-margin-top: 130px; }
   .shopbtns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
   .shopbtn { padding: 10px 20px; font-size: 15px; border: 1px solid #d8cbb6; color: #6d6152; background: #fff; border-radius: 999px; cursor: pointer; }
   .shopbtn.active { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border-color: #b97a1e; font-weight: 700; }
@@ -168,7 +172,7 @@
   <div class="controls">
     <input type="text" id="searchInput" placeholder="搜尋產品名稱／編號">
   </div>
-  <div class="note">撳產品圖就加 1 件；左邊「已選訂單」會即時見到揀咗咩同總金額。已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。如果飛書改咗價，撳頂部「🔄 價格更新」就會即時讀取最新價錢，唔使重新載入成頁。訂單會記落你登入嗰間店；揀好產品之後，下面會直接出「核實金額」表，確認之後記錄會生成（一個產品一行），去「📋 訂單記錄」嗰頁睇同改。</div>
+  <div class="catsum" id="catSummary"></div>
   <div class="main">
     <aside class="side" id="cartPanel">
       <h2 class="sec" id="cartTitle" style="margin-top:0;">🛒 已選訂單</h2>
@@ -208,6 +212,7 @@
   <div class="status" id="submitStatus"></div>
     </div>
   </div>
+    <div class="note">撳產品圖就加 1 件；左邊「已選訂單」會即時見到揀咗咩同總金額。已選嘅產品可以用 ＋／− 改數量，一次最多 5 款。價錢以飛書產品主檔標準售價為準，核實嗰陣可以改。如果飛書改咗價，撳頂部「🔄 價格更新」就會即時讀取最新價錢，唔使重新載入成頁。訂單會記落你登入嗰間店；揀好產品之後，下面會直接出「核實金額」表，確認之後記錄會生成（一個產品一行），去「📋 訂單記錄」嗰頁睇同改。</div>
 </div>
 
 <div class="cartbar" id="mainCartbar" style="display:none;">
@@ -281,6 +286,7 @@ function loadData(){
     });
     var order = Object.keys(map).sort();
     products = order.map(function(c){ return map[c]; });
+    renderCatSummary();
     document.getElementById("metaLine").textContent = "餐牌更新：" + j.date + " ｜ 共 " + products.length + " 款產品 ｜ 撳圖即加 1 件";
     renderGrid();
     updateCart();
@@ -288,6 +294,20 @@ function loadData(){
   }).catch(function(){
     document.getElementById("metaLine").textContent = "暫時讀取唔到餐牌，請稍後重新整理。";
   });
+}
+function renderCatSummary(){
+  var box = document.getElementById("catSummary");
+  if (!box) return;
+  var counts = {}, order = [];
+  products.forEach(function(p){
+    var c = p.sub || "其他";
+    if (!counts[c]) { counts[c] = 0; order.push(c); }
+    counts[c]++;
+  });
+  if (!order.length) { box.innerHTML = ""; return; }
+  box.innerHTML = "分組：" + order.map(function(c){
+    return '<a href="#cat-' + esc(c) + '">' + esc(c) + ' ' + counts[c] + '款</a>';
+  }).join(" · ");
 }
 // 「🔄 價格更新」掣：即時重新讀取飛書最新價錢，唔使重新載入成頁；已喺核實面板改過嘅價錢會保留
 function refreshPrices(){
@@ -318,7 +338,7 @@ function renderGrid(){
   var html = "";
   order.forEach(function(c){
     // 每組獨立 catgroup 包住，cathead 先可以 position: sticky（grid item 本身黐唔住，佢個 grid area 得一行高）
-    html += '<div class="catgroup"><div class="cathead">' + esc(c) + ' <span>（' + groups[c].length + '款）</span></div><div class="grid">';
+    html += '<div class="catgroup" id="cat-' + esc(c) + '"><div class="cathead">' + esc(c) + ' <span>（' + groups[c].length + '款）</span></div><div class="grid">';
     groups[c].forEach(function(p){
       var q = cart[p.code] || 0;
       var cls = q > 0 ? "card incart" : "card";
