@@ -7,7 +7,7 @@ on:
     types: [sync_bettereat]
 concurrency:
   group: sync-bettereat
-    cancel-in-progress: true
+  cancel-in-progress: true
     permissions:
   contents: write
 jobs:
