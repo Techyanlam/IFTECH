@@ -74,6 +74,22 @@
   tbody tr:nth-child(even) { background: #fdfbf7; }
   td.num, th.num { text-align: right; }
   .foot { color: #a2937f; font-size: 12px; margin-top: 16px; text-align: center; }
+  .segbtn { padding: 6px 14px; font-size: 13.5px; border: 1px solid #d8cfc0; background: #fff; border-radius: 20px; cursor: pointer; color: #6d6152; }
+  .segbtn.on { background: #2b2620; color: #fff; border-color: #2b2620; }
+  .trendbox { background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 2px 10px rgba(60,45,20,.06); }
+  .trendbox svg { width: 100%; height: auto; display: block; }
+  .sub { color: #8a7f70; font-size: 13px; margin: 8px 0 0; line-height: 1.6; }
+  .bar-row { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13.5px; }
+  .bar-row .bl { width: 90px; text-align: right; color: #6d6152; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; }
+  .bar-row .bt { flex: 1; background: #f0eadf; border-radius: 6px; height: 18px; overflow: hidden; }
+  .bar-row .bf { height: 100%; background: linear-gradient(90deg, #d99a35, #b97a1e); border-radius: 6px; }
+  .bar-row .bv { width: 150px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .twocol h3 { font-size: 14px; margin: 0 0 8px; }
+  .warnbox { background: #fdf8ef; border: 1px solid #e8d9b8; border-radius: 12px; padding: 12px 14px; font-size: 13.5px; line-height: 1.7; color: #6d6152; }
+  .warnbox b { color: #2b2620; }
+  .minihead { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+  @media (max-width: 700px) { .twocol { grid-template-columns: 1fr; } .bar-row .bv { width: 110px; } }
   @media (max-width: 560px) { .cards, .stores { grid-template-columns: repeat(2, 1fr); } }
 </style>
 </head>
@@ -118,10 +134,51 @@
       <div class="card"><div class="k">剩餘（件）</div><div class="v" id="statRemain">–</div></div>
       <div class="card"><div class="k">記錄數</div><div class="v" id="statCount">–</div></div>
       <div class="card"><div class="k">毛利</div><div class="v" id="statProfit">–</div></div>
+      <div class="card"><div class="k">淨銷售額</div><div class="v" id="statRevenue">–</div></div>
+      <div class="card"><div class="k">優惠成本（免費＋滿減）</div><div class="v" id="statPromo">–</div></div>
+      <div class="card"><div class="k">網上訂單平均單價</div><div class="v" id="statATV">–</div></div>
     </div>
 
     <h2 class="sec">各店已銷售</h2>
     <div class="stores" id="storeCards"></div>
+
+    <h2 class="sec">銷售趨勢</h2>
+    <div class="trendbox">
+      <div class="minihead">
+        <div>
+          <button class="segbtn on" id="trendBtnAmt">銷售額</button>
+          <button class="segbtn" id="trendBtnQty">件數</button>
+        </div>
+        <span class="sub" id="trendVs"></span>
+      </div>
+      <div id="trendChart" style="margin-top:10px;">載入中…</div>
+      <div style="margin-top:14px;"><b style="font-size:14px;">星期幾平均（銷售額）</b></div>
+      <div id="weekdayWrap">載入中…</div>
+    </div>
+
+    <h2 class="sec">門店比較</h2>
+    <div class="minihead"><span class="sub" id="branchNote"></span><button class="xbtn" id="expBranch">⬇ 匯出門店比較 CSV</button></div>
+    <table><thead><tr><th>門店</th><th class="num">淨銷售額</th><th class="num">已銷售（件）</th><th class="num">佔比</th><th class="num">日均銷售額</th><th class="num">毛利</th><th class="num">較上期</th></tr></thead><tbody id="branchBody"></tbody></table>
+
+    <h2 class="sec">類別佔比</h2>
+    <div class="trendbox"><div id="catMixWrap">載入中…</div><div class="sub">按產品小類（中式／泰式…）計；金額用實際金額（有優惠嗰行用優惠後金額，冇就標準價 × 已銷售）。</div></div>
+
+    <h2 class="sec">暢銷榜 / 滯銷榜</h2>
+    <div class="twocol">
+      <div><h3>🏆 暢銷 Top 10（按銷售額）</h3><table><thead><tr><th>#</th><th>產品</th><th class="num">件數</th><th class="num">銷售額</th></tr></thead><tbody id="topBody"></tbody></table></div>
+      <div><h3>🐢 滯銷 Bottom 5（按銷售額，有賣先計）</h3><table><thead><tr><th>#</th><th>產品</th><th class="num">件數</th><th class="num">銷售額</th></tr></thead><tbody id="bottomBody"></tbody></table><div class="sub" id="zeroNote"></div></div>
+    </div>
+
+    <h2 class="sec">優惠成本 ＋ 網上訂單</h2>
+    <div class="trendbox">
+      <div class="sub" id="promoSummary">讀取緊網上訂單數據…</div>
+      <div id="promoRuleWrap" style="margin-top:10px;"></div>
+      <div class="sub">免費贈品價值按標準價計；滿減按實際減免金額計。只計網上訂單（銷售紀錄表），紙單優惠唔喺呢度。</div>
+    </div>
+
+    <h2 class="sec">庫存價值</h2>
+    <div id="stockWrap"><div class="warnbox">讀取緊庫存數據…</div></div>
+    <div class="sub">現金／支付方式、月度損益：Eats365 收銀數據未接入，人工同其他開支亦未有數，呢兩項暫時做唔到。</div>
 
     <div class="actions">
       <a class="action a" id="btnFormA" href="#" target="_blank" rel="noopener">
@@ -190,7 +247,11 @@ var FORM_A_URL = "https://fcnnkklc0uhr.feishu.cn/share/base/form/shrcnySrPjIwg3I
 var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_sold_data.json";
 var PRODUCTS_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_products.json";
 var allRecords = [], curStore = "ALL", payload = null, curDate = "";
-var productsByCode = {}; // product_code -> { price, cost, category }（T1 產品主檔；讀唔到就留空，單價／毛利顯示 —／待填成本）
+var productsByCode = {}; // product_code -> { price, cost, category, subcategory, name }（T1 產品主檔；讀唔到就留空，單價／毛利顯示 —／待填成本）
+var priceByName = {}; // 產品名（T1 全名）-> 標準價（優惠贈品零售價值用）
+var salesList = null; // Worker list：網上訂單銷售紀錄（優惠成本＋平均單價用）
+var stockData = null; // Worker stock：庫存價值用
+var trendMetric = "amount"; // 趨勢圖：amount 銷售額 / sold 件數
 var curProduct = "ALL", curCategory = "ALL";
 var loginShopChoice = "";
 var currentTab = "";
@@ -338,6 +399,7 @@ function setupActions(){
   if (FORM_A_URL) { a.href = FORM_A_URL; } else { a.classList.add("pending"); }
 }
 function loadData(){
+  fetchWorkerExtra(); // 優惠成本＋庫存價值：另外讀 Worker，失敗唔拖垮主數據
   // 產品主檔另外抓：失敗（離線／未發佈）唔可以拖垮銷售數據，只係單價／毛利顯示 —／待填成本
   var productsP = fetch(PRODUCTS_URL + "?t=" + Date.now()).then(function(r){ return r.json(); }).catch(function(){ return null; });
   fetch(DATA_URL + "?t=" + Date.now()).then(function(r){ return r.json(); }).then(function(j){
@@ -359,8 +421,11 @@ function loadData(){
         productsByCode[p.product_code] = {
           price: (p.standard_price === null || p.standard_price === undefined) ? null : p.standard_price,
           cost: (p.cost === null || p.cost === undefined) ? null : p.cost,
-          category: p.category || ""
+          category: p.category || "",
+          subcategory: p.subcategory || "",
+          name: p.product_name || ""
         };
+        if (p.product_name) priceByName[p.product_name] = productsByCode[p.product_code].price;
       });
     }
     applyDate();
@@ -479,7 +544,10 @@ function applyDate(){
   document.getElementById("statRemain").textContent = fmt(rem);
   document.getElementById("statCount").textContent = filtered.length;
   document.getElementById("statProfit").textContent = hasCost ? fmtMoney(profit) : "待填成本";
-  renderChips(); renderStores(); renderTable();
+  var rev = 0;
+  filtered.forEach(function(r){ var e = enrichRow(r); if (e.amount !== null) rev += e.amount; });
+  document.getElementById("statRevenue").textContent = fmtMoney(rev);
+  renderChips(); renderStores(); renderTable(); renderReportExtra();
 }
 var ALL_STORES = ["MAP", "MJF", "MKH", "MMCP"]; // 四間舖固定顯示，冇數嗰間都顯示 0（2026-11-17 Yan：MMCP 加返）
 // 銷售 JSON 嘅 store 係全名（「謝斐 (MJF)」），唔係代號；比較嗰陣一律轉做代號
@@ -552,6 +620,385 @@ function renderTable(){
       '<td class="num"><b>' + (hasCost ? fmtMoney(tProf) : "待填成本") + '</b></td></tr>';
   }
 }
+// ===== 報表擴充（2026-11-18）：趨勢／門店比較／類別／暢銷榜／優惠成本／庫存價值 =====
+// agg* 係純聚合函數，唔掂 DOM，方便 harness 驗證；render* 只係將結果畫出嚟。
+function subcatOf(code){ var p = productsByCode[code]; return (p && p.subcategory) ? p.subcategory : ""; }
+function namePrice(name){
+  if (priceByName[name] !== undefined && priceByName[name] !== null) return priceByName[name];
+  // 免費行有時用短名（例如「白糖糕」），T1 全名有括號（例如「驢打滾(18件)」）：去括號再配對
+  var base = String(name || "").replace(/\(.*\)\s*$/, "");
+  var hit = null;
+  Object.keys(priceByName).forEach(function(k){
+    if (k.replace(/\(.*\)\s*$/, "") === base) hit = priceByName[k];
+  });
+  return hit;
+}
+// 範圍內（單日 curDate 或自選範圍）嘅原始記錄，過晒產品／類別／門店篩選
+function scopedHistoryRows(){
+  if (!payload || !payload.history) return [];
+  var rg = getRange();
+  var dates = rg.active
+    ? Object.keys(payload.history).sort().filter(function(d){ return (!rg.from || d >= rg.from) && (!rg.to || d <= rg.to); })
+    : [curDate];
+  var out = [];
+  dates.forEach(function(d){
+    (payload.history[d] || []).forEach(function(r){
+      if (!passProdCat(r)) return;
+      if (curStore !== "ALL" && storeCode(r.store) !== curStore) return;
+      var o = {}; for (var k in r) o[k] = r[k]; o._d = d; out.push(o);
+    });
+  });
+  return out;
+}
+// 趨勢用：範圍模式用返個範圍，單日模式用全部歷史
+function trendHistoryRows(){
+  if (!payload || !payload.history) return [];
+  var rg = getRange();
+  var dates = rg.active
+    ? Object.keys(payload.history).sort().filter(function(d){ return (!rg.from || d >= rg.from) && (!rg.to || d <= rg.to); })
+    : Object.keys(payload.history).sort();
+  var out = [];
+  dates.forEach(function(d){
+    (payload.history[d] || []).forEach(function(r){
+      if (!passProdCat(r)) return;
+      if (curStore !== "ALL" && storeCode(r.store) !== curStore) return;
+      var o = {}; for (var k in r) o[k] = r[k]; o._d = d; out.push(o);
+    });
+  });
+  return out;
+}
+function aggDaily(rows){
+  var map = {}, order = [];
+  rows.forEach(function(r){
+    var e = enrichRow(r);
+    if (!map[r._d]) { map[r._d] = { date: r._d, sold: 0, amount: 0 }; order.push(r._d); }
+    map[r._d].sold += r.sold_pcs || 0;
+    map[r._d].amount += (e.amount === null ? 0 : e.amount);
+  });
+  return order.sort().map(function(d){ return map[d]; });
+}
+function aggByStore(rows, days){
+  var map = {};
+  ALL_STORES.forEach(function(s){ map[s] = { store: s, sold: 0, amount: 0, profit: 0, hasCost: false }; });
+  rows.forEach(function(r){
+    var s = storeCode(r.store); if (!map[s]) map[s] = { store: s, sold: 0, amount: 0, profit: 0, hasCost: false };
+    var e = enrichRow(r);
+    map[s].sold += r.sold_pcs || 0;
+    map[s].amount += (e.amount === null ? 0 : e.amount);
+    if (e.profit !== null) { map[s].profit += e.profit; map[s].hasCost = true; }
+  });
+  return ALL_STORES.map(function(s){ var m = map[s]; m.days = days || 1; m.daily = m.days ? m.amount / m.days : 0; return m; });
+}
+function aggByCat(rows){
+  var map = {}, order = [];
+  rows.forEach(function(r){
+    var c = subcatOf(r.product_code) || "未分類";
+    if (!map[c]) { map[c] = { cat: c, sold: 0, amount: 0 }; order.push(c); }
+    var e = enrichRow(r);
+    map[c].sold += r.sold_pcs || 0;
+    map[c].amount += (e.amount === null ? 0 : e.amount);
+  });
+  var total = 0; order.forEach(function(c){ total += map[c].amount; });
+  return order.map(function(c){ return map[c]; }).sort(function(a, b){ return b.amount - a.amount; }).map(function(m){ m.share = total ? m.amount / total : 0; return m; });
+}
+function aggByProduct(rows){
+  var map = {}, order = [];
+  rows.forEach(function(r){
+    var k = r.product_code;
+    if (!map[k]) { map[k] = { code: k, name: r.product_name, sold: 0, amount: 0 }; order.push(k); }
+    var e = enrichRow(r);
+    map[k].sold += r.sold_pcs || 0;
+    map[k].amount += (e.amount === null ? 0 : e.amount);
+  });
+  return order.map(function(k){ return map[k]; }).sort(function(a, b){ return b.amount - a.amount; });
+}
+function escHtml(s){ return String(s === null || s === undefined ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+function pctChange(cur, prev){ if (!prev) return null; return (cur - prev) / prev * 100; }
+function renderTrend(){
+  var el = document.getElementById("trendChart"); if (!el) return;
+  var daily = aggDaily(trendHistoryRows());
+  if (!daily.length) { el.textContent = "呢段時間冇數據。"; return; }
+  var metric = trendMetric;
+  var vals = daily.map(function(d){ return metric === "amount" ? d.amount : d.sold; });
+  var max = Math.max.apply(null, vals.concat([1]));
+  var W = 720, H = 240, PL = 84, PR = 10, PT = 14, PB = 28;
+  var x = function(i){ return PL + (W - PL - PR) * (daily.length === 1 ? 0.5 : i / (daily.length - 1)); };
+  var y = function(v){ return PT + (H - PT - PB) * (1 - v / max); };
+  var pts = vals.map(function(v, i){ return x(i).toFixed(1) + "," + y(v).toFixed(1); }).join(" ");
+  var grid = "";
+  [0, 0.25, 0.5, 0.75, 1].forEach(function(f){
+    var gy = y(max * f);
+    grid += '<line x1="' + PL + '" y1="' + gy + '" x2="' + (W - PR) + '" y2="' + gy + '" stroke="#f0eadf" stroke-width="1"/>' +
+      '<text x="' + (PL - 6) + '" y="' + (gy + 4) + '" font-size="11" fill="#8a7f70" text-anchor="end">' +
+      (metric === "amount" ? fmtMoney(max * f) : fmt(max * f)) + "</text>";
+  });
+  var labels = "";
+  var step = Math.max(1, Math.ceil(daily.length / 8));
+  daily.forEach(function(d, i){
+    if (i % step === 0 || i === daily.length - 1) {
+      // 最尾一日用 end 對齊，唔會俾右邊裁走
+      var anchor = (i === daily.length - 1) ? "end" : "middle";
+      var lx = (i === daily.length - 1) ? (W - PR) : x(i);
+      labels += '<text x="' + lx + '" y="' + (H - 8) + '" font-size="11" fill="#8a7f70" text-anchor="' + anchor + '">' + d.date.slice(5) + "</text>";
+    }
+  });
+  var dots = vals.map(function(v, i){
+    return '<circle cx="' + x(i) + '" cy="' + y(v) + '" r="3" fill="#c98a2d"><title>' + daily[i].date + "：" + (metric === "amount" ? fmtMoney(v) : fmt(v) + " 件") + "</title></circle>";
+  }).join("");
+  el.innerHTML = '<svg viewBox="0 0 ' + W + " " + H + '" role="img">' + grid +
+    '<polyline points="' + pts + '" fill="none" stroke="#c98a2d" stroke-width="2"/>' + dots + labels + "</svg>";
+  var vs = document.getElementById("trendVs");
+  if (vs) {
+    var last7 = daily.slice(-7), prev7 = daily.slice(-14, -7);
+    if (prev7.length) {
+      var a = last7.reduce(function(s, d){ return s + d.amount; }, 0);
+      var b = prev7.reduce(function(s, d){ return s + d.amount; }, 0);
+      var ch = pctChange(a, b);
+      vs.textContent = "最近 7 日銷售額 " + fmtMoney(a) + "，較之前 7 日 " + (ch === null ? "—" : (ch >= 0 ? "+" : "") + ch.toFixed(1) + "%");
+    } else { vs.textContent = ""; }
+  }
+  var wd = document.getElementById("weekdayWrap");
+  if (wd) {
+    var byWd = [0, 1, 2, 3, 4, 5, 6].map(function(){ return { n: 0, amount: 0 }; });
+    daily.forEach(function(d){
+      var w = new Date(d.date + "T00:00:00").getDay();
+      byWd[w].n += 1; byWd[w].amount += d.amount;
+    });
+    var names = ["日", "一", "二", "三", "四", "五", "六"];
+    var mx = Math.max.apply(null, byWd.map(function(b){ return b.n ? b.amount / b.n : 0; }).concat([1]));
+    wd.innerHTML = byWd.map(function(b, i){
+      var avg = b.n ? b.amount / b.n : 0;
+      return '<div class="bar-row"><div class="bl">星期' + names[i] + '</div><div class="bt"><div class="bf" style="width:' + Math.round(avg / mx * 100) + '%"></div></div><div class="bv">' + fmtMoney(avg) + "（" + b.n + " 日）</div></div>";
+    }).join("") + '<div class="sub">平均數按有數據嘅日子計，幫手睇邊日要預多啲貨／人手。</div>';
+  }
+}
+function renderBranch(){
+  var body = document.getElementById("branchBody"); if (!body) return;
+  var rows = scopedHistoryRows();
+  var rg = getRange();
+  var days = rg.active
+    ? Object.keys(payload.history).sort().filter(function(d){ return (!rg.from || d >= rg.from) && (!rg.to || d <= rg.to); }).length
+    : 1;
+  var agg = aggByStore(rows, days || 1);
+  var total = agg.reduce(function(s, m){ return s + m.amount; }, 0);
+  var prevMap = {};
+  if (payload && payload.history) {
+    var dates = Object.keys(payload.history).sort();
+    var curDates = rg.active
+      ? dates.filter(function(d){ return (!rg.from || d >= rg.from) && (!rg.to || d <= rg.to); })
+      : [curDate];
+    var n = curDates.length || 1;
+    var idx = curDates.length ? dates.indexOf(curDates[0]) : -1;
+    var prevDates = idx > 0 ? dates.slice(Math.max(0, idx - n), idx) : [];
+    prevDates.forEach(function(d){
+      (payload.history[d] || []).forEach(function(r){
+        if (!passProdCat(r)) return;
+        var s = storeCode(r.store); var e = enrichRow(r);
+        prevMap[s] = (prevMap[s] || 0) + (e.amount === null ? 0 : e.amount);
+      });
+    });
+  }
+  body.innerHTML = agg.map(function(m){
+    var share = total ? Math.round(m.amount / total * 100) : 0;
+    var prev = prevMap[m.store];
+    var ch = (prev === undefined) ? null : pctChange(m.amount, prev);
+    return "<tr><td><b>" + m.store + "</b></td><td class=\"num\">" + fmtMoney(m.amount) + "</td><td class=\"num\">" + fmt(m.sold) + "</td><td class=\"num\">" + share + "%</td><td class=\"num\">" + fmtMoney(m.daily) + "</td><td class=\"num\">" + (m.hasCost ? fmtMoney(m.profit) : "待填成本") + "</td><td class=\"num\">" + (ch === null ? "—" : (ch >= 0 ? "+" : "") + ch.toFixed(1) + "%") + "</td></tr>";
+  }).join("");
+  var note = document.getElementById("branchNote");
+  if (note) note.textContent = "範圍：" + (rg.active ? (rg.from || "…") + " ~ " + (rg.to || "…") : curDate) + " ｜ 較上期：對上同樣長度嘅時段（單日即對上一日）。毛利要 T1「成本」欄填咗先有數。";
+}
+function renderCatMix(){
+  var el = document.getElementById("catMixWrap"); if (!el) return;
+  var mix = aggByCat(scopedHistoryRows());
+  if (!mix.length) { el.textContent = "呢段時間冇數據。"; return; }
+  var mx = Math.max.apply(null, mix.map(function(m){ return m.amount; }).concat([1]));
+  el.innerHTML = mix.map(function(m){
+    return '<div class="bar-row"><div class="bl">' + escHtml(m.cat) + '</div><div class="bt"><div class="bf" style="width:' + Math.round(m.amount / mx * 100) + '%"></div></div><div class="bv">' + fmtMoney(m.amount) + " · " + Math.round(m.share * 100) + "% · " + fmt(m.sold) + " 件</div></div>";
+  }).join("");
+}
+function renderBest(){
+  var top = document.getElementById("topBody"), bot = document.getElementById("bottomBody");
+  if (!top || !bot) return;
+  var list = aggByProduct(scopedHistoryRows());
+  top.innerHTML = list.slice(0, 10).map(function(m, i){
+    return "<tr><td>" + (i + 1) + "</td><td>" + escHtml(m.name) + ' <span style="color:#8a7f70">' + m.code + "</span></td><td class=\"num\">" + fmt(m.sold) + "</td><td class=\"num\">" + fmtMoney(m.amount) + "</td></tr>";
+  }).join("") || '<tr><td colspan="4">呢段時間冇數據。</td></tr>';
+  var sold = list.filter(function(m){ return m.sold > 0; });
+  bot.innerHTML = sold.slice(-5).reverse().map(function(m, i){
+    return "<tr><td>" + (i + 1) + "</td><td>" + escHtml(m.name) + ' <span style="color:#8a7f70">' + m.code + "</span></td><td class=\"num\">" + fmt(m.sold) + "</td><td class=\"num\">" + fmtMoney(m.amount) + "</td></tr>";
+  }).join("") || '<tr><td colspan="4">呢段時間冇數據。</td></tr>';
+  var zn = document.getElementById("zeroNote");
+  if (zn) {
+    if (curProduct !== "ALL") { zn.textContent = ""; return; }
+    var soldCodes = {}; list.forEach(function(m){ soldCodes[m.code] = true; });
+    var zero = Object.keys(productsByCode).filter(function(c){ return !soldCodes[c]; }).sort();
+    zn.textContent = zero.length
+      ? "本期零銷售 " + zero.length + " 款：" + zero.slice(0, 8).map(function(c){ return (productsByCode[c] && productsByCode[c].name) || c; }).join("、") + (zero.length > 8 ? "…" : "") + "。"
+      : "本期全部產品都有銷售。";
+  }
+}
+function ruleFromFreeRemark(rm){
+  var m = String(rm || "").match(/^優惠贈品：(.+?)（/);
+  return m ? m[1] : "優惠贈品";
+}
+function ruleFromDiscountRemark(rm){
+  var m = String(rm || "").match(/^滿減優惠：(.+)$/);
+  return m ? m[1] : "滿減優惠";
+}
+// 網上訂單優惠成本：免費贈品（零售價）＋滿減（實際減免）；只計未取消嘅行
+function aggPromo(records, from, to, store){
+  var orders = {}, net = 0, freeQty = 0, freeValue = 0, discAmt = 0, byRule = {};
+  (records || []).forEach(function(r){
+    if (r.status === "已取消") return;
+    var d = r.recordDate || "";
+    if (from && d < from) return;
+    if (to && d > to) return;
+    if (store && store !== "ALL" && storeCode(r.store) !== store) return;
+    orders[r.order] = true;
+    var sub = (typeof r.subtotal === "number") ? r.subtotal : 0;
+    net += sub;
+    if (r.product === "滿減優惠") {
+      var amt = Math.abs(sub);
+      discAmt += amt;
+      var rn = ruleFromDiscountRemark(r.remarks);
+      byRule[rn] = byRule[rn] || { rule: rn, type: "滿減", qty: 0, amount: 0 };
+      byRule[rn].qty += 1; byRule[rn].amount += amt;
+    } else if ((r.price === 0 || r.price === "0") && String(r.remarks || "").indexOf("優惠贈品") === 0) {
+      var qty = r.qty || 0;
+      var unit = namePrice(r.product);
+      var val = (unit === null || unit === undefined) ? 0 : unit * qty;
+      freeQty += qty; freeValue += val;
+      var fr = ruleFromFreeRemark(r.remarks);
+      byRule[fr] = byRule[fr] || { rule: fr, type: "買幾送幾", qty: 0, amount: 0 };
+      byRule[fr].qty += qty; byRule[fr].amount += val;
+    }
+  });
+  var orderCount = Object.keys(orders).length;
+  var promoCost = freeValue + discAmt;
+  var gross = net + promoCost;
+  return {
+    orders: orderCount, net: net, atv: orderCount ? net / orderCount : null,
+    freeQty: freeQty, freeValue: freeValue, discAmt: discAmt,
+    promoCost: promoCost, gross: gross,
+    promoPct: gross ? promoCost / gross * 100 : 0,
+    rules: Object.keys(byRule).map(function(k){ return byRule[k]; }).sort(function(a, b){ return b.amount - a.amount; })
+  };
+}
+function promoScope(){
+  var rg = getRange();
+  if (rg.active) return { from: rg.from || "", to: rg.to || "", store: curStore };
+  return { from: curDate, to: curDate, store: curStore };
+}
+function renderPromo(){
+  var sum = document.getElementById("promoSummary");
+  var wrap = document.getElementById("promoRuleWrap");
+  var sc = promoScope();
+  var sp = document.getElementById("statPromo");
+  var sa = document.getElementById("statATV");
+  if (salesList === "FAILED") {
+    if (sum) sum.textContent = "讀取唔到網上訂單數據（Worker 連唔到），優惠成本同平均單價暫時未有。";
+    if (wrap) wrap.innerHTML = "";
+    if (sp) sp.textContent = "—";
+    if (sa) sa.textContent = "—";
+    return;
+  }
+  var res = salesList ? aggPromo(salesList.records || salesList, sc.from, sc.to, sc.store) : null;
+  if (!res) {
+    if (sum) sum.textContent = "讀取緊網上訂單數據…";
+    if (sp) sp.textContent = "—";
+    if (sa) sa.textContent = "—";
+    return;
+  }
+  if (sum) {
+    sum.innerHTML = "範圍 " + (sc.from || "…") + " ~ " + (sc.to || "…") + "：網上訂單 <b>" + res.orders + "</b> 張 ｜ 網上淨銷售額 <b>" + fmtMoney(res.net) + "</b> ｜ 平均單價 <b>" + (res.atv === null ? "—" : fmtMoney(res.atv)) + "</b> ｜ 優惠成本 <b>" + fmtMoney(res.promoCost) + "</b>（免費贈品零售價 " + fmtMoney(res.freeValue) + " ＋ 滿減 " + fmtMoney(res.discAmt) + "），佔毛銷售額 " + res.promoPct.toFixed(1) + "%。";
+  }
+  if (sp) sp.textContent = fmtMoney(res.promoCost);
+  if (sa) sa.textContent = res.atv === null ? "—" : fmtMoney(res.atv);
+  if (wrap) {
+    wrap.innerHTML = res.rules.length
+      ? '<table><thead><tr><th>優惠規則</th><th>類型</th><th class="num">次數／件數</th><th class="num">成本</th></tr></thead><tbody>' +
+        res.rules.map(function(r){ return "<tr><td>" + escHtml(r.rule) + "</td><td>" + r.type + "</td><td class=\"num\">" + fmt(r.qty) + "</td><td class=\"num\">" + fmtMoney(r.amount) + "</td></tr>"; }).join("") + "</tbody></table>"
+      : '<div class="sub">呢段時間冇優惠記錄。</div>';
+  }
+}
+function aggStock(stockRows){
+  var skus = 0, units = 0, retail = 0, unknown = 0;
+  (stockRows || []).forEach(function(r){
+    skus += 1; units += r.qty || 0;
+    var p = productsByCode[r.productCode];
+    var price = (p && p.price !== null && p.price !== undefined) ? p.price : null;
+    if (price === null) { var np = namePrice(r.product); price = (np === null || np === undefined) ? null : np; }
+    if (price === null) { unknown += 1; return; }
+    retail += price * (r.qty || 0);
+  });
+  return { skus: skus, units: units, retail: retail, unknown: unknown };
+}
+function renderStock(){
+  var el = document.getElementById("stockWrap"); if (!el) return;
+  if (!stockData) { el.innerHTML = '<div class="warnbox">讀取緊庫存數據…</div>'; return; }
+  if (stockData === "FAILED") { el.innerHTML = '<div class="warnbox">讀取唔到庫存數據（Worker 連唔到），稍後重新整理再試。</div>'; return; }
+  if (!stockData.seeded) {
+    el.innerHTML = '<div class="warnbox"><b>未有期初數。</b>C 表而家冇剩餘數，庫存帳面只計到網上訂單嘅扣數（而家係負數／零），未可以計庫存價值。門店喺 C 表填返剩餘數之後跑期初，呢度先有真數。<br><a href="#" onclick="switchTab(\'stock\');return false;">去庫存頁睇詳情 →</a></div>';
+    return;
+  }
+  var a = aggStock(stockData.stock || []);
+  el.innerHTML = '<div class="trendbox">有期初數：共 <b>' + a.skus + "</b> 款有帳面庫存 ｜ 在倉總數 <b>" + fmt(a.units) + "</b> 件 ｜ 庫存零售價值 <b>" + fmtMoney(a.retail) + "</b> ｜ 庫存成本價值 <b>待填成本</b>（T1「成本」欄未填）。" +
+    (a.unknown ? '<div class="sub">' + a.unknown + " 款搵唔到售價，未計入零售價值。</div>" : "") +
+    '<div class="sub"><a href="#" onclick="switchTab(\'stock\');return false;">去庫存頁睇分店／逐款明細 →</a></div></div>';
+}
+function postWorker(action){
+  var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
+  var timer = null;
+  if (ctrl) timer = setTimeout(function(){ ctrl.abort(); }, 10000);
+  return fetch(SALES_WORKER_URL, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ action: action }),
+    signal: ctrl ? ctrl.signal : undefined
+  }).then(function(r){ return r.json(); }).catch(function(){ return null; })
+  .then(function(j){ if (timer) clearTimeout(timer); return j; });
+}
+function fetchWorkerExtra(){
+  postWorker("list").then(function(j){
+    if (j && j.ok && j.records) { salesList = j; } else { salesList = "FAILED"; }
+    renderPromo();
+  });
+  postWorker("stock").then(function(j){
+    if (j && j.ok) { stockData = j; } else { stockData = "FAILED"; }
+    renderStock();
+  });
+}
+function renderReportExtra(){
+  renderTrend(); renderBranch(); renderCatMix(); renderBest(); renderPromo(); renderStock();
+}
+function downloadCSVGeneric(name, head, rows){
+  var lines = [head.map(csvCell).join(",")];
+  rows.forEach(function(r){ lines.push(r.map(csvCell).join(",")); });
+  var blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = name; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 2000);
+}
+var trendBtnAmt = document.getElementById("trendBtnAmt");
+if (trendBtnAmt) trendBtnAmt.onclick = function(){
+  trendMetric = "amount"; this.classList.add("on");
+  var b = document.getElementById("trendBtnQty"); if (b) b.classList.remove("on");
+  renderTrend();
+};
+var trendBtnQty = document.getElementById("trendBtnQty");
+if (trendBtnQty) trendBtnQty.onclick = function(){
+  trendMetric = "sold"; this.classList.add("on");
+  var b = document.getElementById("trendBtnAmt"); if (b) b.classList.remove("on");
+  renderTrend();
+};
+var expBranchBtn = document.getElementById("expBranch");
+if (expBranchBtn) expBranchBtn.onclick = function(){
+  var rows = scopedHistoryRows();
+  var agg = aggByStore(rows, 1);
+  var total = agg.reduce(function(s, m){ return s + m.amount; }, 0);
+  downloadCSVGeneric("branch_compare_" + (curDate || "all") + ".csv",
+    ["門店", "淨銷售額", "已銷售（件）", "佔比%", "毛利"],
+    agg.map(function(m){ return [m.store, Math.round(m.amount * 100) / 100, m.sold, total ? Math.round(m.amount / total * 1000) / 10 : 0, m.hasCost ? Math.round(m.profit * 100) / 100 : "待填成本"]; }));
+};
 document.getElementById("dateSel").addEventListener("change", function(){
   curDate = this.value; applyDate();
 });
