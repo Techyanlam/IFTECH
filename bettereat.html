@@ -168,7 +168,7 @@
         <button class="navbtn" id="navBtn-cat" onclick="setReportSection('cat')">類別佔比</button>
         <button class="navbtn" id="navBtn-best" onclick="setReportSection('best')">暢銷／滯銷</button>
         <button class="navbtn" id="navBtn-promo" onclick="setReportSection('promo')">優惠成本</button>
-        <button class="navbtn" id="navBtn-stock" onclick="setReportSection('stock')">庫存價值</button>
+        <button class="navbtn" id="navBtn-stock" onclick="setReportSection('stock')">庫存總覽</button>
         <button class="navbtn" id="navBtn-daily" onclick="setReportSection('daily')">每日清單</button>
         <button class="navbtn" id="navBtn-dailyReport" onclick="setReportSection('dailyReport')">每日報表</button>
       </div>
@@ -213,7 +213,7 @@
     </div>
       </div>
       <div class="reportSec" id="sec-stock">
-    <h2 class="sec">庫存價值</h2>
+    <h2 class="sec">庫存總覽（分店 × 產品）</h2>
     <div id="stockWrap"><div class="warnbox">讀取緊庫存數據…</div></div>
     <div class="sub">現金／支付方式、月度損益：Eats365 收銀數據未接入，人工同其他開支亦未有數，呢兩項暫時做唔到。</div>
       </div>
@@ -1007,29 +1007,71 @@ function renderPromo(){
   }
 }
 function aggStock(stockRows){
-  var skus = 0, units = 0, retail = 0, unknown = 0;
+  var rows = [];
   (stockRows || []).forEach(function(r){
-    skus += 1; units += r.qty || 0;
-    var p = productsByCode[r.productCode];
-    var price = (p && p.price !== null && p.price !== undefined) ? p.price : null;
+    if (curStore !== "ALL" && storeCode(r.store) !== curStore) return;
+    if (curProduct !== "ALL" && r.productCode !== curProduct) return;
+    if (curCategory !== "ALL" && catOf(r.productCode) !== curCategory) return;
+    var price = priceOf(r.productCode);
     if (price === null) { var np = namePrice(r.product); price = (np === null || np === undefined) ? null : np; }
-    if (price === null) { unknown += 1; return; }
-    retail += price * (r.qty || 0);
+    var cost = costOf(r.productCode);
+    var qty = r.qty || 0;
+    rows.push({
+      store: r.store, product: r.product, code: r.productCode || "", qty: qty,
+      price: price, cost: cost,
+      retail: (price === null) ? null : price * qty,
+      costVal: (cost === null) ? null : cost * qty
+    });
   });
-  return { skus: skus, units: units, retail: retail, unknown: unknown };
+  rows.sort(function(a, b){
+    var sa = storeCode(a.store), sb = storeCode(b.store);
+    if (sa !== sb) return sa < sb ? -1 : 1;
+    return String(a.product) < String(b.product) ? -1 : (String(a.product) > String(b.product) ? 1 : 0);
+  });
+  var units = 0, retail = 0, unknown = 0, cost = 0, costUnknown = 0;
+  rows.forEach(function(x){
+    units += x.qty;
+    if (x.retail === null) unknown += 1; else retail += x.retail;
+    if (x.costVal === null) costUnknown += 1; else cost += x.costVal;
+  });
+  return { skus: rows.length, units: units, retail: retail, unknown: unknown, cost: cost, costUnknown: costUnknown, rows: rows };
 }
 function renderStock(){
   var el = document.getElementById("stockWrap"); if (!el) return;
   if (!stockData) { el.innerHTML = '<div class="warnbox">讀取緊庫存數據…</div>'; return; }
   if (stockData === "FAILED") { el.innerHTML = '<div class="warnbox">讀取唔到庫存數據（Worker 連唔到），稍後重新整理再試。</div>'; return; }
-  if (!stockData.seeded) {
-    el.innerHTML = '<div class="warnbox"><b>未有期初數。</b>C 表而家冇剩餘數，庫存帳面只計到網上訂單嘅扣數（而家係負數／零），未可以計庫存價值。門店喺 C 表填返剩餘數之後跑期初，呢度先有真數。<br><a href="#" onclick="switchTab(\'stock\');return false;">去庫存頁睇詳情 →</a></div>';
-    return;
-  }
   var a = aggStock(stockData.stock || []);
-  el.innerHTML = '<div class="trendbox">有期初數：共 <b>' + a.skus + "</b> 款有帳面庫存 ｜ 在倉總數 <b>" + fmt(a.units) + "</b> 件 ｜ 庫存零售價值 <b>" + fmtMoney(a.retail) + "</b> ｜ 庫存成本價值 <b>待填成本</b>（T1「成本」欄未填）。" +
-    (a.unknown ? '<div class="sub">' + a.unknown + " 款搵唔到售價，未計入零售價值。</div>" : "") +
-    '<div class="sub"><a href="#" onclick="switchTab(\'stock\');return false;">去庫存頁睇分店／逐款明細 →</a></div></div>';
+  var html = "";
+  if (!stockData.seeded) {
+    html += '<div class="warnbox"><b>未有期初數。</b>下面係系統啟用以嚟嘅帳面結餘（網上訂單扣數＋收貨／調整入帳），未計期初存貨，所以會出現負數，唔係真庫存。門店喺 C 表填返剩餘數之後跑期初，數字先會變真。<br><a href="#" onclick="switchTab(\'stock\');return false;">去庫存頁睇詳情 →</a></div>';
+  }
+  html += '<div class="trendbox"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;"><div>有帳面紀錄 <b>' + a.skus + '</b> 款（門店 × 產品）｜ 帳面總數 <b>' + fmt(a.units) + '</b> 件 ｜ 庫存零售價值 <b>' + fmtMoney(a.retail) + '</b> ｜ 庫存成本價值 <b>' + fmtMoney(a.cost) + '</b></div>' +
+    '<button class="xbtn" onclick="exportStockCSV()">⬇ 匯出庫存 CSV</button></div>';
+  if (a.unknown) html += '<div class="sub">' + a.unknown + ' 款搵唔到售價，未計入零售價值。</div>';
+  if (a.costUnknown) html += '<div class="sub">' + a.costUnknown + ' 款未填成本（T1「成本」欄），未計入成本價值。</div>';
+  if (a.rows.length) {
+    html += '<table style="margin-top:10px;"><thead><tr><th>門店</th><th>產品</th><th>編號</th><th class="num">帳面庫存</th><th class="num">單價</th><th class="num">零售值</th><th class="num">成本值</th></tr></thead><tbody>' +
+      a.rows.map(function(x){
+        return "<tr><td>" + escHtml(x.store) + "</td><td>" + escHtml(x.product) + "</td><td>" + escHtml(x.code) + '</td><td class="num"' + (x.qty < 0 ? ' style="color:#b3402e;font-weight:700;"' : "") + ">" + fmt(x.qty) + '</td><td class="num">' + (x.price === null ? "—" : fmtMoney(x.price)) + '</td><td class="num">' + (x.retail === null ? "—" : fmtMoney(x.retail)) + '</td><td class="num">' + (x.costVal === null ? "待填成本" : fmtMoney(x.costVal)) + "</td></tr>";
+      }).join("") +
+      '<tr class="tot"><td colspan="3">合計</td><td class="num">' + fmt(a.units) + '</td><td></td><td class="num">' + fmtMoney(a.retail) + '</td><td class="num">' + fmtMoney(a.cost) + "</td></tr>" +
+      "</tbody></table>";
+  } else {
+    html += '<div class="sub" style="margin-top:8px;">冇符合篩選嘅庫存紀錄。</div>';
+  }
+  html += '<div class="sub">帳面庫存嚟自庫存異動帳（期初＋收貨－銷售＋調整＋盤點差異），跟門店／產品／類別篩選；逐店逐款收貨、調整同盤點喺「庫存」分頁做。</div></div>';
+  el.innerHTML = html;
+}
+function exportStockCSV(){
+  if (!stockData || stockData === "FAILED") return;
+  var a = aggStock(stockData.stock || []);
+  var rows = a.rows.map(function(x){
+    return [x.store, x.product, x.code, x.qty,
+      x.price === null ? "" : x.price, x.retail === null ? "" : x.retail.toFixed(2),
+      x.cost === null ? "" : x.cost, x.costVal === null ? "" : x.costVal.toFixed(2)];
+  });
+  rows.push(["合計", "", "", a.units, "", a.retail.toFixed(2), "", a.cost.toFixed(2)]);
+  downloadCSVGeneric("bettereat-stock.csv", ["門店", "產品", "編號", "帳面庫存", "單價", "零售值", "成本單價", "成本值"], rows);
 }
 function postWorker(action){
   var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
