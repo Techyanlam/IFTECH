@@ -902,6 +902,7 @@
         ["查看原檔", "View Original"],
         ["攞緊連結…", "Getting link…"],
         ["開唔到，請再試", "Could not open — try again"],
+        ["彈出視窗被阻擋，請允許彈出視窗再試", "Popup blocked — please allow pop-ups and try again"],
         ["個案附件", "Case Attachments"],
         ["欄位", "Field"],
         ["原檔", "Original"],
@@ -1366,24 +1367,54 @@
         if (!token) return "";
         return "<button type='button' class='preview-link' data-view-file data-token='" + esc(token) + "' data-extra='" + esc(encodeURIComponent(extra || "")) + "'>查看原檔</button>";
       }
+      /* 發票行嘅原檔：發票記錄本身通常冇上載檔案（發票檔案欄係空），
+         實體 PDF 係喺個案嘅 Invoice 附件欄——客人發票行用個案附件做後備；
+         供應商發票冇對應附件，唔做後備。 */
+      function invoiceFileOf(inv) {
+        if (inv.fileToken) return { token: inv.fileToken, extra: inv.fileExtra };
+        if (inv.cat !== "客人發票") return null;
+        var c = findCase(inv["case"]);
+        if (c && c.files) {
+          for (var k = 0; k < c.files.length; k++) {
+            if (c.files[k].key === "invoice") return { token: c.files[k].fileToken, extra: c.files[k].fileExtra };
+          }
+        }
+        return null;
+      }
+      function viewFileBtnObj(f) { return f ? viewFileBtn(f.token, f.extra) : ""; }
       function openFeishuFile(btn) {
         var token = btn.getAttribute("data-token") || "";
         var extra = "";
         try { extra = decodeURIComponent(btn.getAttribute("data-extra") || ""); } catch (e) { extra = ""; }
         if (!token) return;
+        /* 先喺撳掣嗰一刻即刻開一個空白分頁：fetch 攞連結要等幾秒，
+           等完先 window.open 會俾瀏覽器當彈出廣告阻擋；開定空白頁再轉址就唔會。 */
+        var win = null;
+        try { win = window.open("", "_blank"); } catch (e) { win = null; }
         var orig = btn.textContent;
         btn.disabled = true;
+        if (!win) {
+          btn.textContent = trText("彈出視窗被阻擋，請允許彈出視窗再試");
+          setTimeout(function () { btn.disabled = false; btn.textContent = orig; }, 5000);
+          return;
+        }
         btn.textContent = trText("攞緊連結…");
         var q = extra ? ("?extra=" + encodeURIComponent(extra)) : "";
         apiFetch("/api/files/" + encodeURIComponent(token) + q).then(function (r) {
           btn.disabled = false;
-          btn.textContent = orig;
-          if (r.body && r.body.ok && r.body.url) { window.open(r.body.url, "_blank"); }
-          else { btn.textContent = trText("開唔到，請再試"); setTimeout(function () { btn.textContent = orig; }, 2500); }
+          if (r.body && r.body.ok && r.body.url) {
+            btn.textContent = orig;
+            try { win.location.href = r.body.url; } catch (e) { window.open(r.body.url, "_blank"); }
+          } else {
+            try { win.close(); } catch (e) {}
+            btn.textContent = trText("開唔到，請再試");
+            setTimeout(function () { btn.textContent = orig; }, 5000);
+          }
         }).catch(function () {
           btn.disabled = false;
+          try { win.close(); } catch (e) {}
           btn.textContent = trText("開唔到，請再試");
-          setTimeout(function () { btn.textContent = orig; }, 2500);
+          setTimeout(function () { btn.textContent = orig; }, 5000);
         });
       }
       function ppField(k, v, full) {
@@ -1644,7 +1675,7 @@
           h += '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / Invoice No.</th><th>類別</th><th>日期</th><th style="text-align:right">金額</th><th>付款狀態</th></tr></thead><tbody>' +
             invs.map(function (i) {
               var gi = INVOICES.indexOf(i);
-              return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, gi) + "<div class='doc-meta'><div class='mono'>" + esc(i.no) + "</div><button type='button' class='preview-link' data-preview-invoice='" + gi + "'>預覽發票</button>" + viewFileBtn(i.fileToken, i.fileExtra) + "</div></div></td><td data-label='類別'>" + esc(i.cat) + "</td><td data-label='日期'>" + fmtDate(i.date) + "</td><td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td><td data-label='付款狀態'><span class='badge badge-warn'>" + esc(i.pay) + "</span></td></tr>";
+              return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, gi) + "<div class='doc-meta'><div class='mono'>" + esc(i.no) + "</div><button type='button' class='preview-link' data-preview-invoice='" + gi + "'>預覽發票</button>" + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td><td data-label='類別'>" + esc(i.cat) + "</td><td data-label='日期'>" + fmtDate(i.date) + "</td><td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td><td data-label='付款狀態'><span class='badge badge-warn'>" + esc(i.pay) + "</span></td></tr>";
             }).join("") + "</tbody></table></div>";
         } else {
           h += '<div class="note-box">本案暫無發票記錄。</div>';
@@ -1878,7 +1909,7 @@
       /* ---------- 發票及報價單 ---------- */
       function viewInvoices() {
         var invRows = INVOICES.map(function (i, idx) {
-          return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, idx) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div><button type='button' class='preview-link' data-preview-invoice='" + idx + "'>預覽發票</button>" + viewFileBtn(i.fileToken, i.fileExtra) + "</div></div></td>" +
+          return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, idx) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div><button type='button' class='preview-link' data-preview-invoice='" + idx + "'>預覽發票</button>" + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td>" +
             "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(i.case) + "'>" + esc(i.case) + "</a></td>" +
             "<td data-label='類別'>" + (i.cat === "客人發票" ? '<span class="badge badge-info">客人發票</span>' : '<span class="badge badge-grey">供應商發票</span>') + "</td>" +
             "<td data-label='日期'>" + fmtDate(i.date) + "</td>" +
@@ -2077,7 +2108,7 @@
           var cusTxt = chk.cus.length ? chk.cus.map(function (x) { return '<span class="mono">' + esc(x.no) + "</span><div class='small muted'>" + fmtDate(x.date) + " · " + esc(x.pay) + "</div>"; }).join("") : '<span class="badge badge-danger">未出</span>';
           var verdictBadge = chk.kind === "leak" ? '<span class="badge badge-danger">未向客人開票</span>' : chk.kind === "ok" ? '<span class="badge badge-ok">已向客人開票</span>' : '<span class="badge badge-grey">待核對</span>';
           var billKey = c.hawb || c.mawb || "";
-          return "<tr><td data-label='供應商發票'><div class='doc-cell'>" + invoiceThumbHtml(i, INVOICES.indexOf(i)) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div><div class='small muted'>" + fmtDate(i.date) + " · " + esc(i.pay) + "</div><button type='button' class='preview-link' data-preview-invoice='" + INVOICES.indexOf(i) + "'>預覽發票</button>" + viewFileBtn(i.fileToken, i.fileExtra) + "</div></div></td>" +
+          return "<tr><td data-label='供應商發票'><div class='doc-cell'>" + invoiceThumbHtml(i, INVOICES.indexOf(i)) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div><div class='small muted'>" + fmtDate(i.date) + " · " + esc(i.pay) + "</div><button type='button' class='preview-link' data-preview-invoice='" + INVOICES.indexOf(i) + "'>預覽發票</button>" + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td>" +
             "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(i.case) + "'>" + esc(i.case) + "</a><div class='small muted'>" + esc(billNosOf(c)) + "</div></td>" +
             "<td data-label='供應商金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td>" +
             "<td data-label='客人發票'>" + cusTxt + "</td>" +
