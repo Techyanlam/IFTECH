@@ -2299,7 +2299,7 @@
                 render();
                 return;
               }
-              state.chargeNotice = { ref: c.ref, msg: "已加入收費「" + name + "」並寫入飛書，總額已更新。" };
+              state.chargeNotice = { ref: c.ref, msg: "已加入收費「" + name + "」並寫入飛書；個案總額由飛書公式計算，約半分鐘後自動更新。" };
               refreshLive();
             }).catch(function (e) {
               state.chargeBusy = false;
@@ -2561,7 +2561,7 @@
               render();
               return;
             }
-            state.chargeNotice = { ref: state.detailRef, msg: "收費行已由飛書刪除，總額已更新。" };
+            state.chargeNotice = { ref: state.detailRef, msg: "收費行已由飛書刪除；總額約半分鐘後自動更新。" };
             refreshLive();
           }).catch(function (e) {
             state.chargeNotice = { ref: state.detailRef, error: "刪除收費失敗：" + (e && e.message ? e.message : "連線失敗") };
