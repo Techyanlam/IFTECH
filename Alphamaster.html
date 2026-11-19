@@ -1,0 +1,1919 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:," />
+    <title>ALPHA MASTER Logistics System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #eef1f5;
+        --surface: #ffffff;
+        --surface-2: #f6f8fa;
+        --ink: #16222e;
+        --ink-2: #44566a;
+        --ink-3: #71808f;
+        --line: #d7dee6;
+        --line-strong: #b9c5d1;
+        --brand: #0b3d5c;
+        --brand-2: #0e5a86;
+        --accent: #c8871a;
+        --accent-soft: #fdf3e0;
+        --ok: #177245;
+        --ok-soft: #e3f3ea;
+        --warn: #b3540a;
+        --warn-soft: #fdeedd;
+        --danger: #b42318;
+        --danger-soft: #fdecea;
+        --info: #175cd3;
+        --info-soft: #e8f0fe;
+        --chip-air: #e8f0fe;
+        --chip-air-ink: #175cd3;
+        --chip-sea: #e0f2f1;
+        --chip-sea-ink: #0f766e;
+        --chip-local: #fdf3e0;
+        --chip-local-ink: #92580a;
+        --chip-logi: #eceff3;
+        --chip-logi-ink: #44566a;
+        --shadow: 0 1px 2px rgba(16, 34, 46, .06), 0 4px 14px rgba(16, 34, 46, .05);
+        --radius: 10px;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #0d141b;
+          --surface: #16212c;
+          --surface-2: #1b2937;
+          --ink: #e8eef4;
+          --ink-2: #aebfce;
+          --ink-3: #7e93a8;
+          --line: #2a3a4a;
+          --line-strong: #3a4f64;
+          --brand: #7db8dd;
+          --brand-2: #a5cfe9;
+          --accent: #e0a83e;
+          --accent-soft: #3a2f14;
+          --ok: #4cc38a;
+          --ok-soft: #14352a;
+          --warn: #f5a65b;
+          --warn-soft: #3d2a16;
+          --danger: #ff8a80;
+          --danger-soft: #3d1d1a;
+          --info: #84adff;
+          --info-soft: #1c2c4d;
+          --chip-air: #1c2c4d;
+          --chip-air-ink: #84adff;
+          --chip-sea: #123330;
+          --chip-sea-ink: #5fd3c6;
+          --chip-local: #3a2f14;
+          --chip-local-ink: #e0a83e;
+          --chip-logi: #22303f;
+          --chip-logi-ink: #aebfce;
+          --shadow: 0 1px 2px rgba(0,0,0,.35), 0 4px 14px rgba(0,0,0,.25);
+        }
+      }
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font-family: "Noto Sans TC", "PingFang HK", "Microsoft JhengHei", system-ui, sans-serif;
+        font-size: 15px;
+        line-height: 1.55;
+      }
+      button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2.25rem; }
+      a { color: var(--brand-2); }
+      .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace; }
+      .num { font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+      .neg { color: var(--danger); font-weight: 700; }
+
+      /* ---------- Layout ---------- */
+      .layout { display: grid; grid-template-columns: 232px minmax(0, 1fr); min-height: 100vh; }
+      .sidebar {
+        background: var(--brand);
+        color: #eaf3fa;
+        padding: 20px 14px 24px;
+        position: sticky; top: 0; height: 100vh;
+        display: flex; flex-direction: column; gap: 4px;
+      }
+      @media (prefers-color-scheme: dark) {
+        .sidebar { background: #101d29; color: var(--ink); border-right: 1px solid var(--line); }
+      }
+      .brand-block { padding: 2px 8px 16px; border-bottom: 1px solid rgba(255,255,255,.18); margin-bottom: 14px; }
+      @media (prefers-color-scheme: dark) { .brand-block { border-bottom-color: var(--line); } }
+      .brand-name { font-weight: 900; font-size: 19px; letter-spacing: .04em; line-height: 1.25; }
+      .brand-sub { font-size: 12px; opacity: .75; letter-spacing: .14em; margin-top: 3px; }
+      .nav-btn {
+        display: flex; align-items: center; gap: 10px;
+        width: 100%; text-align: left;
+        background: transparent; border: 0; border-radius: 8px;
+        color: inherit; font: inherit; font-size: 14.5px; font-weight: 500;
+        padding: 9px 10px; cursor: pointer; min-height: 40px;
+      }
+      .nav-btn svg { flex: 0 0 auto; opacity: .85; }
+      .nav-btn:hover { background: rgba(255,255,255,.10); }
+      @media (prefers-color-scheme: dark) { .nav-btn:hover { background: var(--surface-2); } }
+      .nav-btn.active { background: var(--accent); color: #fff; font-weight: 700; }
+      .nav-btn.active svg { opacity: 1; }
+      .nav-badge {
+        margin-left: auto; background: var(--danger); color: #fff;
+        font-size: 11.5px; font-weight: 700; border-radius: 999px;
+        padding: 1px 7px; line-height: 1.5;
+      }
+      .nav-btn.active .nav-badge { background: #fff; color: var(--danger); }
+      .lang-switch { display: inline-flex; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.28); border-radius: 9px; padding: 3px; gap: 2px; }
+      @media (prefers-color-scheme: dark) { .lang-switch { background: var(--surface-2); border-color: var(--line); } }
+      .lang-switch button { border: 0; background: transparent; color: inherit; font: inherit; font-size: 13px; font-weight: 700; border-radius: 6px; padding: 5px 14px; cursor: pointer; min-height: 32px; }
+      .lang-switch button.active { background: var(--accent); color: #fff; }
+      .lang-row { padding: 0 8px 14px; }
+      .notice-bar .lang-switch { margin-left: auto; background: var(--surface); border-color: var(--line-strong); color: var(--ink); flex: 0 0 auto; }
+      .sidebar-foot { margin-top: auto; padding: 12px 8px 0; border-top: 1px solid rgba(255,255,255,.18); font-size: 12px; opacity: .85; }
+      @media (prefers-color-scheme: dark) { .sidebar-foot { border-top-color: var(--line); } }
+      .sidebar-foot a { color: inherit; text-decoration: underline; text-underline-offset: 3px; }
+
+      .main { min-width: 0; display: flex; flex-direction: column; }
+      .notice-bar {
+        background: var(--warn-soft); color: var(--warn);
+        border-bottom: 1px solid var(--line);
+        padding: 8px 22px; font-size: 13.5px; font-weight: 500;
+        display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+      }
+      .notice-bar strong { font-weight: 700; }
+      .content { padding: 22px 22px 48px; max-width: 1240px; width: 100%; margin: 0 auto; }
+      .view { display: none; }
+      .view.active { display: block; }
+
+      .page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 18px; }
+      .page-head h1 { font-size: 24px; margin: 0; font-weight: 900; letter-spacing: .01em; }
+      .page-head .sub { color: var(--ink-2); font-size: 13.5px; margin-top: 2px; }
+      h2.section-title { font-size: 16.5px; font-weight: 700; margin: 26px 0 10px; display: flex; align-items: center; gap: 8px; }
+      h2.section-title:first-child { margin-top: 0; }
+
+      /* ---------- Cards & KPI ---------- */
+      .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(168px, 1fr)); gap: 12px; }
+      .kpi {
+        background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+        padding: 14px 16px; box-shadow: var(--shadow);
+      }
+      .kpi .k-label { font-size: 12.5px; color: var(--ink-3); font-weight: 500; letter-spacing: .05em; }
+      .kpi .k-value { font-size: 25px; font-weight: 900; margin-top: 2px; font-variant-numeric: tabular-nums; }
+      .kpi .k-note { font-size: 12.5px; color: var(--ink-2); margin-top: 2px; }
+      .kpi.danger .k-value { color: var(--danger); }
+      .kpi.money .k-value { font-size: 21px; }
+
+      .card {
+        background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+        box-shadow: var(--shadow); padding: 18px;
+      }
+      .card + .card { margin-top: 14px; }
+
+      /* ---------- Tables ---------- */
+      .table-wrap { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+      table.data { width: 100%; border-collapse: collapse; font-size: 14px; }
+      table.data th {
+        text-align: left; font-size: 12.5px; letter-spacing: .04em; color: var(--ink-2);
+        background: var(--surface-2); border-bottom: 1px solid var(--line);
+        padding: 10px 10px; font-weight: 700; line-height: 1.35;
+      }
+      table.data td { padding: 10px 10px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: break-word; }
+      table.data tr:last-child td { border-bottom: 0; }
+      table.data tbody tr.clickable { cursor: pointer; }
+      table.data tbody tr.clickable:hover { background: var(--surface-2); }
+      table.data tfoot td { font-weight: 700; background: var(--surface-2); border-top: 2px solid var(--line-strong); }
+      .ref-link { font-weight: 700; color: var(--brand-2); text-decoration: none; white-space: nowrap; }
+      .ref-link:hover { text-decoration: underline; }
+      .route { white-space: nowrap; font-weight: 600; }
+      table.data .route { white-space: normal; }
+      .muted { color: var(--ink-3); }
+      .small { font-size: 12.5px; }
+
+      /* ---------- Chips & badges ---------- */
+      .chip { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 6px; padding: 2px 8px; white-space: nowrap; }
+      .chip-air { background: var(--chip-air); color: var(--chip-air-ink); }
+      .chip-sea { background: var(--chip-sea); color: var(--chip-sea-ink); }
+      .chip-local { background: var(--chip-local); color: var(--chip-local-ink); }
+      .chip-logi { background: var(--chip-logi); color: var(--chip-logi-ink); }
+      .badge { display: inline-block; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+      .badge-ok { background: var(--ok-soft); color: var(--ok); }
+      .badge-info { background: var(--info-soft); color: var(--info); }
+      .badge-warn { background: var(--warn-soft); color: var(--warn); }
+      .badge-danger { background: var(--danger-soft); color: var(--danger); }
+      .badge-grey { background: var(--surface-2); color: var(--ink-2); border: 1px solid var(--line); }
+
+      .alert-box {
+        border: 1px solid var(--danger); background: var(--danger-soft); color: var(--danger);
+        border-radius: var(--radius); padding: 12px 16px; font-weight: 600; font-size: 14px;
+        display: flex; gap: 10px; align-items: flex-start;
+      }
+      .alert-box a { color: inherit; }
+      .note-box {
+        border: 1px solid var(--line); background: var(--surface-2); border-radius: var(--radius);
+        padding: 12px 16px; font-size: 13.5px; color: var(--ink-2);
+      }
+
+      /* ---------- Filters & forms ---------- */
+      .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+      .toolbar .spacer { flex: 1; }
+      .seg { display: inline-flex; background: var(--surface); border: 1px solid var(--line); border-radius: 9px; padding: 3px; gap: 2px; flex-wrap: wrap; }
+      .seg button {
+        border: 0; background: transparent; color: var(--ink-2); font: inherit; font-size: 13.5px; font-weight: 600;
+        border-radius: 6px; padding: 5px 12px; cursor: pointer; min-height: 34px;
+      }
+      .seg button.active { background: var(--brand); color: #fff; }
+      @media (prefers-color-scheme: dark) { .seg button.active { background: var(--brand-2); color: #0d141b; } }
+      .search-input, .field input, .field select, .field textarea {
+        font: inherit; font-size: 14.5px; color: var(--ink);
+        background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px;
+        padding: 8px 11px; width: 100%;
+      }
+      .search-input { width: auto; min-width: 210px; }
+      .search-input:focus, .field input:focus, .field select:focus, .field textarea:focus {
+        outline: 2px solid var(--brand-2); outline-offset: 0; border-color: var(--brand-2);
+      }
+      .btn {
+        display: inline-flex; align-items: center; gap: 7px;
+        font: inherit; font-size: 14px; font-weight: 700; cursor: pointer;
+        border-radius: 8px; padding: 8px 16px; min-height: 38px;
+        border: 1px solid var(--brand); background: var(--brand); color: #fff;
+      }
+      .btn:hover { background: var(--brand-2); border-color: var(--brand-2); }
+      @media (prefers-color-scheme: dark) { .btn { color: #0d141b; background: var(--brand-2); border-color: var(--brand-2); } .btn:hover { background: var(--brand); } }
+      .btn.ghost { background: var(--surface); color: var(--brand); border-color: var(--line-strong); }
+      .btn.ghost:hover { background: var(--surface-2); }
+      @media (prefers-color-scheme: dark) { .btn.ghost { color: var(--brand-2); } }
+      .btn.small { min-height: 34px; padding: 5px 12px; font-size: 13px; }
+
+      .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 16px; }
+      .field label { display: block; font-size: 13px; font-weight: 700; color: var(--ink-2); margin-bottom: 5px; }
+      .field.wide { grid-column: span 2; }
+      .field.full { grid-column: 1 / -1; }
+      .type-picker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 18px; }
+      .type-card {
+        border: 2px solid var(--line); border-radius: var(--radius); background: var(--surface);
+        padding: 14px 16px; cursor: pointer; font: inherit; text-align: left; color: var(--ink); min-height: 44px;
+      }
+      .type-card .t-name { font-weight: 900; font-size: 16.5px; display: block; }
+      .type-card .t-desc { font-size: 12.5px; color: var(--ink-2); display: block; margin-top: 2px; }
+      .type-card.active { border-color: var(--accent); background: var(--accent-soft); }
+      .ref-preview {
+        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        background: var(--surface-2); border: 1px dashed var(--line-strong); border-radius: var(--radius);
+        padding: 12px 16px; margin-top: 18px; font-size: 14px;
+      }
+      .ref-preview .big-ref { font-size: 20px; font-weight: 700; letter-spacing: .03em; }
+      .success-box {
+        border: 1px solid var(--ok); background: var(--ok-soft); border-radius: var(--radius);
+        padding: 16px; margin-top: 18px;
+      }
+      .success-box h3 { margin: 0 0 6px; color: var(--ok); font-size: 16px; }
+
+      /* ---------- Detail ---------- */
+      .detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
+      .kv { padding: 9px 14px 9px 0; border-bottom: 1px solid var(--line); }
+      .kv .k { font-size: 12px; color: var(--ink-3); font-weight: 500; letter-spacing: .04em; }
+      .kv .v { font-weight: 600; margin-top: 1px; overflow-wrap: anywhere; white-space: pre-line; }
+      .kv .v:empty::after { content: "—"; color: var(--ink-3); font-weight: 400; }
+      .summary-strip { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 14px; }
+      .summary-strip .s {
+        border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); padding: 12px 16px;
+      }
+      .summary-strip .s .k { font-size: 12.5px; color: var(--ink-2); font-weight: 500; }
+      .summary-strip .s .v { font-size: 20px; font-weight: 900; font-variant-numeric: tabular-nums; }
+      .back-link { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; text-decoration: none; margin-bottom: 14px; min-height: 36px; }
+
+      .empty-state { padding: 34px 18px; text-align: center; color: var(--ink-3); }
+
+      /* ---------- AI 認讀與文件生成設定 ---------- */
+      .steps { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+      .step { display: inline-flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 600; color: var(--ink-3); background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 5px 13px 5px 6px; }
+      .step .n { width: 22px; height: 22px; border-radius: 50%; background: var(--line-strong); color: var(--surface); display: inline-flex; align-items: center; justify-content: center; font-size: 12.5px; font-weight: 700; flex: 0 0 auto; }
+      .step.done { color: var(--ok); border-color: var(--ok); background: var(--ok-soft); }
+      .step.done .n { background: var(--ok); color: #fff; }
+      .step.now { color: var(--brand); border-color: var(--brand-2); background: var(--info-soft); }
+      .step.now .n { background: var(--brand-2); color: #fff; }
+      .upload-zone { border: 2px dashed var(--line-strong); border-radius: var(--radius); background: var(--surface-2); padding: 22px 18px; text-align: center; }
+      .ai-preview { max-width: 100%; max-height: 240px; border-radius: 8px; border: 1px solid var(--line); display: block; }
+      .field .hint { font-size: 12px; color: var(--warn); font-weight: 600; margin-top: 4px; }
+      select.trigger-select, select.status-select { font: inherit; font-size: 14px; color: var(--ink); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 7px 10px; min-height: 38px; max-width: 100%; }
+      .gen-notice { border: 1px solid var(--info); background: var(--info-soft); border-radius: var(--radius); padding: 14px 16px; margin-top: 14px; font-size: 14px; }
+      .status-bar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+      .footer-note { margin-top: 34px; font-size: 12.5px; color: var(--ink-3); border-top: 1px solid var(--line); padding-top: 14px; }
+      .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+      .list-clean { margin: 0; padding-left: 18px; }
+      .list-clean li { margin: 3px 0; }
+
+      /* ---------- 外判發票核對 ---------- */
+      .supplier-search { display: flex; gap: 10px; flex-wrap: wrap; align-items: stretch; }
+      .supplier-search input {
+        flex: 1 1 260px; font: inherit; font-size: 15px; color: var(--ink);
+        background: var(--surface); border: 1px solid var(--line-strong); border-radius: 8px; padding: 9px 12px;
+      }
+      .supplier-search input:focus { outline: 2px solid var(--brand-2); outline-offset: 0; border-color: var(--brand-2); }
+      .quick-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 12px; }
+      .quick-chip {
+        font: inherit; font-size: 12.5px; font-weight: 700; cursor: pointer;
+        background: var(--surface-2); color: var(--brand); border: 1px solid var(--line-strong);
+        border-radius: 999px; padding: 5px 11px; min-height: 32px;
+      }
+      .quick-chip:hover { background: var(--info-soft); border-color: var(--brand-2); }
+      @media (prefers-color-scheme: dark) { .quick-chip { color: var(--brand-2); } }
+      .check-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+      .check-col { border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface-2); padding: 14px 16px; }
+      .check-col.missing { border-color: var(--danger); background: var(--danger-soft); }
+      .check-col.present { border-color: var(--ok); background: var(--ok-soft); }
+      .check-col .cc-title { font-size: 12.5px; font-weight: 700; letter-spacing: .05em; color: var(--ink-2); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .check-col.missing .cc-title { color: var(--danger); }
+      .check-col.present .cc-title { color: var(--ok); }
+      .check-col .cc-big { font-size: 17px; font-weight: 900; margin-top: 6px; }
+      .check-col .cc-line { font-size: 13.5px; color: var(--ink-2); margin-top: 2px; }
+      .verdict { border-radius: var(--radius); padding: 13px 16px; font-weight: 700; font-size: 14.5px; display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; }
+      .verdict-danger { border: 1px solid var(--danger); background: var(--danger-soft); color: var(--danger); }
+      .verdict-ok { border: 1px solid var(--ok); background: var(--ok-soft); color: var(--ok); }
+      .verdict-grey { border: 1px solid var(--line); background: var(--surface-2); color: var(--ink-2); }
+      @media (max-width: 900px) { .check-compare { grid-template-columns: 1fr; } }
+
+      /* ---------- 文件縮圖與預覽 ---------- */
+      .doc-thumb {
+        width: 58px; height: 76px; background: #fff; border: 1px solid #b9c5d1; border-radius: 5px;
+        box-shadow: 0 1px 3px rgba(16,34,46,.14), 0 4px 10px rgba(16,34,46,.06);
+        padding: 7px 6px 5px; position: relative; overflow: hidden; flex: 0 0 auto; color: #16222e;
+        text-align: left;
+      }
+      .doc-thumb::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: #175cd3; }
+      .doc-thumb.sea::before { background: #0f766e; }
+      .doc-thumb.manifest::before { background: #71808f; }
+      .doc-thumb.invoice::before { background: #c8871a; }
+      .doc-thumb.quote::before { background: #0b3d5c; }
+      .doc-thumb .dt-title { font-size: 8px; font-weight: 900; letter-spacing: .05em; margin-top: 2px; line-height: 1.25; }
+      .doc-thumb .dt-sub { font-size: 6px; color: #71808f; letter-spacing: .03em; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .dt-lines { margin-top: 5px; display: grid; gap: 3px; }
+      .dt-line { height: 3px; background: #d7dee6; border-radius: 2px; }
+      .dt-line.dark { background: #aebfce; }
+      .dt-box { height: 13px; border: 1px solid #d7dee6; border-radius: 2px; margin-top: 4px; background: #f6f8fa; display: grid; grid-template-columns: 1fr 1fr; }
+      .dt-box span { border-right: 1px solid #e3e8ee; }
+      .dt-box span:last-child { border-right: 0; }
+      .doc-cell { display: flex; gap: 12px; align-items: center; min-width: 0; }
+      .doc-cell .doc-meta { min-width: 0; }
+      .doc-cell .doc-meta .mono { overflow-wrap: anywhere; }
+      button.doc-thumb { cursor: pointer; font: inherit; }
+      button.doc-thumb:hover { border-color: var(--brand-2); box-shadow: 0 2px 6px rgba(16,34,46,.18), 0 6px 14px rgba(16,34,46,.08); }
+      .preview-link { font-size: 12.5px; font-weight: 700; color: var(--brand-2); background: none; border: 0; padding: 2px 0; cursor: pointer; font-family: inherit; min-height: 28px; }
+      .preview-link:hover { text-decoration: underline; }
+
+      .preview-overlay {
+        position: fixed; inset: 0; background: rgba(9,20,30,.66); z-index: 60;
+        display: none; align-items: flex-start; justify-content: center;
+        padding: 18px 12px 28px; overflow-y: auto;
+      }
+      .preview-overlay.open { display: flex; }
+      .preview-modal {
+        background: var(--surface); border-radius: 12px; max-width: 780px; width: 100%;
+        box-shadow: 0 18px 50px rgba(0,0,0,.35); overflow: hidden; margin: auto 0;
+      }
+      .preview-head {
+        display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+        padding: 14px 18px; border-bottom: 1px solid var(--line); background: var(--surface);
+      }
+      .preview-head .ph-title { font-weight: 900; font-size: 15.5px; }
+      .preview-head .ph-sub { font-size: 12.5px; color: var(--ink-3); }
+      .preview-body { padding: 16px; background: var(--surface-2); }
+      .preview-paper {
+        background: #fff; color: #16222e; border: 1px solid #d7dee6; border-radius: 4px;
+        padding: 24px 26px 20px; box-shadow: 0 2px 10px rgba(16,34,46,.10);
+        font-size: 13px; line-height: 1.5;
+      }
+      .pp-top { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; border-bottom: 2.5px solid #0b3d5c; padding-bottom: 10px; margin-bottom: 12px; }
+      .pp-co { font-weight: 900; font-size: 16px; letter-spacing: .03em; color: #0b3d5c; line-height: 1.25; }
+      .pp-co-sub { font-size: 10.5px; color: #44566a; margin-top: 2px; max-width: 340px; }
+      .pp-doc-title { text-align: right; }
+      .pp-doc-title .t { font-size: 19px; font-weight: 900; letter-spacing: .06em; line-height: 1.15; }
+      .pp-doc-title .n { font-family: "IBM Plex Mono", monospace; font-size: 12px; color: #44566a; margin-top: 2px; }
+      .pp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 18px; margin-bottom: 12px; }
+      .pp-field { border: 1px solid #e3e8ee; border-radius: 4px; padding: 6px 9px; background: #fbfcfd; }
+      .pp-field .k { font-size: 9.5px; letter-spacing: .07em; color: #71808f; font-weight: 700; text-transform: uppercase; }
+      .pp-field .v { font-weight: 600; font-size: 12.5px; overflow-wrap: anywhere; white-space: pre-line; min-height: 18px; }
+      .pp-field.full { grid-column: 1 / -1; }
+      table.pp-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 10px 0; }
+      table.pp-table th { background: #eef1f5; border: 1px solid #d7dee6; padding: 6px 8px; text-align: left; font-size: 11px; letter-spacing: .03em; }
+      table.pp-table td { border: 1px solid #e3e8ee; padding: 6px 8px; vertical-align: top; }
+      table.pp-table td.num, table.pp-table th.num { text-align: right; }
+      table.pp-table tfoot td { font-weight: 800; background: #f6f8fa; }
+      .pp-route { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: #eef4f8; border: 1px solid #d7e3ec; border-radius: 6px; padding: 9px 12px; margin: 10px 0; font-weight: 800; font-size: 14px; }
+      .pp-route .arr { color: #0e5a86; }
+      .pp-route .meta { font-size: 11.5px; font-weight: 600; color: #44566a; }
+      .pp-foot { border-top: 1px solid #d7dee6; margin-top: 14px; padding-top: 9px; font-size: 10.5px; color: #44566a; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+      .pp-stamp { display: inline-block; border: 1.5px solid #b42318; color: #b42318; font-weight: 900; font-size: 11px; letter-spacing: .08em; border-radius: 4px; padding: 2px 8px; transform: rotate(-2deg); }
+      .pp-note { font-size: 11.5px; color: #44566a; background: #fdf3e0; border: 1px solid #f0dfb2; border-radius: 5px; padding: 7px 10px; margin-top: 10px; }
+      @media (max-width: 640px) {
+        .preview-paper { padding: 16px 14px; }
+        .pp-grid { grid-template-columns: 1fr; }
+        .pp-doc-title { text-align: left; }
+        .doc-thumb { width: 50px; height: 66px; }
+      }
+
+      /* ---------- Responsive ---------- */
+      @media (max-width: 900px) {
+        .layout { grid-template-columns: 1fr; }
+        .sidebar { position: static; height: auto; padding: 14px 12px; flex-direction: row; flex-wrap: wrap; align-items: center; }
+        .brand-block { border-bottom: 0; margin-bottom: 0; padding: 0 6px 0 2px; }
+        .brand-name { font-size: 16.5px; }
+        .nav-btn { width: auto; padding: 8px 11px; }
+        .nav-btn svg { display: none; }
+        .sidebar-foot { display: none; }
+        .content { padding: 16px 12px 40px; }
+        .form-grid { grid-template-columns: 1fr 1fr; }
+        .detail-grid { grid-template-columns: 1fr 1fr; }
+        .type-picker { grid-template-columns: 1fr; }
+        .two-col { grid-template-columns: 1fr; }
+        .summary-strip { grid-template-columns: 1fr; }
+        /* Wide tables become stacked cards on phones */
+        .table-wrap { overflow: visible; border: 0; box-shadow: none; background: transparent; }
+        table.data, table.data tbody, table.data tr, table.data td { display: block; width: 100%; }
+        table.data thead { display: none; }
+        table.data tbody tr {
+          background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+          box-shadow: var(--shadow); padding: 8px 4px; margin-bottom: 10px;
+        }
+        table.data td { border-bottom: 0; padding: 5px 12px; display: flex; justify-content: space-between; gap: 14px; align-items: baseline; }
+        table.data td .doc-cell { flex: 1; align-items: flex-start; }
+        table.data td::before { content: attr(data-label); font-size: 12px; color: var(--ink-3); font-weight: 700; letter-spacing: .04em; flex: 0 0 auto; padding-top: 2px; }
+        table.data td.num { text-align: right; }
+        table.data tfoot { display: block; }
+        table.data tfoot tr { display: block; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 4px; }
+        .search-input { min-width: 0; flex: 1; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="layout">
+      <aside class="sidebar">
+        <div class="brand-block">
+          <div class="brand-name">ALPHA MASTER</div>
+          <div class="brand-sub" id="brand-sub">LOGISTICS LIMITED · Logistics System</div>
+        </div>
+        <div class="lang-row">
+          <div class="lang-switch" role="group" aria-label="Language / 語言">
+            <button type="button" data-set-lang="zh">中文</button>
+            <button type="button" data-set-lang="en" class="active">EN</button>
+          </div>
+        </div>
+        <button class="nav-btn active" data-nav="dashboard" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+          <span data-nav-label>Dashboard</span>
+        </button>
+        <button class="nav-btn" data-nav="cases" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/></svg>
+          <span data-nav-label>Cases</span>
+          <span class="nav-badge" id="nav-leak-badge">1</span>
+        </button>
+        <button class="nav-btn" data-nav="newcase" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/></svg>
+          <span data-nav-label>New Case</span>
+        </button>
+        <button class="nav-btn" data-nav="intake" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6"/><path d="M9 14l2 2 4-4"/></svg>
+          <span data-nav-label>Order Intake</span>
+          <span class="nav-badge" id="nav-intake-badge" style="background:var(--accent)">2</span>
+        </button>
+        <button class="nav-btn" data-nav="invoices" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6"/></svg>
+          <span data-nav-label>Invoices & Quotations</span>
+        </button>
+        <button class="nav-btn" data-nav="suppliercheck" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M8.5 11l2 2 3.5-3.5"/></svg>
+          <span data-nav-label>Supplier Invoice Check</span>
+          <span class="nav-badge" id="nav-supplier-badge">1</span>
+        </button>
+        <button class="nav-btn" data-nav="docs" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5.1L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.7 4H7.3a2 2 0 0 0-1.8 1.1z"/></svg>
+          <span data-nav-label>Documents</span>
+        </button>
+        <button class="nav-btn" data-nav="docsettings" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8h10M18 8h2M4 16h4M12 16h8"/><circle cx="16" cy="8" r="2"/><circle cx="10" cy="16" r="2"/></svg>
+          <span data-nav-label>Doc Generation Settings</span>
+        </button>
+        <button class="nav-btn" data-nav="charges" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
+          <span data-nav-label>Charge Items</span>
+        </button>
+        <div class="sidebar-foot">
+          <span id="sidebar-db-label">Database: Feishu Base</span><br />
+          <a id="sidebar-open-base" href="https://ccnxpo99xc1t.feishu.cn/base/Ryz0b5N51a54SpslooOcTmHHn0f" target="_blank" rel="noopener">Open Base in Feishu</a>
+        </div>
+      </aside>
+
+      <div class="main">
+        <div class="notice-bar">
+          <strong id="notice-title">Reference Version</strong>
+          <span id="notice-text">Data as of 16 Nov 2026 (verified Feishu Base snapshot). Actions on this site do not write to Feishu. The production version will connect to Feishu Base as its database via a backend.</span>
+          <span class="lang-switch" role="group" aria-label="Language / 語言">
+            <button type="button" data-set-lang="zh">中文</button>
+            <button type="button" data-set-lang="en" class="active">EN</button>
+          </span>
+        </div>
+        <div class="content" id="content"><!-- views rendered by script --></div>
+      </div>
+    </div>
+
+    <!-- 文件預覽 -->
+    <div class="preview-overlay" id="preview-overlay" role="dialog" aria-modal="true" aria-label="Document Preview">
+      <div class="preview-modal">
+        <div class="preview-head">
+          <div style="min-width:0">
+            <div class="ph-title" id="preview-title">Document Preview</div>
+            <div class="ph-sub" id="preview-sub"></div>
+          </div>
+          <span style="flex:1"></span>
+          <span class="badge badge-grey" id="preview-badge">Preview · Not an official document</span>
+          <button class="btn ghost small" type="button" data-close-preview id="preview-close">✕ Close</button>
+        </div>
+        <div class="preview-body" id="preview-body"></div>
+        <div id="preview-foot" style="padding:12px 18px; border-top:1px solid var(--line); font-size:12.5px; color:var(--ink-3)">This preview is laid out live from the case data in Feishu Base for checking. The official PDF is generated by DocuGenius from the template; the template layout prevails.</div>
+      </div>
+    </div>
+
+    <script>
+      "use strict";
+      /* ===== 數據快照（2026-11-16 飛書 Base 核實匯出） ===== */
+      var CASES = [
+        {"ref":"AMLA2606040","type":"空運","dir":"出口","status":"已開票","shipper":"JEB FURNITURE SOLUTIONS LTD","consignee":"INSCAPEDESIGN","notify":"","pol":"CAN","pod":"ICN","finalDest":"","flight":"KJ934","etd":"2026-06-30","eta":"","pcs":28,"pcsNote":"","gross":1336,"chargeable":1336,"cbmLabel":"計費重量 (KG)","mawb":"994-32476286","hawb":"AMLA2606040","booking":"","desc":"","container":"","quoteDate":"2026-06-30","validUntil":"2026-07-14","extra":""},
+        {"ref":"AMLS2608022","type":"海運","dir":"出口","status":"已開票","shipper":"INFOACTION TENOLOGY,INC.","consignee":"SCREENBEAM INC","notify":"","pol":"HONG KONG","pod":"OAKLAND","finalDest":"OAKLAND","flight":"EVER MACRO / 1372-009E","etd":"2026-08-18","eta":"2026-09-16","pcs":173,"pcsNote":"8PLTS = 173CTNS","gross":1477.84,"chargeable":11.44,"cbmLabel":"CBM","mawb":"FHKOAK26024888","hawb":"AMLS2608022","booking":"","desc":"","container":"","quoteDate":"","validUntil":"","extra":""},
+        {"ref":"AML2610063","type":"空運","dir":"進口","status":"","shipper":"TENSO,INC.","consignee":"ALPHA MASTER LOGISTICS LTD.","notify":"","pol":"NRT","pod":"HKG","finalDest":"","flight":"JL6781","etd":"","eta":"2026-10-28","pcs":45,"pcsNote":"","gross":653,"chargeable":1462.5,"cbmLabel":"計費重量 (KG)","mawb":"131-26042590","hawb":"SBS-0002 3469","booking":"","desc":"","container":"","quoteDate":"","validUntil":"","extra":""},
+        {"ref":"AML2609082","type":"海運","dir":"進口","status":"","shipper":"","consignee":"","notify":"","pol":"TAIPEI","pod":"HONG KONG","finalDest":"","flight":"WAN HAI 357 / S039","etd":"","eta":"2026-09-22","pcs":8,"pcsNote":"1PLT = 8CTNS","gross":100,"chargeable":0.33,"cbmLabel":"CBM","mawb":"","hawb":"","booking":"","desc":"","container":"","quoteDate":"","validUntil":"","extra":""},
+        {"ref":"AML2608109","type":"物流服務","dir":"","status":"","shipper":"","consignee":"","notify":"","pol":"","pod":"","finalDest":"","flight":"","etd":"","eta":"","pcs":null,"pcsNote":"","gross":null,"chargeable":null,"cbmLabel":"","mawb":"","hawb":"","booking":"","desc":"","container":"","quoteDate":"","validUntil":"","extra":"SOS PO No.：FPO26080087R0；Job No.：MSS26013"},
+        {"ref":"2020-CX086","type":"空運","dir":"出口","status":"","shipper":"SHENZHEN BRIGHT LIGHTING TECH.","consignee":"RMCS IMPORTACTION EXPORTACTION","notify":"","pol":"HONG KONG","pod":"MEXICO CITY","finalDest":"","flight":"CX086","etd":"2020-12-28","eta":"2020-12-29","pcs":29,"pcsNote":"","gross":492,"chargeable":598,"cbmLabel":"計費重量 (KG)","mawb":"160-22268676","hawb":"","booking":"","desc":"","container":"","quoteDate":"","validUntil":"","extra":"供應商發票（另一間公司開給 ALPHA）；Reference No. 為後加標籤，文件本身並無 Invoice No.／Job No.。"},
+        {"ref":"AMLA2610065","type":"空運","dir":"出口","status":"","shipper":"","consignee":"","notify":"","pol":"HKG","pod":"FRA","finalDest":"","flight":"EK9845","etd":"2026-10-31","eta":"","pcs":7,"pcsNote":"","gross":132,"chargeable":132,"cbmLabel":"計費重量 (KG)","mawb":"176-64464621","hawb":"AMLA2610065","booking":"","desc":"WIRELESS DISPLAY RECEIVER\nHS CODE: 851762","container":"","quoteDate":"","validUntil":"","extra":""},
+        {"ref":"AMLS2610002","type":"海運","dir":"出口","status":"","shipper":"","consignee":"","notify":"","pol":"HONG KONG","pod":"KEELUNG","finalDest":"KEELUNG","flight":"TS PUSAN 2617N","etd":"2026-11-01","eta":"","pcs":8,"pcsNote":"","gross":100,"chargeable":0.333,"cbmLabel":"CBM","mawb":"AMLS2610002","hawb":"AMLS2610002","booking":"","desc":"MEGA ZINC TABLET\nNEW MEGA ZINC TABLET\nLINO ZINC TABLET\n1PLTS=8CTNS\nTOTAL: ONE PLT(S) CONTAINS EIGHT CARTONS ONLY","container":"TSSU5315448 / TSH2983329 / 40'HQ","quoteDate":"","validUntil":"","extra":"Telex Release"},
+        {"ref":"AML202611003","type":"空運","dir":"出口","status":"已下單","shipper":"JEB FURNITURE SOLUTIONS LTD","consignee":"INSCAPEDESIGN","notify":"","pol":"CAN","pod":"ICN","finalDest":"","flight":"","etd":"","eta":"","pcs":28,"pcsNote":"","gross":1336,"chargeable":1336,"cbmLabel":"計費重量 (KG)","mawb":"994-32476286","hawb":"AMLA2606040","booking":"","desc":"","container":"","quoteDate":"","validUntil":"","extra":"","pending":"待確認：測試單或真實訂單"},
+        {"ref":"AML202611004","type":"空運","dir":"出口","status":"已下單","shipper":"JEB FURNITURE SOLUTIONS LTD","consignee":"INSCAPEDESIGN","notify":"","pol":"CAN","pod":"ICN","finalDest":"","flight":"","etd":"2026-06-30","eta":"","pcs":28,"pcsNote":"","gross":1336,"chargeable":1336,"cbmLabel":"計費重量 (KG)","mawb":"994-32476286","hawb":"AMLA2606040","booking":"","desc":"","container":"","quoteDate":"","validUntil":"","extra":"","pending":"待確認：測試單或真實訂單"}
+      ];
+
+      var CHARGES = [
+        {"case":"AMLA2606040","name":"AIR FREIGHT","cat":"向客收費","curr":"CNY","price":12,"unit":"KG","qty":1336,"amount":18484.90},
+        {"case":"AMLA2606040","name":"PICKING UP & LOCAL CHARGE","cat":"向客收費","curr":"CNY","price":6334.64,"unit":"SHPT","qty":1,"amount":7303.84},
+        {"case":"AMLA2606040","name":"AIRPORT TERMINAL CHARGE","cat":"向客收費","curr":"USD","price":169,"unit":"SHPT","qty":1,"amount":1326.65},
+        {"case":"AMLA2606040","name":"CUSTOM BROKER FEE","cat":"向客收費","curr":"USD","price":65,"unit":"SHPT","qty":1,"amount":510.25},
+        {"case":"AMLA2606040","name":"CUSTOM DUTY & VAT","cat":"向客收費","curr":"USD","price":1690,"unit":"SHPT","qty":1,"amount":13266.50},
+        {"case":"AMLA2606040","name":"TRUCKING FEE","cat":"向客收費","curr":"USD","price":546,"unit":"SHPT","qty":1,"amount":4286.10},
+        {"case":"AMLA2606040","name":"ELEVATOR GUARD PER 1EA","cat":"向客收費","curr":"USD","price":120,"unit":"SHPT","qty":1,"amount":942.00},
+        {"case":"AMLA2606040","name":"UNLOADING FROM TRUCK PER LIFT","cat":"向客收費","curr":"USD","price":97.5,"unit":"SHPT","qty":1,"amount":765.38},
+        {"case":"AMLA2606040","name":"MOVE TO UPSTAIRS","cat":"向客收費","curr":"USD","price":299,"unit":"SHPT","qty":1,"amount":2347.15},
+        {"case":"AMLA2606040","name":"HANDLING FEE","cat":"向客收費","curr":"USD","price":115,"unit":"SHPT","qty":1,"amount":902.75},
+        {"case":"AMLA2606040","name":"AIR FREIGHT (FOR GAS LIFT)","cat":"向客收費","curr":"CNY","price":845,"unit":"SHPT","qty":1,"amount":974.29},
+        {"case":"AMLS2608022","name":"OCEAN FREIGHT CHARGE","cat":"向客收費","curr":"USD","price":100,"unit":"CBM","qty":11.44,"amount":8980.40},
+        {"case":"AMLS2608022","name":"ADMINISTRATION CHARGE","cat":"向客收費","curr":"USD","price":15,"unit":"SHPT","qty":1,"amount":117.75},
+        {"case":"AMLS2608022","name":"AMS FEE","cat":"向客收費","curr":"USD","price":51.61,"unit":"SHPT","qty":1,"amount":405.14},
+        {"case":"AMLS2608022","name":"CFS CHARGE","cat":"向客收費","curr":"USD","price":25.55,"unit":"CBM","qty":11.44,"amount":2294.49},
+        {"case":"AMLS2608022","name":"DELIVERY CHARGE","cat":"向客收費","curr":"USD","price":180,"unit":"SHPT","qty":1,"amount":1413.00},
+        {"case":"AMLS2608022","name":"DOCUMENTATION CHARGE","cat":"向客收費","curr":"USD","price":77.42,"unit":"SET","qty":1,"amount":607.75},
+        {"case":"AMLS2608022","name":"HANDLING CHARGE","cat":"向客收費","curr":"USD","price":38.71,"unit":"SHPT","qty":1,"amount":303.87},
+        {"case":"AMLS2608022","name":"REGRISTRATION FEE","cat":"向客收費","curr":"USD","price":94.19,"unit":"SHPT","qty":1,"amount":739.39},
+        {"case":"AMLS2608022","name":"PALLET FEE","cat":"向客收費","curr":"USD","price":64.52,"unit":"PLT","qty":2,"amount":1012.96},
+        {"case":"AML2610063","name":"TERMINAL CHARGE","cat":"向客收費","curr":"HKD","price":1.68,"unit":"KG","qty":653,"amount":1097.04},
+        {"case":"AML2610063","name":"AIRLINES DOCUMENT CHARGE","cat":"向客收費","curr":"HKD","price":13,"unit":"SHPT","qty":1,"amount":13.00},
+        {"case":"AML2610063","name":"IMPORT DECLARATION CHARGE","cat":"向客收費","curr":"HKD","price":150,"unit":"SHPT","qty":1,"amount":150.00},
+        {"case":"AML2610063","name":"DELIVERY CHARGE","cat":"向客收費","curr":"HKD","price":0.7,"unit":"KG","qty":1170,"amount":819.00},
+        {"case":"AML2609082","name":"CHARGES OF SHIPPING COMPANY","cat":"向客收費","curr":"HKD","price":1540,"unit":"SHPT","qty":1,"amount":1540.00},
+        {"case":"AML2609082","name":"HANDLING CHARGE","cat":"向客收費","curr":"HKD","price":300,"unit":"SHPT","qty":1,"amount":300.00},
+        {"case":"AML2609082","name":"IMPORT DECLARATION FEE","cat":"向客收費","curr":"HKD","price":263,"unit":"SHPT","qty":1,"amount":263.00},
+        {"case":"AML2609082","name":"REGISTRATION FEE","cat":"向客收費","curr":"HKD","price":960,"unit":"SHPT","qty":1,"amount":960.00},
+        {"case":"AML2609082","name":"GATE CHARGE","cat":"向客收費","curr":"HKD","price":150,"unit":"SHPT","qty":1,"amount":150.00},
+        {"case":"AML2609082","name":"PARKING FEE","cat":"向客收費","curr":"HKD","price":330,"unit":"SHPT","qty":1,"amount":330.00},
+        {"case":"AML2609082","name":"DELIVERY CHARGE TO CFS WAREHOUSE","cat":"向客收費","curr":"HKD","price":700,"unit":"SHPT","qty":1,"amount":700.00},
+        {"case":"AML2608109","name":"Inventory Take for HQ L2, L6, L8","cat":"向客收費","curr":"HKD","price":1200,"unit":"Man","qty":9,"amount":10800.00},
+        {"case":"AML2608109","name":"Provide labour to dismantle and remove furniture and delivery charges","cat":"向客收費","curr":"HKD","price":131100,"unit":"Shpt","qty":1,"amount":131100.00},
+        {"case":"AML2608109","name":"Site Management","cat":"向客收費","curr":"HKD","price":4500,"unit":"Shpt","qty":1,"amount":4500.00},
+        {"case":"AML2608109","name":"40' Container","cat":"向客收費","curr":"HKD","price":55000,"unit":"Shpt","qty":1,"amount":55000.00},
+        {"case":"2020-CX086","name":"AIRFREIGHT","cat":"供應商成本","curr":"HKD","price":55,"unit":"KG","qty":598,"amount":32890.00}
+      ];
+
+      /* 各案總額以飛書 Base 記錄為準（逐行 2 位小數相加或與 TOTAL 相差 0.01） */
+      var TOTALS = {
+        "AMLA2606040": {"rev":51109.80,"cost":0},
+        "AMLS2608022": {"rev":15874.76,"cost":0},
+        "AML2610063": {"rev":2079.04,"cost":0},
+        "AML2609082": {"rev":4243.00,"cost":0},
+        "AML2608109": {"rev":201400.00,"cost":0},
+        "2020-CX086": {"rev":0,"cost":32890.00}
+      };
+
+      var INVOICES = [
+        {"no":"AMLA2606040","case":"AMLA2606040","cat":"客人發票","date":"2026-06-30","total":51109.80,"curr":"HKD","pay":"未收"},
+        {"no":"AMLS2608022","case":"AMLS2608022","cat":"客人發票","date":"2026-08-18","total":15874.76,"curr":"HKD","pay":"未收"},
+        {"no":"AML2610063","case":"AML2610063","cat":"客人發票","date":"2026-10-28","total":2079.04,"curr":"HKD","pay":"未收"},
+        {"no":"AML2609082","case":"AML2609082","cat":"客人發票","date":"2026-09-22","total":4243.00,"curr":"HKD","pay":"未收"},
+        {"no":"AML2608109","case":"AML2608109","cat":"客人發票","date":"2026-10-07","total":201400.00,"curr":"HKD","pay":"未收"},
+        {"no":"2020-CX086","case":"2020-CX086","cat":"供應商發票","date":"2020-12-28","total":32890.00,"curr":"HKD","pay":"未付"}
+      ];
+
+      var DOCS = [
+        {"name":"CARGO_MANIFEST_FORMAT__FOR_AIR_SHPT.xls","case":"AMLA2610065","cat":"Cargo Manifest","date":"2026-11-16"},
+        {"name":"HAWB_FORMAT__FOR_AIR_SHPT.xlsx","case":"AMLA2610065","cat":"HAWB","date":"2026-11-16"},
+        {"name":"HBL_FORMAT__FOR_OCEAN_SHPT.xlsx","case":"AMLS2610002","cat":"HBL","date":"2026-11-16"}
+      ];
+
+      var INTAKES = [
+        {"title":"測試-AMLA2606040","ref":"AML202611002","status":"待核對","date":"2026-11-16","type":"空運","dir":"出口","shipper":"JEB FURNITURE SOLUTIONS LTD","consignee":"INSCAPEDESIGN","pol":"CAN","pod":"ICN","flight":"無","etd":"2026-06-30","eta":"無","pcs":"28","gross":"1336","chargeable":"1336 KGS","mawb":"994-32476286","hawb":"AMLA2606040","desc":"無"},
+        {"title":"測試2-AMLA2606040（無附註）","ref":"AML202611001","status":"待核對","date":"2026-11-16","type":"空運","dir":"出口","shipper":"JEB FURNITURE SOLUTIONS LTD","consignee":"INSCAPEDESIGN","pol":"CAN","pod":"ICN","flight":"無","etd":"無","eta":"無","pcs":"28","gross":"1336","chargeable":"1336KGS","mawb":"無","hawb":"無","desc":"無"},
+        {"title":"（客人落單第 3 行）","ref":"AML202611003","status":"開案","date":"2026-11-16","type":"空運","dir":"出口","shipper":"JEB FURNITURE SOLUTIONS LTD","consignee":"INSCAPEDESIGN","pol":"CAN","pod":"ICN","flight":"無","etd":"無","eta":"無","pcs":"28","gross":"1336","chargeable":"1336","mawb":"無","hawb":"無","desc":"無","caseRef":"AML202611003"},
+        {"title":"（客人落單第 4 行）","ref":"AML202611004","status":"開案","date":"2026-11-16","type":"空運","dir":"出口","shipper":"JEB FURNITURE SOLUTIONS LTD","consignee":"INSCAPEDESIGN","pol":"CAN","pod":"ICN","flight":"無","etd":"2026-06-30","eta":"無","pcs":"28","gross":"1336","chargeable":"1336","mawb":"994-32476286","hawb":"AMLA2606040","desc":"無","caseRef":"AML202611004"}
+      ];
+
+      /* 報價單／客人發票生成狀態（DocuGenius 測試記錄） */
+      var DOCGEN = [
+        {"case":"AMLA2606040","quote":"已生成","invoice":"已生成","note":"發票範本 v3、報價單範本 v2 已核實（各 1 頁 A4）"},
+        {"case":"AMLA2610065","quote":"已生成","invoice":"未生成","note":"報價單測試 PDF 已出；HAWB 已生成"},
+        {"case":"AMLS2610002","quote":"未生成","invoice":"未生成","note":"HBL 已生成（visual 範本，2 頁 A4）"},
+        {"case":"AMLS2608022","quote":"未生成","invoice":"已生成","note":""},
+        {"case":"AML2610063","quote":"未生成","invoice":"已生成","note":""},
+        {"case":"AML2609082","quote":"未生成","invoice":"已生成","note":""},
+        {"case":"AML2608109","quote":"未生成","invoice":"已生成","note":"物流服務發票需另設範本"}
+      ];
+</script>
+
+    <script>
+      "use strict";
+      var content = document.getElementById("content");
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "" };
+
+      /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
+      var ZH_EN = [
+        ["資料截至 2026 年 11 月 16 日（飛書 Base 核實快照）；於本網站進行的操作不會寫入飛書。正式版將經後端接駁飛書 Base 作為資料庫。", "Data as of 16 Nov 2026 (verified Feishu Base snapshot). Actions on this site do not write to Feishu. The production version will connect to Feishu Base as its database via a backend."],
+        ["此預覽按飛書 Base 的個案資料即時排版，方便核對內容；正式 PDF 由 DocuGenius 按範本生成，版面以範本為準。", "This preview is laid out live from the case data in Feishu Base for checking. The official PDF is generated by DocuGenius from the template; the template layout prevails."],
+        ["個案狀態一經轉換，飛書會按「文件生成設定」中選定的觸發狀態自動生成相應文件（例如轉為「已開票」時生成客人發票）。哪個狀態觸發哪份文件，由您在設定頁決定，可隨時更改。", "When a case status changes, Feishu automatically generates the corresponding documents based on the trigger statuses chosen in Doc Generation Settings (e.g. a customer invoice when the status becomes Invoiced). Which status triggers which document is up to you on the Settings page and can be changed at any time."],
+        ["預設值跟隨目前飛書自動化的做法：客人發票於「已開票」生成、報價單於「已向供應商落單」生成、HAWB／HBL 於「已完成」生成、MAWB 設為手動。選「手動」的文件不會自動生成，只可於個案內人手生成。", "Defaults follow the current Feishu automation: customer invoices are generated at Invoiced, quotations at Ordered to Supplier, HAWB / HBL at Completed, and MAWB is set to Manual. Documents set to Manual are never generated automatically and can only be created manually within a case."],
+        ["參考版的設定只保留於本頁面，重新載入後會還原預設值；正式版會將設定寫入飛書，個案狀態一經轉換，即按設定經 DocuGenius 生成文件。", "In this reference version, settings are kept on this page only and reset to defaults on reload. In the production version, settings will be saved to Feishu, and documents will be generated via DocuGenius as soon as a case status changes."],
+        ["外判供應商出 invoice 嗰陣，會跟返同一張單的 <strong>HAWB（空運）／HBL（海運）號碼</strong> — 同您出俾客人的提單號一樣。將發票上的號碼打入嚟，系統即刻搵返個案，對照「收咗供應商發票未」同「出咗客人發票未」，未出會紅色警告，同飛書 Base 的漏開票提示一致。", "When an outsourced supplier issues an invoice, it carries the same <strong>HAWB (air) / HBL (sea) number</strong> as the bill of lading you issued to the customer. Enter the number from the invoice and the system will find the case at once, then compare whether the supplier invoice has been received and whether a customer invoice has been issued. If the customer invoice has not been issued, a red warning appears, matching the missing-invoice alert in Feishu Base."],
+        ["供應商發票（另一間公司開給 ALPHA）；Reference No. 為後加標籤，文件本身並無 Invoice No.／Job No.。", "Supplier invoice (issued to ALPHA by another company); the Reference No. is a label added afterwards — the document itself has no Invoice No. / Job No."],
+        ["出口 · 空運（11 項）", "Export · Air (11 items)"],
+        ["出口 · 海運（9 項）", "Export · Sea (9 items)"],
+        ["入口 · 空運（4 項）", "Import · Air (4 items)"],
+        ["入口 · 海運（7 項）", "Import · Sea (7 items)"],
+        ["荃灣白田壩街 5-21 號嘉力工業中心 A 座 9 樓 17 室", "Unit 17, 9/F, Block A, Kailey Industrial Centre, 5-21 Pak Tin Par Street, Tsuen Wan"],
+        ["派送單", "Delivery Note"],
+        ["配對規則：供應商發票上的 HAWB／HBL 號 = 客人提單號 = 個案的提單號，三者相同先算配對成功。如果個案的 HAWB／HBL 一欄空白（例如 2020-CX086），系統會改用 MAWB／MBL 號配對。參考版數據截至 2026-11-16：目前只有 1 張真供應商發票（2020-CX086，HKD 32,890），正正係「收咗外判 invoice、未出客人單」的情況；正式版會直接讀寫飛書 Base 的發票表。", "Matching rule: the HAWB / HBL No. on the supplier invoice = the customer's bill of lading No. = the case's bill of lading No. All three must match. If a case's HAWB / HBL field is blank (e.g. 2020-CX086), the system matches by MAWB / MBL No. instead. Reference data as of 2026-11-16: there is currently only 1 genuine supplier invoice (2020-CX086, HKD 32,890) — exactly a case where the supplier invoice was received but no customer invoice was issued. The production version will read and write the Feishu Base invoice table directly."],
+        ["客人發票 BILL TO 目前顯示「COMPANY NAME」（樣本遮蓋了真實名稱），正式出單前須填上客戶真實名稱。發票上款：ALPHA MASTER LOGISTICS LIMITED，荃灣白田壩街 5-21 號嘉力工業中心 A 座 9 樓 17 室，Tel (852) 3500 7163。下款收款銀行：HSBC Hong Kong，戶口 819-860339-838（USD/HKD），SWIFT HSBCHKHHHKH。", "The customer invoice BILL TO currently shows COMPANY NAME (the real name is masked in the sample). Enter the customer's real name before issuing. Invoice header: ALPHA MASTER LOGISTICS LIMITED, Unit 17, 9/F, Block A, Kailey Industrial Centre, 5-21 Pak Tin Par Street, Tsuen Wan, Tel (852) 3500 7163. Payment bank: HSBC Hong Kong, A/C 819-860339-838 (USD/HKD), SWIFT HSBCHKHHHKH."],
+        ["發票範本：五份樣本（空運出口／海運出口／空運入口／海運入口／物流）的上款與下款完全相同，一個範本可涵蓋四份空運／海運發票，物流服務需另設範本。發票 Sheet 範本尚待建立（收費表循環寫法待定）。每種文件於個案轉為哪個狀態時自動生成，可於", "Invoice template: the headers and footers of all five samples (air export / sea export / air import / sea import / logistics) are identical, so one template covers the four air / sea invoices; logistics services need a separate template. The invoice Sheet template is still to be built (the charge-table loop syntax is to be decided). Which status triggers each document can be chosen in"],
+        ["空運落單紙：無圖版 v3 可生成（DocuGenius 的 Office 引擎無法處理 xlsx 內的圖片，連細圖／JPEG 亦失敗）", "Air order form: the image-free v3 can be generated (the DocuGenius Office engine cannot handle images inside xlsx files; even small images / JPEGs fail)"],
+        ["HAWB、MAWB：已完成變量版；MAWB 本身無圖，預期可生成", "HAWB, MAWB: variable versions completed; the MAWB itself has no images and is expected to generate"],
+        ["HBL：含標誌及背頁條款圖，無法刪去；繼續使用 visual 範本（2 頁 A4），或向 DocuGenius 支援查詢", "HBL: contains the logo and back-page terms image, which cannot be removed; keep using the visual template (2 pages, A4), or ask DocuGenius support"],
+        ["欄位顯示「無」代表落單紙上沒有該項資料，開案時作空白處理；落單紙本身並無 Reference No.、航班、ETD、貨品描述等欄位，該等資料或需人手補上。第 3、4 行已於飛書觸發自動開案（個案 AML202611003／AML202611004），屬測試單或真實訂單仍待確認。", "A field showing None means the order form does not contain that item; it is left blank when the case is created. The order form itself has no fields for Reference No., flight, ETD or goods description, so those details may need to be added manually. Rows 3 and 4 have already triggered automatic case creation in Feishu (cases AML202611003 / AML202611004); whether they are test or real orders is still to be confirmed."],
+        ["欄位顯示「無」代表落單紙上沒有該項資料，開案時作空白處理；核對時可直接修改任何欄位。", "A field showing None means the order form does not contain that item; it is left blank when the case is created. You can edit any field while checking."],
+        ["參考版的認讀為畫面模擬：上載任何相片，均以示範落單紙（AMLA2606040）的認讀結果示範流程；正式版才接駁真正的 AI 認讀。", "Recognition in this reference version is a screen simulation: any photo you upload demonstrates the flow using the sample order form (AMLA2606040). Real AI recognition will be connected in the production version."],
+        ["支援相片或截圖（JPG／PNG）。Excel 檔 AI 無法直接認讀，請先轉為圖片。認讀使用飛書的 Kimi 圖片理解，認出欄位後由此頁核對。", "Photos or screenshots (JPG / PNG) are supported. The AI cannot read Excel files directly — please convert them to an image first. Recognition uses Feishu's Kimi image understanding; check the recognised fields on this page."],
+        ["已按核對後的欄位建立新個案", "A new case has been created from the checked fields:"],
+        ["，並與本落單連結（認讀記錄第 1 行已同步標示為已開案）。參考版不會寫入飛書；正式版會經飛書自動化即時開案。", ", linked to this order (row 1 of the intake records is now marked as Case Created). The reference version does not write to Feishu; the production version will create the case instantly via Feishu automation."],
+        ["本地派送沒有落單表格，客人以電郵通知；此頁面供人手開案之用（電郵格式樣本待客人提供）。", "Local delivery has no order form — customers notify by email. This page is for manual case creation (an email format sample is still to be provided by the customer)."],
+        ["注意：本地派送為參考版新增的開案入口，目前飛書 Base 個案主表並無此業務的實際個案。", "Note: Local Delivery is a new case-creation entry in this reference version. The Feishu Base case master table currently has no actual cases of this type."],
+        ["參考版不會將資料寫入飛書。正式版啟用後，此個案會直接寫入飛書 Base 個案主表，並以同一編號作為 Job No.／Invoice No.。", "The reference version does not write data to Feishu. Once the production version is live, this case will be written directly to the Feishu Base case master table, using the same number as Job No. / Invoice No."],
+        ["匯率（客人文件印明）：CNY = HKD 1.153 · USD = HKD 7.85。金額以飛書 Base 記錄的 TOTAL 為準；逐行金額以 2 位小數顯示，相加或與總額相差 0.01。", "Exchange rates (as printed on customer documents): CNY = HKD 1.153 · USD = HKD 7.85. Amounts follow the TOTAL recorded in Feishu Base; line amounts are shown to 2 decimal places, so sums may differ from totals by 0.01."],
+        ["下列項目為樣本實際收費，並非客人確認的標準費率（飛書 Base 標準費率表目前為空）。金額 (HKD) 已按匯率 CNY = 1.153、USD = 7.85 換算。", "The items below are actual charges from samples, not customer-confirmed standard rates (the Feishu Base standard rate table is currently empty). Amounts (HKD) are converted at CNY = 1.153 and USD = 7.85."],
+        ["備註：「REGRISTRATION FEE」為文件原有串法，照錄。AML2610063 的 DELIVERY CHARGE 數量 1,170 KG 為文件公式計算（計費重量 1,462.5 × 0.8）。", "Note: REGRISTRATION FEE is reproduced exactly as spelled in the source document. The DELIVERY CHARGE quantity of 1,170 KG for AML2610063 is calculated by the document formula (chargeable weight 1,462.5 × 0.8)."],
+        ["判出去俾其他公司做的貨，收到對方 invoice 返嚟嗰陣，用同一 HAWB／HBL 號核對有冇出過單俾客人", "For cargo outsourced to another company, use the same HAWB / HBL No. to check whether a customer invoice was issued when their invoice comes back"],
+        ["先上載客人落單相，AI 認讀欄位；核對無誤即可開案，系統自動建立個案並連結", "Upload the customer's order photo first — the AI reads the fields. Once checked, create the case; the system builds and links it automatically"],
+        ["選定每種文件於個案轉為哪個狀態時自動生成；設定即時套用於個案詳情頁的狀態轉換", "Choose which case status triggers each document. Settings apply immediately to status changes on the case detail page"],
+        ["每宗個案的文件集中存放，與飛書 Base 文件表對應；撳縮圖或「預覽文件」即睇大 Preview", "All documents for each case are stored together, matching the Feishu Base documents table. Tap a thumbnail or Preview Document for a larger preview"],
+        ["Invoice No. 與 Job No. 共用同一統一編號；撳縮圖或「預覽發票」即睇大 Preview", "Invoice No. and Job No. share the same unified number. Tap a thumbnail or Preview Invoice for a larger preview"],
+        ["先選業務類型，表格會按空運／海運／本地派送的落單格式顯示", "Choose the business type first — the form follows the air / sea / local delivery order format"],
+        ["一宗案一行記錄，全程跟進至結案；按列即可查看詳情", "One row per case, followed through to closure. Click a row to view details"],
+        ["個案、收費與開票狀況一覽", "Overview of cases, charges and invoicing status"],
+        ["觸發狀態可於", "Trigger statuses can be changed in"],
+        ["更改。參考版只顯示觸發結果，不會真正生成 PDF。", ". This reference version only shows the trigger result and does not actually generate PDFs."],
+        ["按目前「文件生成設定」，將自動生成：", "Under the current Doc Generation Settings, the following will be generated automatically: "],
+        ["按目前「文件生成設定」，此狀態不會觸發任何文件自動生成。", "Under the current Doc Generation Settings, this status does not trigger any automatic document generation."],
+        ["漏開票提示：本案已收供應商發票，未向客人開票。", "Missing-invoice alert: a supplier invoice has been received for this case, but no customer invoice has been issued."],
+        ["此案 HAWB 一欄空白，今次以 MAWB 160-22268676 配對。", "The HAWB field of this case is blank, so it was matched by MAWB 160-22268676 this time."],
+        ["號相同（外判供應商發票與客人文件共用同一提單號）。", " No. (the outsourced supplier invoice and the customer documents share the same bill of lading number)."],
+        ["配對依據：您輸入的「", "Matching basis: the "],
+        ["」與此個案的", " you entered matches this case's "],
+        ["核對結果：未向客人開票 — 已收供應商發票（HKD ", "Check result: NO customer invoice issued — a supplier invoice (HKD "],
+        ["），未向客人開票。請即跟進開票，否則成本會變成淨虧損（目前利潤 HKD ", ") has been received but no customer invoice has been issued. Please follow up on invoicing at once, otherwise the cost becomes a net loss (current profit HKD "],
+        ["核對結果：已向客人開票 — 供應商發票與客人發票齊全，金額對照見下表。", "Check result: customer invoice issued — both the supplier invoice and the customer invoice are on file. See the amount comparison below."],
+        ["核對結果：客人發票已出，但此個案暫未記錄外判供應商發票／成本。如剛收到供應商發票，請核對提單號是否屬於另一宗個案。", "Check result: the customer invoice has been issued, but no outsourced supplier invoice / cost is recorded for this case yet. If you have just received a supplier invoice, please check whether its bill of lading number belongs to another case."],
+        ["核對結果：此個案暫無供應商發票，亦未出客人發票 — 未有外判成本需要核對。", "Check result: this case has no supplier invoice and no customer invoice yet — there is no outsourced cost to check."],
+        ["對應的個案。請核對供應商發票上的 HAWB／HBL 號碼有冇打錯；如號碼正確，可能係未開案 — 請先到", " was found. Please check the HAWB / HBL number on the supplier invoice for typos. If the number is correct, the case may not have been created yet — please create it first in"],
+        ["建立個案，再重新核對。", " and then run the check again."],
+        ["搵唔到提單號「", "No case was found for bill of lading No. "],
+        ["」對應", ""],
+        ["宗個案（包括待確認的測試／重複個案），以下逐宗列出核對結果。", " cases (including pending test / duplicate cases). The check result for each case is listed below."],
+        ["提單號「", "Bill of lading No. "],
+        ["」對應", " matches "],
+        ["目前有", "There are currently"],
+        ["宗個案已收供應商發票但未向客人開票，請優先跟進。", " case(s) with a supplier invoice received but no customer invoice issued. Please follow up first."],
+        ["系統內搵唔到此個案的客人發票。", "No customer invoice for this case was found in the system."],
+        ["此個案暫無供應商發票及成本記錄。", "This case has no supplier invoice or cost record yet."],
+        ["（成本行見個案詳情）", "(see the cost lines in Case Details)"],
+        ["已記錄供應商成本", "Supplier cost recorded"],
+        ["未收到／未記錄", "Not received / not recorded"],
+        ["供應商發票（外判公司收回）", "Supplier Invoice (from outsourced company)"],
+        ["客人發票（有冇出俾客人）", "Customer Invoice (issued to customer?)"],
+        ["新個案 Reference No. 預覽（統一編號：Job No. ＝ Invoice No. ＝", "New case Reference No. preview (unified number: Job No. = Invoice No. ="],
+        ["個案預覽已建立：", "Case preview created: "],
+        ["已開案（畫面流程示範）", "Case created (on-screen flow demo)"],
+        ["已建立新個案", "has created a new case"],
+        ["，並與認讀編號", ", linked to intake No."],
+        ["連結。參考版不會寫入飛書；正式版會經飛書自動化即時開案。", ". The reference version does not write to Feishu; the production version will create the case instantly via Feishu automation."],
+        ["落單「", "Order "],
+        ["文件生成狀態（DocuGenius）", "Document Generation Status (DocuGenius)"],
+        ["文件範本狀態（Sheet 範本）", "Document Template Status (Sheet templates)"],
+        ["客人發票：Sheet 範本尚待建立", "Customer invoice: Sheet template still to be built"],
+        ["發票範本 v3（各 1 頁 A4）；Sheet 範本尚待建立", "Invoice template v3 (1 page A4 each); Sheet template still to be built"],
+        ["報價單範本 v2（各 1 頁 A4）", "Quotation template v2 (1 page A4 each)"],
+        ["HAWB Sheet 範本（變量版）", "HAWB Sheet template (variable version)"],
+        ["HBL visual 範本（2 頁 A4）", "HBL visual template (2 pages, A4)"],
+        ["MAWB Sheet 範本（變量版）", "MAWB Sheet template (variable version)"],
+        ["發票範本 v3、報價單範本 v2 已核實（各 1 頁 A4）", "Invoice template v3 and quotation template v2 verified (1 page A4 each)"],
+        ["報價單測試 PDF 已出；HAWB 已生成", "Quotation test PDF produced; HAWB generated"],
+        ["HBL 已生成（visual 範本，2 頁 A4）", "HBL generated (visual template, 2 pages A4)"],
+        ["物流服務發票需另設範本", "Logistics service invoices need a separate template"],
+        ["觸發狀態（由您選定）", "Trigger Status (your choice)"],
+        ["按狀態查看觸發結果", "Trigger Results by Status"],
+        ["手動生成（不自動觸發）：", "Manual only (no automatic trigger): "],
+        ["不會生成任何文件", "No documents will be generated"],
+        ["不自動生成", "No auto-generation"],
+        ["時自動生成", " — auto-generate on this status"],
+        ["轉為「", "When status becomes "],
+        ["全部供應商發票一覽（核對清單）", "All Supplier Invoices (checklist)"],
+        ["輸入提單號核對", "Check by Bill of Lading No."],
+        ["輸入 HAWB / HBL 號，例如 AMLA2606040、AMLS2610002，或 MAWB 160-22268676", "Enter an HAWB / HBL No., e.g. AMLA2606040, AMLS2610002, or MAWB 160-22268676"],
+        ["用提單號核對", "Check by B/L No."],
+        ["查看個案詳情", "View Case Details"],
+        ["個案狀態與文件生成", "Case Status & Document Generation"],
+        ["船期及貨物資料", "Schedule & Cargo Details"],
+        ["收費明細 — 向客收費", "Charge Details — Customer Charges"],
+        ["收費明細 — 供應商成本", "Charge Details — Supplier Costs"],
+        ["本案暫無向客收費記錄。", "No customer charge records for this case yet."],
+        ["本案暫無供應商成本記錄。", "No supplier cost records for this case yet."],
+        ["本案暫無發票記錄。", "No invoice records for this case yet."],
+        ["本案暫無文件記錄。", "No document records for this case yet."],
+        ["此個案暫無收費行", "No charge lines for this case yet"],
+        ["沒有符合條件的個案。", "No cases match the filters."],
+        ["暫無供應商發票記錄。", "No supplier invoice records yet."],
+        ["狀態已轉為「", "Status changed to "],
+        ["文件生成狀態：報價單", "Document generation: Quotation"],
+        ["客人落單認讀待處理", "Customer order intake pending"],
+        ["已記錄供應商發票 1 張", "1 supplier invoice recorded"],
+        ["向客收費 − 供應商成本", "Customer charges − supplier costs"],
+        ["去外判發票核對 →", "Go to Supplier Invoice Check →"],
+        ["返回個案一覽", "Back to Cases"],
+        ["找不到個案。", "Case not found."],
+        ["搜尋 Reference No.／Shipper／提單號", "Search Reference No. / Shipper / B/L No."],
+        ["新個案 Reference No. 預覽", "New case Reference No. preview"],
+        ["航班、MAWB／HAWB、計費重量", "Flight, MAWB / HAWB, chargeable weight"],
+        ["船名航次、MBL／HBL、CBM、櫃號", "Vessel & voyage, MBL / HBL, CBM, container No."],
+        ["送貨地址、聯絡人、送貨日期", "Delivery address, contact, delivery date"],
+        ["上載客人落單相", "Upload the customer's order photo"],
+        ["使用示範落單紙認讀（AMLA2606040）", "Recognise using the sample order form (AMLA2606040)"],
+        ["示範落單紙 — AMLA2606040 客人落單紙", "Sample order form — AMLA2606040 customer order"],
+        ["推斷：由重量欄推斷得出", "Inferred: derived from the weight field"],
+        ["由落單紙格式認出", "recognised from the order form format"],
+        ["業務類型：", "Business type: "],
+        ["已上載的落單相", "Uploaded order photo"],
+        ["確認核對並開案", "Confirm & Create Case"],
+        ["核對並開案", "Check & Create Case"],
+        ["重新上載", "Upload Again"],
+        ["選擇落單相", "Choose Order Photo"],
+        ["AI 認讀完成", "AI recognition complete"],
+        ["AI 認讀落單", "AI Order Recognition"],
+        ["出口及入口收費項目一覽（取自實際個案樣本）", "Export and import charge items (from actual case samples)"],
+        ["待客人提供／確認", "Awaiting Customer / To Confirm"],
+        ["倉庫／儲存發票樣本", "Warehouse / storage invoice sample"],
+        ["本地派送電郵格式樣本", "Local delivery email format sample"],
+        ["供應商名單及供應商發票樣本", "Supplier list and supplier invoice samples"],
+        ["統一編號格式確認", "Unified numbering format confirmation"],
+        ["屬測試單或真實訂單", " — test or real order?"],
+        ["待確認：測試單或真實訂單", "Pending: test or real order?"],
+        ["測試-AMLA2606040", "Test-AMLA2606040"],
+        ["測試2-AMLA2606040（無附註）", "Test 2-AMLA2606040 (no remarks)"],
+        ["（客人落單第 3 行）", "(Customer order row 3)"],
+        ["（客人落單第 4 行）", "(Customer order row 4)"],
+        ["客人發票", "Customer Invoice"],
+        ["供應商發票", "Supplier Invoice"],
+        ["供應商成本總額", "Total Supplier Costs"],
+        ["供應商成本", "Supplier Costs"],
+        ["向客收費總額", "Total Customer Charges"],
+        ["向客收費小計 (HKD)", "Customer charges subtotal (HKD)"],
+        ["供應商成本小計 (HKD)", "Supplier costs subtotal (HKD)"],
+        ["向客收費", "Customer Charges"],
+        ["向客金額", "Customer Amount"],
+        ["供應商金額", "Supplier Amount"],
+        ["已開票總額（客人發票）", "Total Invoiced (customer invoices)"],
+        ["已開票個案", "Invoiced case"],
+        ["未向客人開票", "Customer invoice NOT issued"],
+        ["已向客人開票", "Customer invoice issued"],
+        ["未出客人發票", "Customer invoice not issued"],
+        ["漏開票警告", "Missing-Invoice Alerts"],
+        ["漏開票提示", "Missing-Invoice Alert"],
+        ["漏開票", "Missing Invoice"],
+        ["文件生成設定", "Doc Generation Settings"],
+        ["文件生成狀態", "Document Generation Status"],
+        ["外判發票核對", "Supplier Invoice Check"],
+        ["發票及報價單", "Invoices & Quotations"],
+        ["空運主提單 MAWB", "Master Air Waybill (MAWB)"],
+        ["空運提單 HAWB", "House Air Waybill (HAWB)"],
+        ["海運提單 HBL", "House Bill of Lading (HBL)"],
+        ["貨物艙單", "Cargo Manifest"],
+        ["空運提單", "Air Waybill"],
+        ["海運提單", "Bill of Lading"],
+        ["落單認讀", "Order Intake"],
+        ["落單標題", "Order Title"],
+        ["認讀記錄", "Intake Records"],
+        ["認讀編號", "Intake No."],
+        ["開新單", "New Case"],
+        ["個案一覽", "Cases"],
+        ["個案總數", "Total Cases"],
+        ["個案狀態", "Case Status"],
+        ["收費項目", "Charge Items"],
+        ["最近個案", "Recent Cases"],
+        ["發票列表", "Invoice List"],
+        ["預覽 / Invoice No.", "Preview / Invoice No."],
+        ["預覽 / 檔案名稱", "Preview / File Name"],
+        ["預覽 / 檔案", "Preview / File"],
+        ["預覽發票", "Preview Invoice"],
+        ["預覽文件", "Preview Document"],
+        ["預覽 · 非正式文件", "Preview · Not an official document"],
+        ["文件預覽", "Document Preview"],
+        ["在飛書開啟 Base", "Open Base in Feishu"],
+        ["資料庫：飛書 Base", "Database: Feishu Base"],
+        ["物流系統", "Logistics System"],
+        ["參考版", "Reference Version"],
+        ["利潤總額", "Total Profit"],
+        ["利潤暫計", "Profit (provisional)"],
+        ["利潤 (HKD)", "Profit (HKD)"],
+        ["利潤", "Profit"],
+        ["待核對落單", "Orders Pending Review"],
+        ["待核對", "Pending Review"],
+        ["已開案", "Case Created"],
+        ["開案", "Create Case"],
+        ["核對欄位", "Check Fields"],
+        ["核對結果", "Check Result"],
+        ["核對", "Check"],
+        ["目前狀態：", "Current status: "],
+        ["轉換狀態", "Change Status"],
+        ["還原預設值", "Restore Defaults"],
+        ["建立個案（預覽）", "Create Case (Preview)"],
+        ["個案 / 提單號", "Case / B/L No."],
+        ["上載日期", "Upload Date"],
+        ["付款狀態", "Payment Status"],
+        ["付款：", "Payment: "],
+        ["收款：", "Receipt: "],
+        ["日期：", "Date: "],
+        ["金額：", "Amount: "],
+        ["來源：", "Source: "],
+        ["收到日期：", "Received: "],
+        ["適用個案", "Applies To"],
+        ["全部個案", "All cases"],
+        ["空運個案", "Air cases"],
+        ["海運個案", "Sea cases"],
+        ["觸發狀態", "Trigger Status"],
+        ["的觸發狀態", " trigger status"],
+        ["自動生成", "Auto-Generate"],
+        ["已生成", "Generated"],
+        ["未生成", "Not generated"],
+        ["已收到", "Received"],
+        ["未有記錄", "No record"],
+        ["已下單", "Ordered"],
+        ["已向供應商落單", "Ordered to Supplier"],
+        ["已完成", "Completed"],
+        ["已開票", "Invoiced"],
+        ["已收款", "Paid"],
+        ["已出", "Issued"],
+        ["未出", "Not issued"],
+        ["未收", "Unpaid"],
+        ["未付", "Unpaid"],
+        ["結案", "Closed"],
+        ["處理中", "In Progress"],
+        ["手動", "Manual"],
+        ["物流服務", "Logistics Service"],
+        ["本地派送", "Local Delivery"],
+        ["空運", "Air"],
+        ["海運", "Sea"],
+        ["出口", "Export"],
+        ["進口", "Import"],
+        ["全部", "All"],
+        ["業務", "Type"],
+        ["狀態", "Status"],
+        ["航線", "Route"],
+        ["個案", "Case"],
+        ["類別", "Category"],
+        ["日期", "Date"],
+        ["金額", "Amount"],
+        ["文件", "Documents"],
+        ["發票", "Invoices"],
+        ["報價單", "Quotation"],
+        ["總覽", "Dashboard"],
+        ["清除", "Clear"],
+        ["或", "or"],
+        ["無", "None"],
+        ["宗", " case(s)"],
+        ["份", ""],
+        ["張，全部未收", " in total, all unpaid"],
+        ["共", "Total"],
+        ["顯示", "Showing"],
+        ["宗個案。", " cases."],
+        ["收費項目", "Charge Item"],
+        ["貨幣", "Currency"],
+        ["單價", "Unit Price"],
+        ["單位", "Unit"],
+        ["數量", "Qty"],
+        ["合計 (HKD)", "Total (HKD)"],
+        ["貨品描述", "Goods Description"],
+        ["報價日期", "Quotation Date"],
+        ["有效期至", "Valid Until"],
+        ["件數 PCS", "Pieces (PCS)"],
+        ["件數", "Pieces"],
+        ["毛重 Gross Weight (KG)", "Gross Weight (KG)"],
+        ["計費重量 (KG)", "Chargeable Weight (KG)"],
+        ["計費重量／CBM", "Chargeable Weight / CBM"],
+        ["計費重量", "Chargeable Weight"],
+        ["櫃號", "Container No."],
+        ["備註", "Remarks"],
+        ["裝貨機場", "Loading Airport"],
+        ["目的機場", "Destination Airport"],
+        ["裝貨港", "Loading Port"],
+        ["卸貨港", "Discharge Port"],
+        ["裝貨地", "Loading Place"],
+        ["卸貨地", "Discharge Place"],
+        ["船名／航次", "Vessel / Voyage"],
+        ["航班", "Flight"],
+        ["留空＝與 Job No. 相同", "leave blank = same as Job No."],
+        ["方向", "Direction"],
+        ["寄件方", "Sender"],
+        ["收件方", "Recipient"],
+        ["送貨地址", "Delivery Address"],
+        ["送貨日期", "Delivery Date"],
+        ["聯絡人", "Contact"],
+        ["電話", "Phone"],
+        ["重量 (KG)", "Weight (KG)"],
+        ["試查：", "Try: "],
+        ["效果", "Effect"],
+        ["對照「收咗供應商發票未」同「出咗客人發票未」，未出會紅色警告，同飛書 Base 的漏開票提示一致。", "compare whether the supplier invoice has been received and whether a customer invoice has been issued. A missing one triggers a red warning, matching the missing-invoice alert in Feishu Base."],
+        ["同您出俾客人的提單號一樣", "the same bill of lading number as the one you issued to the customer"],
+        ["將發票上的號碼打入嚟，系統即刻搵返個案，", "Enter the number from the invoice and the system will find the case at once and "],
+        ["收咗供應商發票未", "whether the supplier invoice has been received"],
+        ["同出咗客人發票未", " and whether a customer invoice has been issued"],
+        ["未出會紅色警告", "a missing one triggers a red warning"],
+        ["同飛書 Base 的漏開票提示一致", "matching the missing-invoice alert in Feishu Base"],
+        ["上載落單相", "Upload Order Photo"],
+        ["落單相", "order photo"],
+        ["AI 認讀", "AI Recognition"],
+        ["號碼", "No."],
+        ["入口", "Import"],
+        ["關閉", "Close"],
+        ["撳入預覽", "Tap to preview"],
+        ["：已收供應商發票（HKD ", ": supplier invoice received (HKD "],
+        ["），未向客人開票。利潤暫計 HKD ", "), but no customer invoice has been issued. Profit (provisional) HKD "],
+        ["已收供應商發票", "Supplier invoice received"],
+        ["未向客人開票。", "No customer invoice has been issued."],
+        ["搜尋個案", "Search cases"],
+        ["HAWB 或 HBL 號碼", "HAWB or HBL number"],
+        [" 件 · ", " pcs · "],
+        ["未開票", "Not invoiced"],
+        ["金額待付", "amount payable"],
+        ["航線：", "Route: "],
+        ["上載", "Uploaded"],
+        ["落單", "Order"],
+        ["選定", "chosen"],
+        ["預覽", "Preview"],
+        ["項）", " items)"],
+        ["（", " ("],
+        ["）", ")"],
+        ["：", ": "],
+        ["「", ""],
+        ["」", ""],
+        ["。", "."]
+      ];
+      /* 把英文顯示值還原為內部中文值（篩選／狀態邏輯用） */
+      var CANON = { "All": "全部", "Air": "空運", "Sea": "海運", "Local Delivery": "本地派送", "Logistics Service": "物流服務", "Export": "出口", "Import": "進口", "Ordered": "已下單", "Ordered to Supplier": "已向供應商落單", "Completed": "已完成", "Invoiced": "已開票", "Paid": "已收款", "Closed": "結案", "In Progress": "處理中", "Manual": "手動" };
+      function canon(v) { return CANON[v] || v; }
+      var ZH_EN_SORTED = ZH_EN.slice().sort(function (a, b) { return b[0].length - a[0].length; });
+      function trText(s) {
+        if (state.lang !== "en" || s == null) return s;
+        var out = String(s);
+        for (var i = 0; i < ZH_EN_SORTED.length; i++) {
+          if (out.indexOf(ZH_EN_SORTED[i][0]) !== -1) out = out.split(ZH_EN_SORTED[i][0]).join(ZH_EN_SORTED[i][1]);
+        }
+        return out;
+      }
+      var NAV_LABELS = { dashboard: ["總覽", "Dashboard"], cases: ["個案一覽", "Cases"], newcase: ["開新單", "New Case"], intake: ["落單認讀", "Order Intake"], invoices: ["發票及報價單", "Invoices & Quotations"], suppliercheck: ["外判發票核對", "Supplier Invoice Check"], docs: ["文件", "Documents"], docsettings: ["文件生成設定", "Doc Generation Settings"], charges: ["收費項目", "Charge Items"] };
+      function applyStaticLang() {
+        var en = state.lang === "en";
+        document.documentElement.lang = en ? "en" : "zh-Hant";
+        document.title = en ? "ALPHA MASTER Logistics System" : "ALPHA MASTER 物流系統";
+        var bs = document.getElementById("brand-sub"); if (bs) bs.textContent = en ? "LOGISTICS LIMITED · Logistics System" : "LOGISTICS LIMITED · 物流系統";
+        var nt = document.getElementById("notice-title"); if (nt) nt.textContent = en ? "Reference Version" : "參考版";
+        var nx = document.getElementById("notice-text"); if (nx) nx.textContent = trText("資料截至 2026 年 11 月 16 日（飛書 Base 核實快照）；於本網站進行的操作不會寫入飛書。正式版將經後端接駁飛書 Base 作為資料庫。");
+        var dl = document.getElementById("sidebar-db-label"); if (dl) dl.textContent = en ? "Database: Feishu Base" : "資料庫：飛書 Base";
+        var ob = document.getElementById("sidebar-open-base"); if (ob) ob.textContent = en ? "Open Base in Feishu" : "在飛書開啟 Base";
+        var pb = document.getElementById("preview-badge"); if (pb) pb.textContent = en ? "Preview · Not an official document" : "預覽 · 非正式文件";
+        var pc = document.getElementById("preview-close"); if (pc) pc.textContent = en ? "✕ Close" : "✕ 關閉";
+        var pf = document.getElementById("preview-foot"); if (pf) pf.textContent = trText("此預覽按飛書 Base 的個案資料即時排版，方便核對內容；正式 PDF 由 DocuGenius 按範本生成，版面以範本為準。");
+        var po = document.getElementById("preview-overlay"); if (po) po.setAttribute("aria-label", en ? "Document Preview" : "文件預覽");
+        document.querySelectorAll(".nav-btn[data-nav]").forEach(function (b) {
+          var lab = b.querySelector("[data-nav-label]");
+          var pair = NAV_LABELS[b.getAttribute("data-nav")];
+          if (lab && pair) lab.textContent = en ? pair[1] : pair[0];
+        });
+        document.querySelectorAll("[data-set-lang]").forEach(function (b) {
+          b.classList.toggle("active", b.getAttribute("data-set-lang") === state.lang);
+        });
+      }
+
+      /* ---------- 文件生成觸發設定 ---------- */
+      var STATUS_OPTIONS = ["已下單", "已向供應商落單", "已完成", "已開票", "已收款", "結案"];
+      var DOC_TYPES = [
+        { key: "invoice", name: "客人發票", applies: "全部個案", template: "發票範本 v3（各 1 頁 A4）；Sheet 範本尚待建立" },
+        { key: "quote", name: "報價單", applies: "全部個案", template: "報價單範本 v2（各 1 頁 A4）" },
+        { key: "hawb", name: "空運提單 HAWB", applies: "空運個案", template: "HAWB Sheet 範本（變量版）" },
+        { key: "hbl", name: "海運提單 HBL", applies: "海運個案", template: "HBL visual 範本（2 頁 A4）" },
+        { key: "mawb", name: "空運主提單 MAWB", applies: "空運個案", template: "MAWB Sheet 範本（變量版）" }
+      ];
+      function defaultDocTriggers() {
+        return { invoice: "已開票", quote: "已向供應商落單", hawb: "已完成", hbl: "已完成", mawb: "手動" };
+      }
+      function docApplies(doc, caseType) {
+        if (doc.key === "hawb" || doc.key === "mawb") return caseType === "空運";
+        if (doc.key === "hbl") return caseType === "海運";
+        return true;
+      }
+      function docsForStatus(status, caseType) {
+        if (!status) return [];
+        return DOC_TYPES.filter(function (d) { return state.docTriggers[d.key] === status && docApplies(d, caseType); });
+      }
+
+      function esc(s) {
+        return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+          return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+        });
+      }
+      function fmt(n) {
+        if (n == null || n === "" || isNaN(n)) return "—";
+        return Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      function fmtNum(n) {
+        if (n == null || n === "") return "—";
+        return Number(n).toLocaleString("en-US", { maximumFractionDigits: 3 });
+      }
+      function fmtDate(d) { return d ? d.replace(/-/g, "/") : "—"; }
+      function totals(ref) { return TOTALS[ref] || { rev: 0, cost: 0 }; }
+      function profit(ref) { var t = totals(ref); return t.rev - t.cost; }
+      function hasLeak(ref) {
+        var hasSupInv = INVOICES.some(function (i) { return i.case === ref && i.cat === "供應商發票"; });
+        var hasCusInv = INVOICES.some(function (i) { return i.case === ref && i.cat === "客人發票"; });
+        return hasSupInv && !hasCusInv;
+      }
+      function typeChip(t) {
+        var cls = t === "空運" ? "chip-air" : t === "海運" ? "chip-sea" : t === "本地派送" ? "chip-local" : "chip-logi";
+        return '<span class="chip ' + cls + '">' + esc(t) + "</span>";
+      }
+      function statusBadge(c) {
+        if (hasLeak(c.ref)) return '<span class="badge badge-danger">漏開票</span>';
+        if (!c.status) return '<span class="badge badge-grey">處理中</span>';
+        if (c.status === "已開票") return '<span class="badge badge-info">已開票</span>';
+        if (c.status === "已下單") return '<span class="badge badge-warn">已下單</span>';
+        if (c.status === "已向供應商落單") return '<span class="badge badge-warn">已向供應商落單</span>';
+        if (c.status === "已完成" || c.status === "已收款" || c.status === "結案") return '<span class="badge badge-ok">' + esc(c.status) + "</span>";
+        return '<span class="badge badge-grey">' + esc(c.status) + "</span>";
+      }
+      function routeOf(c) {
+        if (!c.pol && !c.pod) return '<span class="muted">—</span>';
+        return esc(c.pol || "—") + " → " + esc(c.pod || "—");
+      }
+      function findCase(ref) { return CASES.filter(function (c) { return c.ref === ref; })[0]; }
+
+      /* ---------- 文件縮圖與預覽 ---------- */
+      function docKindOf(cat) {
+        if (cat === "HAWB" || cat === "MAWB") return { cls: "air", short: "HAWB", label: "空運提單" };
+        if (cat === "HBL" || cat === "MBL") return { cls: "sea", short: "HBL", label: "海運提單" };
+        if (cat === "Cargo Manifest") return { cls: "manifest", short: "MANIFEST", label: "貨物艙單" };
+        if (cat === "客人發票") return { cls: "invoice", short: "INVOICE", label: "客人發票" };
+        if (cat === "供應商發票") return { cls: "invoice", short: "INVOICE", label: "供應商發票" };
+        if (cat === "報價單") return { cls: "quote", short: "QUOTE", label: "報價單" };
+        return { cls: "manifest", short: "DOC", label: cat || "文件" };
+      }
+      function thumbLinesHtml() {
+        return '<div class="dt-lines"><div class="dt-line dark" style="width:88%"></div><div class="dt-line" style="width:64%"></div><div class="dt-line" style="width:78%"></div></div><div class="dt-box"><span></span><span></span></div><div class="dt-lines"><div class="dt-line" style="width:52%"></div></div>';
+      }
+      function docThumbHtml(d, idx) {
+        var k = docKindOf(d.cat);
+        return '<button type="button" class="doc-thumb ' + k.cls + '" data-preview-doc="' + idx + '" aria-label="預覽 ' + esc(d.name) + '" title="撳入預覽">' +
+          '<div class="dt-title">' + esc(k.short) + '</div><div class="dt-sub">' + esc(d.case) + "</div>" + thumbLinesHtml() + "</button>";
+      }
+      function invoiceThumbHtml(inv, idx) {
+        var k = docKindOf(inv.cat);
+        return '<button type="button" class="doc-thumb ' + k.cls + '" data-preview-invoice="' + idx + '" aria-label="預覽發票 ' + esc(inv.no) + '" title="撳入預覽">' +
+          '<div class="dt-title">' + esc(k.short) + '</div><div class="dt-sub">' + esc(inv.no) + "</div>" + thumbLinesHtml() + "</button>";
+      }
+      function ppField(k, v, full) {
+        return '<div class="pp-field' + (full ? " full" : "") + '"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v || "—") + "</div></div>";
+      }
+      function previewPaperForDoc(d) {
+        var c = findCase(d.case) || {};
+        var k = docKindOf(d.cat);
+        var isSea = c.type === "海運";
+        var title = d.cat === "Cargo Manifest" ? "CARGO MANIFEST" : d.cat === "HAWB" ? "HOUSE AIR WAYBILL" : d.cat === "HBL" ? "BILL OF LADING" : d.cat.toUpperCase();
+        var docNo = isSea ? (c.hawb || c.ref || "") : (c.hawb || c.ref || "");
+        var head = '<div class="pp-top"><div><div class="pp-co">ALPHA MASTER LOGISTICS LIMITED</div><div class="pp-co-sub">荃灣白田壩街 5-21 號嘉力工業中心 A 座 9 樓 17 室 · Tel (852) 3500 7163 · Fax (852) 3500 7166</div></div>' +
+          '<div class="pp-doc-title"><div class="t">' + esc(title) + '</div><div class="n">' + esc(docNo) + "</div></div></div>";
+        var route = '<div class="pp-route"><span>' + esc(c.pol || "—") + '</span><span class="arr">→</span><span>' + esc(c.pod || "—") + "</span>" +
+          (c.finalDest && c.finalDest !== c.pod ? '<span class="meta">Final: ' + esc(c.finalDest) + "</span>" : "") +
+          '<span class="meta">' + esc(isSea ? (c.flight || "") : ("Flight " + (c.flight || "—"))) + " · ETD " + fmtDate(c.etd) + "</span></div>";
+        var grid = '<div class="pp-grid">' +
+          ppField("Shipper", c.shipper) + ppField("Consignee", c.consignee) +
+          ppField(isSea ? "MBL No." : "MAWB No.", c.mawb) + ppField(isSea ? "HBL No." : "HAWB No.", c.hawb) +
+          ppField("Pieces", c.pcs == null ? "" : String(c.pcs) + (c.pcsNote ? " (" + c.pcsNote + ")" : "")) +
+          ppField("Gross Weight / " + (c.cbmLabel || ""), (c.gross == null ? "" : fmtNum(c.gross) + " KG") + (c.chargeable == null ? "" : " · " + fmtNum(c.chargeable))) +
+          (c.container ? ppField("Container", c.container, true) : "") +
+          ppField("Goods Description", c.desc, true) +
+          "</div>";
+        var extra = "";
+        if (d.cat === "Cargo Manifest") {
+          extra = '<table class="pp-table"><thead><tr><th>HAWB</th><th>PCS</th><th class="num">Weight (KG)</th><th>Description</th></tr></thead><tbody><tr><td class="mono">' + esc(c.hawb || c.ref) + "</td><td>" + esc(c.pcs == null ? "—" : c.pcs) + '</td><td class="num">' + fmtNum(c.gross) + "</td><td>" + esc((c.desc || "").split("\n")[0] || "—") + "</td></tr></tbody></table>";
+        }
+        if (c.extra) extra += '<div class="pp-note">' + esc(c.extra) + "</div>";
+        var foot = '<div class="pp-foot"><span>ALPHA MASTER LOGISTICS LIMITED · ' + esc(d.name) + '</span><span>Page 1 of 1</span></div>';
+        return head + route + grid + extra + foot;
+      }
+      function previewPaperForInvoice(inv) {
+        var c = findCase(inv.case) || {};
+        var charges = CHARGES.filter(function (ch) { return ch.case === inv.case; });
+        var isCust = inv.cat === "客人發票";
+        var head = '<div class="pp-top"><div><div class="pp-co">ALPHA MASTER LOGISTICS LIMITED</div><div class="pp-co-sub">荃灣白田壩街 5-21 號嘉力工業中心 A 座 9 樓 17 室 · Tel (852) 3500 7163 · Fax (852) 3500 7166</div></div>' +
+          '<div class="pp-doc-title"><div class="t">' + (isCust ? "INVOICE" : "SUPPLIER INVOICE") + '</div><div class="n">No. ' + esc(inv.no) + " · " + fmtDate(inv.date) + "</div></div></div>";
+        var grid = '<div class="pp-grid">' +
+          ppField("Bill To", isCust ? (c.consignee || "COMPANY NAME") : "ALPHA MASTER LOGISTICS LIMITED") +
+          ppField("Job No.", inv.case) +
+          ppField(c.type === "海運" ? "Vessel / Voyage" : "Flight", c.flight) +
+          ppField("Route", (c.pol || "—") + " → " + (c.pod || "—")) +
+          ppField(isCust ? (c.type === "海運" ? "MBL / HBL" : "MAWB / HAWB") : "Reference", (c.mawb || "—") + " / " + (c.hawb || "—")) +
+          ppField("ETD / ETA", fmtDate(c.etd) + " / " + fmtDate(c.eta)) +
+          "</div>";
+        var rows = charges.length ? charges.map(function (ch) {
+          return "<tr><td>" + esc(ch.name) + "</td><td>" + esc(ch.curr) + '</td><td class="num">' + fmt(ch.price) + "</td><td>" + esc(ch.unit) + '</td><td class="num">' + fmtNum(ch.qty) + '</td><td class="num">' + fmt(ch.amount) + "</td></tr>";
+        }).join("") : '<tr><td colspan="6" style="text-align:center; color:#71808f">此個案暫無收費行</td></tr>';
+        var table = '<table class="pp-table"><thead><tr><th>Description</th><th>Curr.</th><th class="num">Rate</th><th>Unit</th><th class="num">Qty</th><th class="num">Amount (HKD)</th></tr></thead><tbody>' + rows +
+          '</tbody><tfoot><tr><td colspan="5">TOTAL</td><td class="num">' + esc(inv.curr) + " " + fmt(inv.total) + "</td></tr></tfoot></table>";
+        var bank = isCust ? '<div class="pp-foot"><span>Bank: HSBC Hong Kong · A/C 819-860339-838 · SWIFT HSBCHKHHHKH<br/>Please quote Invoice No. on payment. All business transacted subject to company terms.</span><span class="pp-stamp">' + esc(inv.pay) + "</span></div>"
+          : '<div class="pp-foot"><span>供應商發票 — 金額待付</span><span class="pp-stamp">' + esc(inv.pay) + "</span></div>";
+        return head + grid + table + bank;
+      }
+      function openPreview(title, sub, paperHtml) {
+        var ov = document.getElementById("preview-overlay");
+        document.getElementById("preview-title").textContent = trText(title);
+        document.getElementById("preview-sub").textContent = trText(sub || "");
+        document.getElementById("preview-body").innerHTML = '<div class="preview-paper">' + trText(paperHtml) + "</div>";
+        ov.classList.add("open");
+        ov.scrollTop = 0;
+        document.body.style.overflow = "hidden";
+      }
+      function closePreview() {
+        var ov = document.getElementById("preview-overlay");
+        if (ov) ov.classList.remove("open");
+        document.body.style.overflow = "";
+      }
+
+      /* ---------- 共用表格 ---------- */
+      function caseRow(c, showMoney) {
+        var t = totals(c.ref), p = t.rev - t.cost;
+        var money = showMoney
+          ? '<td data-label="向客收費 (HKD)" class="num">' + fmt(t.rev) + '</td>' +
+            '<td data-label="供應商成本 (HKD)" class="num">' + fmt(t.cost) + '</td>' +
+            '<td data-label="利潤 (HKD)" class="num' + (p < 0 ? " neg" : "") + '">' + fmt(p) + "</td>"
+          : "";
+        return '<tr class="clickable" data-open-case="' + esc(c.ref) + '">' +
+          '<td data-label="Reference No."><a class="ref-link mono" href="#" data-open-case="' + esc(c.ref) + '">' + esc(c.ref) + "</a>" +
+          (c.pending ? '<div><span class="badge badge-warn" style="margin-top:4px">' + esc(c.pending) + "</span></div>" : "") + "</td>" +
+          '<td data-label="業務">' + typeChip(c.type) + (c.dir ? ' <span class="small" style="white-space:nowrap">' + esc(c.dir) + "</span>" : "") + "</td>" +
+          '<td data-label="狀態">' + statusBadge(c) + "</td>" +
+          '<td data-label="Shipper / Consignee"><div>' + esc(c.shipper || "—") + '</div><div class="muted small">→ ' + esc(c.consignee || "—") + "</div></td>" +
+          '<td data-label="航線"><span class="route">' + routeOf(c) + "</span></td>" +
+          '<td data-label="ETD">' + fmtDate(c.etd) + "</td>" + money + "</tr>";
+      }
+      function caseTable(list, showMoney) {
+        var head = "<tr><th>Reference No.</th><th>業務</th><th>狀態</th><th>Shipper / Consignee</th><th>航線</th><th>ETD</th>" +
+          (showMoney ? "<th style='text-align:right'>向客收費 (HKD)</th><th style='text-align:right'>供應商成本 (HKD)</th><th style='text-align:right'>利潤 (HKD)</th>" : "") + "</tr>";
+        var rows = list.map(function (c) { return caseRow(c, showMoney); }).join("");
+        return '<div class="table-wrap"><table class="data"><thead>' + head + "</thead><tbody>" +
+          (rows || '<tr><td colspan="9"><div class="empty-state">沒有符合條件的個案。</div></td></tr>') + "</tbody></table></div>";
+      }
+      function chargeRows(list) {
+        return list.map(function (ch) {
+          return "<tr><td data-label='收費項目'>" + esc(ch.name) + "</td>" +
+            "<td data-label='貨幣'>" + esc(ch.curr) + "</td>" +
+            "<td data-label='單價' class='num'>" + fmt(ch.price) + "</td>" +
+            "<td data-label='單位'>" + esc(ch.unit) + "</td>" +
+            "<td data-label='數量' class='num'>" + fmtNum(ch.qty) + "</td>" +
+            "<td data-label='金額 (HKD)' class='num'>" + fmt(ch.amount) + "</td></tr>";
+        }).join("");
+      }
+      function chargeTable(list, subtotal, label) {
+        return '<div class="table-wrap"><table class="data"><thead><tr><th>收費項目</th><th>貨幣</th><th style="text-align:right">單價</th><th>單位</th><th style="text-align:right">數量</th><th style="text-align:right">金額 (HKD)</th></tr></thead><tbody>' +
+          chargeRows(list) + '</tbody><tfoot><tr><td data-label="">' + label + '</td><td></td><td></td><td></td><td></td><td class="num">' + fmt(subtotal) + "</td></tr></tfoot></table></div>";
+      }
+
+      /* ---------- Dashboard ---------- */
+      function viewDashboard() {
+        var totalRev = 0, totalCost = 0;
+        CASES.forEach(function (c) { var t = totals(c.ref); totalRev += t.rev; totalCost += t.cost; });
+        var byType = {};
+        CASES.forEach(function (c) { byType[c.type] = (byType[c.type] || 0) + 1; });
+        var typeNote = Object.keys(byType).map(function (k) { return k + " " + byType[k]; }).join(" · ");
+        var custInvTotal = INVOICES.filter(function (i) { return i.cat === "客人發票"; }).reduce(function (s, i) { return s + i.total; }, 0);
+        var leaks = CASES.filter(function (c) { return hasLeak(c.ref); });
+        var pendingIntake = INTAKES.filter(function (i) { return i.status === "待核對"; }).length;
+        var recent = CASES.slice(0, 6);
+
+        var leakHtml = leaks.map(function (c) {
+          return '<div class="alert-box" style="margin-bottom:10px"><span aria-hidden="true">⚠</span><span>個案 <a href="#" data-open-case="' + esc(c.ref) + '"><strong class="mono">' + esc(c.ref) + "</strong></a>：已收供應商發票（HKD " + fmt(totals(c.ref).cost) + "），未向客人開票。利潤暫計 HKD " + fmt(profit(c.ref)) + '。<a href="#" data-nav-go="suppliercheck">去外判發票核對 →</a></span></div>';
+        }).join("");
+
+        return '<div class="page-head"><div><h1>總覽</h1><div class="sub">ALPHA MASTER LOGISTICS LIMITED — 個案、收費與開票狀況一覽</div></div>' +
+          '<button class="btn" data-nav-go="newcase" type="button">＋ 開新單</button></div>' +
+          '<div class="kpi-grid">' +
+          '<div class="kpi"><div class="k-label">個案總數</div><div class="k-value">' + CASES.length + '</div><div class="k-note">' + esc(typeNote) + "</div></div>" +
+          '<div class="kpi money"><div class="k-label">已開票總額（客人發票）</div><div class="k-value">HKD ' + fmt(custInvTotal) + '</div><div class="k-note">共 ' + INVOICES.filter(function (i) { return i.cat === "客人發票"; }).length + " 張，全部未收</div></div>" +
+          '<div class="kpi money"><div class="k-label">供應商成本總額</div><div class="k-value">HKD ' + fmt(totalCost) + '</div><div class="k-note">已記錄供應商發票 1 張</div></div>' +
+          '<div class="kpi money"><div class="k-label">利潤總額</div><div class="k-value">HKD ' + fmt(totalRev - totalCost) + '</div><div class="k-note">向客收費 − 供應商成本</div></div>' +
+          '<div class="kpi danger"><div class="k-label">漏開票提示</div><div class="k-value">' + leaks.length + ' 宗</div><div class="k-note">已收供應商發票、未向客人開票</div></div>' +
+          '<div class="kpi"><div class="k-label">待核對落單</div><div class="k-value">' + pendingIntake + ' 份</div><div class="k-note">客人落單認讀待處理</div></div>' +
+          "</div>" +
+          (leaks.length ? '<h2 class="section-title">漏開票警告</h2>' + leakHtml : "") +
+          '<h2 class="section-title">最近個案</h2>' + caseTable(recent, true) +
+          '<div class="footer-note">匯率（客人文件印明）：CNY = HKD 1.153 · USD = HKD 7.85。金額以飛書 Base 記錄的 TOTAL 為準；逐行金額以 2 位小數顯示，相加或與總額相差 0.01。</div>';
+      }
+
+      /* ---------- 個案一覽 ---------- */
+      function segHtml(kind, options, current) {
+        return '<div class="seg" role="group">' + options.map(function (o) {
+          return '<button type="button" data-seg="' + kind + '" data-val="' + esc(o) + '" class="' + (o === current ? "active" : "") + '">' + esc(o) + "</button>";
+        }).join("") + "</div>";
+      }
+      function viewCases() {
+        var list = CASES.filter(function (c) {
+          if (state.caseType !== "全部" && c.type !== state.caseType) return false;
+          if (state.caseDir !== "全部" && c.dir !== state.caseDir) return false;
+          if (state.caseQuery) {
+            var q = state.caseQuery.toLowerCase();
+            var hay = (c.ref + " " + c.shipper + " " + c.consignee + " " + c.pol + " " + c.pod + " " + (c.mawb || "") + " " + (c.hawb || "")).toLowerCase();
+            if (hay.indexOf(q) === -1) return false;
+          }
+          return true;
+        });
+        return '<div class="page-head"><div><h1>個案一覽</h1><div class="sub">一宗案一行記錄，全程跟進至結案；按列即可查看詳情</div></div>' +
+          '<button class="btn" data-nav-go="newcase" type="button">＋ 開新單</button></div>' +
+          '<div class="toolbar">' + segHtml("type", ["全部", "空運", "海運", "本地派送", "物流服務"], state.caseType) +
+          segHtml("dir", ["全部", "出口", "進口"], state.caseDir) +
+          '<span class="spacer"></span>' +
+          '<input class="search-input" id="case-search" type="search" placeholder="搜尋 Reference No.／Shipper／提單號" value="' + esc(state.caseQuery) + '" aria-label="搜尋個案" />' +
+          "</div>" + caseTable(list, true) +
+          '<p class="small muted" style="margin-top:10px">顯示 ' + list.length + " / " + CASES.length + " 宗個案。</p>";
+      }
+
+      /* ---------- 個案詳情 ---------- */
+      function kv(k, v) { return '<div class="kv"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v || "") + "</div></div>"; }
+      function viewDetail(ref) {
+        var c = findCase(ref);
+        if (!c) return '<p>找不到個案。</p>';
+        var t = totals(ref), p = t.rev - t.cost;
+        var revCharges = CHARGES.filter(function (ch) { return ch.case === ref && ch.cat === "向客收費"; });
+        var costCharges = CHARGES.filter(function (ch) { return ch.case === ref && ch.cat === "供應商成本"; });
+        var invs = INVOICES.filter(function (i) { return i.case === ref; });
+        var docs = DOCS.filter(function (d) { return d.case === ref; });
+        var gen = DOCGEN.filter(function (g) { return g.case === ref; })[0];
+
+        var h = '<a class="back-link" href="#" data-nav-go="cases">← 返回個案一覽</a>' +
+          '<div class="page-head"><div><h1 class="mono" style="letter-spacing:.02em">' + esc(c.ref) + "</h1>" +
+          '<div class="sub">' + typeChip(c.type) + (c.dir ? ' <span class="badge badge-grey">' + esc(c.dir) + "</span>" : "") + " " + statusBadge(c) +
+          (c.pending ? ' <span class="badge badge-warn">' + esc(c.pending) + "</span>" : "") + "</div></div></div>";
+
+        if (hasLeak(ref)) {
+          h += '<div class="alert-box" style="margin-bottom:14px"><span aria-hidden="true">⚠</span><span>漏開票提示：本案已收供應商發票，未向客人開票。<a href="#" data-nav-go="suppliercheck">去外判發票核對 →</a></span></div>';
+        }
+
+        var curStatus = c.status || "";
+        var statusOpts = '<option value=""' + (curStatus === "" ? " selected" : "") + ">處理中</option>" + STATUS_OPTIONS.map(function (s) {
+          return '<option value="' + esc(s) + '"' + (curStatus === s ? " selected" : "") + ">" + esc(s) + "</option>";
+        }).join("");
+        var notice = "";
+        if (state.statusNotice && state.statusNotice.ref === ref) {
+          var nn = state.statusNotice;
+          notice = '<div class="gen-notice"><strong>狀態已轉為「' + esc(nn.to) + '」。</strong> ' +
+            (nn.docs.length
+              ? "按目前「文件生成設定」，將自動生成：" + nn.docs.map(function (d) { return "<strong>" + esc(d) + "</strong>"; }).join("、") + "。"
+              : "按目前「文件生成設定」，此狀態不會觸發任何文件自動生成。") +
+            '觸發狀態可於 <a href="#" data-nav-go="docsettings">文件生成設定</a> 更改。參考版只顯示觸發結果，不會真正生成 PDF。</div>';
+        }
+        h += '<div class="card"><h2 class="section-title">個案狀態與文件生成</h2>' +
+          '<div class="status-bar"><span>目前狀態：' + statusBadge(c) + "</span>" +
+          '<label for="detail-status" style="font-weight:700; font-size:13.5px; color:var(--ink-2)">轉換狀態</label>' +
+          '<select id="detail-status" class="status-select" data-detail-status="' + esc(ref) + '">' + statusOpts + "</select></div>" +
+          '<p class="small muted" style="margin:10px 0 0">個案狀態一經轉換，飛書會按「文件生成設定」中選定的觸發狀態自動生成相應文件（例如轉為「已開票」時生成客人發票）。哪個狀態觸發哪份文件，由您在設定頁決定，可隨時更改。</p>' +
+          notice + "</div>";
+
+        h += '<div class="card"><h2 class="section-title">船期及貨物資料</h2><div class="detail-grid">' +
+          kv("Shipper", c.shipper) + kv("Consignee", c.consignee) + kv("Notify Party", c.notify) +
+          kv("POL（裝貨地）", c.pol) + kv("POD（卸貨地）", c.pod) + kv("Final Destination", c.finalDest) +
+          kv(c.type === "海運" ? "Vessel / Voyage" : "Flight", c.flight) +
+          kv("ETD", fmtDate(c.etd) === "—" ? "" : fmtDate(c.etd)) + kv("ETA", fmtDate(c.eta) === "—" ? "" : fmtDate(c.eta)) +
+          kv("件數 PCS", c.pcs == null ? "" : c.pcs + (c.pcsNote ? "（" + c.pcsNote + "）" : "")) +
+          kv("毛重 Gross Weight (KG)", c.gross == null ? "" : fmtNum(c.gross)) +
+          kv(c.cbmLabel || "計費重量／CBM", c.chargeable == null ? "" : fmtNum(c.chargeable)) +
+          kv(c.type === "海運" ? "MBL No." : "MAWB No.", c.mawb) +
+          kv(c.type === "海運" ? "HBL No." : "HAWB No.", c.hawb) +
+          kv("Booking / S/O No.", c.booking) +
+          kv("櫃號", c.container) +
+          kv("報價日期", fmtDate(c.quoteDate) === "—" ? "" : fmtDate(c.quoteDate)) +
+          kv("有效期至", fmtDate(c.validUntil) === "—" ? "" : fmtDate(c.validUntil)) +
+          kv("貨品描述", c.desc) +
+          (c.extra ? kv("備註", c.extra) : "") +
+          "</div>" +
+          '<div class="summary-strip">' +
+          '<div class="s"><div class="k">向客收費總額 (HKD)</div><div class="v">' + fmt(t.rev) + "</div></div>" +
+          '<div class="s"><div class="k">供應商成本總額 (HKD)</div><div class="v">' + fmt(t.cost) + "</div></div>" +
+          '<div class="s"><div class="k">利潤 (HKD)</div><div class="v' + (p < 0 ? " neg" : "") + '">' + fmt(p) + "</div></div>" +
+          "</div></div>";
+
+        h += '<h2 class="section-title">收費明細 — 向客收費</h2>';
+        h += revCharges.length ? chargeTable(revCharges, t.rev, "向客收費小計 (HKD)") : '<div class="note-box">本案暫無向客收費記錄。</div>';
+        h += '<h2 class="section-title">收費明細 — 供應商成本</h2>';
+        h += costCharges.length ? chargeTable(costCharges, t.cost, "供應商成本小計 (HKD)") : '<div class="note-box">本案暫無供應商成本記錄。</div>';
+
+        h += '<h2 class="section-title">發票</h2>';
+        if (invs.length) {
+          h += '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / Invoice No.</th><th>類別</th><th>日期</th><th style="text-align:right">金額</th><th>付款狀態</th></tr></thead><tbody>' +
+            invs.map(function (i) {
+              var gi = INVOICES.indexOf(i);
+              return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, gi) + "<div class='doc-meta'><div class='mono'>" + esc(i.no) + "</div><button type='button' class='preview-link' data-preview-invoice='" + gi + "'>預覽發票</button></div></div></td><td data-label='類別'>" + esc(i.cat) + "</td><td data-label='日期'>" + fmtDate(i.date) + "</td><td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td><td data-label='付款狀態'><span class='badge badge-warn'>" + esc(i.pay) + "</span></td></tr>";
+            }).join("") + "</tbody></table></div>";
+        } else {
+          h += '<div class="note-box">本案暫無發票記錄。</div>';
+        }
+        if (gen) {
+          h += '<p class="small" style="margin-top:10px">文件生成狀態：報價單 <strong>' + esc(gen.quote) + "</strong> · 客人發票 <strong>" + esc(gen.invoice) + "</strong>" + (gen.note ? "（" + esc(gen.note) + "）" : "") + "</p>";
+        }
+
+        h += '<h2 class="section-title">文件</h2>';
+        if (docs.length) {
+          h += '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / 檔案名稱</th><th>類別</th><th>上載日期</th></tr></thead><tbody>' +
+            docs.map(function (d) { var gi = DOCS.indexOf(d); return "<tr><td data-label='預覽 / 檔案名稱'><div class='doc-cell'>" + docThumbHtml(d, gi) + "<div class='doc-meta'><div class='mono small'>" + esc(d.name) + "</div><button type='button' class='preview-link' data-preview-doc='" + gi + "'>預覽文件</button></div></div></td><td data-label='類別'>" + esc(d.cat) + "</td><td data-label='上載日期'>" + fmtDate(d.date) + "</td></tr>"; }).join("") +
+            "</tbody></table></div>";
+        } else {
+          h += '<div class="note-box">本案暫無文件記錄。</div>';
+        }
+        return h;
+      }
+</script>
+
+    <script>
+      "use strict";
+      /* ---------- 開新單 ---------- */
+      var NEW_FIELDS = {
+        "空運": [
+          ["shipper", "Shipper", 1], ["consignee", "Consignee", 1], ["notify", "Notify Party", 1],
+          ["pol", "POL（裝貨機場）", 0], ["pod", "POD（目的機場）", 0], ["finalDest", "Final Destination", 0],
+          ["flight", "Flight（航班）", 0], ["etd", "ETD", "date"], ["eta", "ETA", "date"],
+          ["pcs", "件數 PCS", "number"], ["gross", "Gross Weight (KG)", "number"], ["chargeable", "Chargeable Weight (KG)", "number"],
+          ["mawb", "MAWB No.", 0], ["hawb", "HAWB No.（留空＝與 Job No. 相同）", 0], ["dir", "方向", "dir"],
+          ["desc", "貨品描述", "textarea"]
+        ],
+        "海運": [
+          ["shipper", "Shipper", 1], ["consignee", "Consignee", 1], ["notify", "Notify Party", 1],
+          ["pol", "POL（裝貨港）", 0], ["pod", "POD（卸貨港）", 0], ["finalDest", "Final Destination", 0],
+          ["flight", "Vessel / Voyage（船名／航次）", 0], ["etd", "ETD", "date"], ["eta", "ETA", "date"],
+          ["pcs", "件數 PCS", "number"], ["gross", "Gross Weight (KG)", "number"], ["chargeable", "CBM", "number"],
+          ["mawb", "MBL No.", 0], ["hawb", "HBL No.（留空＝與 Job No. 相同）", 0], ["dir", "方向", "dir"],
+          ["container", "櫃號", 0], ["desc", "貨品描述", "textarea"]
+        ],
+        "本地派送": [
+          ["shipper", "Shipper（寄件方）", 1], ["consignee", "Consignee（收件方）", 1], ["address", "送貨地址", 1],
+          ["contact", "聯絡人", 0], ["phone", "電話", 0], ["etd", "送貨日期", "date"],
+          ["pcs", "件數", "number"], ["gross", "重量 (KG)", "number"], ["desc", "備註", "textarea"]
+        ]
+      };
+      function refPreview(type) {
+        var letter = type === "空運" ? "A" : type === "海運" ? "S" : "L";
+        var now = new Date();
+        var yymm = String(now.getFullYear()).slice(2) + String(now.getMonth() + 1).padStart(2, "0");
+        var seq = String(CASES.length + 1 + Object.keys(state.openedIntakes).length).padStart(3, "0");
+        return "AML" + letter + yymm + seq;
+      }
+      function viewNewCase() {
+        var t = state.newType;
+        var fields = NEW_FIELDS[t].map(function (f) {
+          var key = f[0], label = f[1], kind = f[2];
+          var input;
+          if (kind === "textarea") input = '<textarea id="nf-' + key + '" rows="3"></textarea>';
+          else if (kind === "dir") input = '<select id="nf-' + key + '"><option>出口</option><option>進口</option></select>';
+          else if (kind === "date") input = '<input id="nf-' + key + '" type="date" />';
+          else if (kind === "number") input = '<input id="nf-' + key + '" type="number" step="any" min="0" />';
+          else input = '<input id="nf-' + key + '" type="text" />';
+          return '<div class="field' + (kind === "textarea" ? " full" : kind === 1 ? " wide" : "") + '"><label for="nf-' + key + '">' + esc(label) + "</label>" + input + "</div>";
+        }).join("");
+
+        var typeCards = [
+          ["空運", "航班、MAWB／HAWB、計費重量"],
+          ["海運", "船名航次、MBL／HBL、CBM、櫃號"],
+          ["本地派送", "送貨地址、聯絡人、送貨日期"]
+        ].map(function (tc) {
+          return '<button type="button" class="type-card' + (state.newType === tc[0] ? " active" : "") + '" data-newtype="' + tc[0] + '"><span class="t-name">' + tc[0] + '</span><span class="t-desc">' + tc[1] + "</span></button>";
+        }).join("");
+
+        return '<div class="page-head"><div><h1>開新單</h1><div class="sub">先選業務類型，表格會按空運／海運／本地派送的落單格式顯示</div></div></div>' +
+          '<div class="type-picker">' + typeCards + "</div>" +
+          (t === "本地派送" ? '<div class="note-box" style="margin-bottom:16px">本地派送沒有落單表格，客人以電郵通知；此頁面供人手開案之用（電郵格式樣本待客人提供）。</div>' +
+            '<div class="note-box" style="margin-bottom:16px">注意：本地派送為參考版新增的開案入口，目前飛書 Base 個案主表並無此業務的實際個案。</div>' : "") +
+          '<form id="newcase-form" class="card"><div class="form-grid">' + fields + "</div>" +
+          '<div class="ref-preview"><span>新個案 Reference No. 預覽（統一編號：Job No. ＝ Invoice No. ＝ ' + (t === "海運" ? "HBL" : t === "空運" ? "HAWB" : "派送單") + ' No.）：</span><span class="big-ref mono" id="ref-preview">' + refPreview(t) + "</span></div>" +
+          '<div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap"><button class="btn" type="submit">建立個案（預覽）</button>' +
+          '<button class="btn ghost" type="reset">清除</button></div>' +
+          '<div id="newcase-result"></div></form>';
+      }
+
+      /* ---------- 落單認讀 ---------- */
+      /* AI 認讀示範結果（AMLA2606040 落單紙，與認讀記錄第 1 行相同） */
+      var AI_FIELDS = [
+        { k: "shipper", label: "Shipper", v: "JEB FURNITURE SOLUTIONS LTD" },
+        { k: "consignee", label: "Consignee", v: "INSCAPEDESIGN" },
+        { k: "notify", label: "Notify Party", v: "無" },
+        { k: "pol", label: "POL（裝貨地）", v: "CAN" },
+        { k: "pod", label: "POD（卸貨地）", v: "ICN" },
+        { k: "flight", label: "Flight / Vessel + Voyage", v: "無" },
+        { k: "etd", label: "ETD", v: "2026-06-30" },
+        { k: "eta", label: "ETA", v: "無" },
+        { k: "pcs", label: "件數 PCS", v: "28" },
+        { k: "gross", label: "Gross Weight (KG)", v: "1336" },
+        { k: "chargeable", label: "Chargeable Weight / CBM", v: "1336 KGS", hint: "推斷：由重量欄推斷得出" },
+        { k: "mawb", label: "MAWB / MBL No.", v: "994-32476286" },
+        { k: "hawb", label: "HAWB / HBL No.", v: "AMLA2606040" },
+        { k: "desc", label: "貨品描述", v: "無" }
+      ];
+      function aiSectionHtml() {
+        var ai = state.intakeAi;
+        var stage = ai.stage;
+        var labels = ["上載落單相", "AI 認讀", "核對欄位", "開案"];
+        var nowIdx = stage === "idle" ? 0 : stage === "recognized" ? 2 : 3;
+        var stepsHtml = '<div class="steps">' + labels.map(function (lb, i) {
+          var cls = (stage === "opened" || i < nowIdx) ? "step done" : (i === nowIdx ? "step now" : "step");
+          return '<span class="' + cls + '"><span class="n">' + (i + 1) + "</span>" + esc(lb) + "</span>";
+        }).join("") + "</div>";
+        var body;
+        if (stage === "idle") {
+          body = '<div class="upload-zone">' +
+            '<p style="margin:0 0 6px"><strong>上載客人落單相</strong></p>' +
+            '<p class="small muted" style="margin:0 auto 14px; max-width:520px">支援相片或截圖（JPG／PNG）。Excel 檔 AI 無法直接認讀，請先轉為圖片。認讀使用飛書的 Kimi 圖片理解，認出欄位後由此頁核對。</p>' +
+            '<label class="btn" for="ai-file" style="cursor:pointer">選擇落單相</label>' +
+            '<input id="ai-file" type="file" accept="image/*" style="display:none" />' +
+            '<div class="small muted" style="margin:12px 0 8px">或</div>' +
+            '<button class="btn ghost" type="button" data-ai-demo>使用示範落單紙認讀（AMLA2606040）</button>' +
+            "</div>";
+        } else {
+          var fields = AI_FIELDS.map(function (f) {
+            return '<div class="field"><label for="ai-' + f.k + '">' + esc(f.label) + '</label><input id="ai-' + f.k + '" type="text" value="' + esc(f.v) + '" />' + (f.hint ? '<div class="hint">' + esc(f.hint) + "</div>" : "") + "</div>";
+          }).join("");
+          body = '<div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px">' +
+            '<span class="badge badge-ok">AI 認讀完成</span><span class="small">來源：' + esc(ai.fileName || "落單相") + "</span>" +
+            '<span style="flex:1"></span>' +
+            '<button class="btn ghost small" type="button" data-ai-reset>重新上載</button></div>' +
+            (ai.preview ? '<img class="ai-preview" src="' + ai.preview + '" alt="已上載的落單相" style="margin-bottom:14px" />' : "") +
+            '<p class="small" style="margin:0 0 12px"><strong>業務類型：</strong>空運 · 出口（由落單紙格式認出）</p>' +
+            '<div class="form-grid">' + fields + "</div>" +
+            '<p class="small muted" style="margin:12px 0 0">欄位顯示「無」代表落單紙上沒有該項資料，開案時作空白處理；核對時可直接修改任何欄位。</p>' +
+            (stage === "opened"
+              ? '<div class="success-box"><h3>已開案</h3><p style="margin:0">已按核對後的欄位建立新個案 <a class="ref-link mono" href="#" data-open-case="' + esc(ai.openedRef) + '">' + esc(ai.openedRef) + '</a>，並與本落單連結（認讀記錄第 1 行已同步標示為已開案）。參考版不會寫入飛書；正式版會經飛書自動化即時開案。</p></div>'
+              : '<div style="margin-top:16px"><button class="btn" type="button" data-ai-open>確認核對並開案</button></div>');
+        }
+        return '<div class="card" style="margin-bottom:20px"><h2 class="section-title">AI 認讀落單</h2>' + stepsHtml + body +
+          '<p class="small muted" style="margin:14px 0 0">參考版的認讀為畫面模擬：上載任何相片，均以示範落單紙（AMLA2606040）的認讀結果示範流程；正式版才接駁真正的 AI 認讀。</p></div>';
+      }
+      function viewIntake() {
+        var rows = INTAKES.map(function (it, idx) {
+          var opened = state.openedIntakes[it.ref];
+          var action;
+          if (it.status === "開案" || opened) {
+            var cr = opened ? opened : it.caseRef;
+            action = '<span class="badge badge-ok">已開案</span>' + (cr ? '<div style="margin-top:5px"><a class="ref-link mono small" href="#" data-open-case="' + esc(cr) + '">' + esc(cr) + "</a></div>" : "");
+          } else {
+            action = '<span class="badge badge-warn">待核對</span><div style="margin-top:6px"><button class="btn small" type="button" data-open-intake="' + idx + '">核對並開案</button></div>';
+          }
+          return "<tr><td data-label='落單標題'><strong>" + esc(it.title) + "</strong><div class='muted small'>收到日期：" + fmtDate(it.date) + "</div></td>" +
+            "<td data-label='認讀編號' class='mono'>" + esc(it.ref) + "</td>" +
+            "<td data-label='業務'>" + typeChip(it.type) + " <span class='small'>" + esc(it.dir) + "</span></td>" +
+            "<td data-label='Shipper / Consignee'><div>" + esc(it.shipper) + "</div><div class='muted small'>→ " + esc(it.consignee) + "</div></td>" +
+            "<td data-label='航線'><span class='route'>" + esc(it.pol) + " → " + esc(it.pod) + "</span><div class='muted small'>ETD " + fmtDate(it.etd) + " · " + esc(it.pcs) + " 件 · " + esc(it.gross) + " KG</div></td>" +
+            "<td data-label='狀態'>" + action + "</td></tr>";
+        }).join("");
+        return '<div class="page-head"><div><h1>落單認讀</h1><div class="sub">先上載客人落單相，AI 認讀欄位；核對無誤即可開案，系統自動建立個案並連結</div></div></div>' +
+          aiSectionHtml() +
+          '<h2 class="section-title">認讀記錄</h2>' +
+          '<div class="table-wrap"><table class="data"><thead><tr><th>落單標題</th><th>認讀編號</th><th>業務</th><th>Shipper / Consignee</th><th>航線</th><th>狀態</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+          '<div class="note-box" style="margin-top:14px">欄位顯示「無」代表落單紙上沒有該項資料，開案時作空白處理；落單紙本身並無 Reference No.、航班、ETD、貨品描述等欄位，該等資料或需人手補上。第 3、4 行已於飛書觸發自動開案（個案 AML202611003／AML202611004），屬測試單或真實訂單仍待確認。</div>' +
+          '<div id="intake-result"></div>';
+      }
+
+      /* ---------- 發票及報價單 ---------- */
+      function viewInvoices() {
+        var invRows = INVOICES.map(function (i, idx) {
+          return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, idx) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div><button type='button' class='preview-link' data-preview-invoice='" + idx + "'>預覽發票</button></div></div></td>" +
+            "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(i.case) + "'>" + esc(i.case) + "</a></td>" +
+            "<td data-label='類別'>" + (i.cat === "客人發票" ? '<span class="badge badge-info">客人發票</span>' : '<span class="badge badge-grey">供應商發票</span>') + "</td>" +
+            "<td data-label='日期'>" + fmtDate(i.date) + "</td>" +
+            "<td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td>" +
+            "<td data-label='付款狀態'><span class='badge badge-warn'>" + esc(i.pay) + "</span></td></tr>";
+        }).join("");
+        var genRows = DOCGEN.map(function (g) {
+          var b = function (s) { return s === "已生成" ? '<span class="badge badge-ok">已生成</span>' : '<span class="badge badge-grey">未生成</span>'; };
+          return "<tr><td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(g.case) + "'>" + esc(g.case) + "</a></td>" +
+            "<td data-label='報價單'>" + b(g.quote) + "</td><td data-label='客人發票'>" + b(g.invoice) + "</td>" +
+            "<td data-label='備註' class='small'>" + esc(g.note || "—") + "</td></tr>";
+        }).join("");
+        return '<div class="page-head"><div><h1>發票及報價單</h1><div class="sub">Invoice No. 與 Job No. 共用同一統一編號；撳縮圖或「預覽發票」即睇大 Preview</div></div></div>' +
+          '<h2 class="section-title">發票列表</h2>' +
+          '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / Invoice No.</th><th>個案</th><th>類別</th><th>日期</th><th style="text-align:right">金額</th><th>付款狀態</th></tr></thead><tbody>' + invRows + "</tbody></table></div>" +
+          '<div class="note-box" style="margin-top:14px">客人發票 BILL TO 目前顯示「COMPANY NAME」（樣本遮蓋了真實名稱），正式出單前須填上客戶真實名稱。發票上款：ALPHA MASTER LOGISTICS LIMITED，荃灣白田壩街 5-21 號嘉力工業中心 A 座 9 樓 17 室，Tel (852) 3500 7163。下款收款銀行：HSBC Hong Kong，戶口 819-860339-838（USD/HKD），SWIFT HSBCHKHHHKH。</div>' +
+          '<h2 class="section-title">文件生成狀態（DocuGenius）</h2>' +
+          '<div class="table-wrap"><table class="data"><thead><tr><th>個案</th><th>報價單</th><th>客人發票</th><th>備註</th></tr></thead><tbody>' + genRows + "</tbody></table></div>" +
+          '<div class="note-box" style="margin-top:14px">發票範本：五份樣本（空運出口／海運出口／空運入口／海運入口／物流）的上款與下款完全相同，一個範本可涵蓋四份空運／海運發票，物流服務需另設範本。發票 Sheet 範本尚待建立（收費表循環寫法待定）。每種文件於個案轉為哪個狀態時自動生成，可於 <a href="#" data-nav-go="docsettings">文件生成設定</a> 選定。</div>';
+      }
+
+      /* ---------- 文件 ---------- */
+      function viewDocs() {
+        var rows = DOCS.map(function (d, idx) {
+          var c = findCase(d.case);
+          return "<tr><td data-label='預覽 / 檔案'><div class='doc-cell'>" + docThumbHtml(d, idx) + "<div class='doc-meta'><div class='mono small'><strong>" + esc(d.name) + "</strong></div><button type='button' class='preview-link' data-preview-doc='" + idx + "'>預覽文件</button></div></div></td>" +
+            "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(d.case) + "'>" + esc(d.case) + "</a>" + (c ? "<div class='muted small'>" + esc(c.pol) + " → " + esc(c.pod) + " · " + esc(c.flight) + "</div>" : "") + "</td>" +
+            "<td data-label='類別'><span class='badge badge-info'>" + esc(d.cat) + "</span></td>" +
+            "<td data-label='上載日期'>" + fmtDate(d.date) + "</td></tr>";
+        }).join("");
+        return '<div class="page-head"><div><h1>文件</h1><div class="sub">每宗個案的文件集中存放，與飛書 Base 文件表對應；撳縮圖或「預覽文件」即睇大 Preview</div></div></div>' +
+          '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / 檔案名稱</th><th>個案</th><th>類別</th><th>上載日期</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+          '<div class="two-col" style="margin-top:14px">' +
+          '<div class="card"><h2 class="section-title">文件範本狀態（Sheet 範本）</h2><ul class="list-clean">' +
+          "<li>空運落單紙：無圖版 v3 可生成（DocuGenius 的 Office 引擎無法處理 xlsx 內的圖片，連細圖／JPEG 亦失敗）</li>" +
+          "<li>HAWB、MAWB：已完成變量版；MAWB 本身無圖，預期可生成</li>" +
+          "<li>HBL：含標誌及背頁條款圖，無法刪去；繼續使用 visual 範本（2 頁 A4），或向 DocuGenius 支援查詢</li>" +
+          "<li>客人發票：Sheet 範本尚待建立</li></ul></div>" +
+          '<div class="card"><h2 class="section-title">待客人提供／確認</h2><ul class="list-clean">' +
+          "<li>倉庫／儲存發票樣本</li><li>本地派送電郵格式樣本</li><li>供應商名單及供應商發票樣本</li>" +
+          "<li>統一編號格式確認</li><li>AML202611003／AML202611004 屬測試單或真實訂單</li></ul></div></div>";
+      }
+
+      /* ---------- 文件生成設定 ---------- */
+      function viewDocSettings() {
+        var triggerOpts = STATUS_OPTIONS.concat(["手動"]);
+        var rows = DOC_TYPES.map(function (d) {
+          var cur = state.docTriggers[d.key];
+          var opts = triggerOpts.map(function (s) {
+            return '<option value="' + esc(s) + '"' + (cur === s ? " selected" : "") + ">" + esc(s) + "</option>";
+          }).join("");
+          var eff = cur === "手動"
+            ? '<span class="badge badge-grey">不自動生成</span>'
+            : '<span class="badge badge-info">轉為「' + esc(cur) + '」時自動生成</span>';
+          return "<tr><td data-label='文件'><strong>" + esc(d.name) + "</strong><div class='muted small'>" + esc(d.template) + "</div></td>" +
+            "<td data-label='適用個案'>" + esc(d.applies) + "</td>" +
+            "<td data-label='觸發狀態'><select class='trigger-select' data-trigger-doc='" + d.key + "' aria-label='" + esc(d.name) + "的觸發狀態'>" + opts + "</select></td>" +
+            "<td data-label='效果'>" + eff + "</td></tr>";
+        }).join("");
+        var summaryRows = STATUS_OPTIONS.map(function (s) {
+          var docs = DOC_TYPES.filter(function (d) { return state.docTriggers[d.key] === s; });
+          var txt = docs.length
+            ? docs.map(function (d) { return esc(d.name) + ' <span class="muted small">（' + esc(d.applies) + "）</span>"; }).join("、")
+            : '<span class="muted">不會生成任何文件</span>';
+          return "<tr><td data-label='個案狀態'><span class='badge badge-warn'>" + esc(s) + "</span></td><td data-label='自動生成'>" + txt + "</td></tr>";
+        }).join("");
+        var manualDocs = DOC_TYPES.filter(function (d) { return state.docTriggers[d.key] === "手動"; });
+        return '<div class="page-head"><div><h1>文件生成設定</h1><div class="sub">選定每種文件於個案轉為哪個狀態時自動生成；設定即時套用於個案詳情頁的狀態轉換</div></div>' +
+          '<button class="btn ghost" type="button" data-reset-triggers>還原預設值</button></div>' +
+          '<div class="table-wrap"><table class="data"><thead><tr><th>文件</th><th>適用個案</th><th>觸發狀態（由您選定）</th><th>效果</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+          '<div class="note-box" style="margin-top:14px">預設值跟隨目前飛書自動化的做法：客人發票於「已開票」生成、報價單於「已向供應商落單」生成、HAWB／HBL 於「已完成」生成、MAWB 設為手動。選「手動」的文件不會自動生成，只可於個案內人手生成。</div>' +
+          '<h2 class="section-title">按狀態查看觸發結果</h2>' +
+          '<div class="table-wrap"><table class="data"><thead><tr><th>個案狀態</th><th>自動生成</th></tr></thead><tbody>' + summaryRows + "</tbody></table></div>" +
+          (manualDocs.length ? '<p class="small muted" style="margin-top:10px">手動生成（不自動觸發）：' + manualDocs.map(function (d) { return esc(d.name); }).join("、") + "。</p>" : "") +
+          '<div class="note-box" style="margin-top:14px">參考版的設定只保留於本頁面，重新載入後會還原預設值；正式版會將設定寫入飛書，個案狀態一經轉換，即按設定經 DocuGenius 生成文件。</div>';
+      }
+
+      /* ---------- 外判發票核對 ---------- */
+      function normalizeBillNo(s) {
+        return String(s == null ? "" : s).toUpperCase().replace(/[\s\-]/g, "");
+      }
+      function findCasesByBillNo(q) {
+        var nq = normalizeBillNo(q);
+        if (!nq) return [];
+        return CASES.filter(function (c) {
+          return normalizeBillNo(c.hawb) === nq || normalizeBillNo(c.mawb) === nq || normalizeBillNo(c.ref) === nq;
+        });
+      }
+      function billNosOf(c) {
+        var parts = [];
+        if (c.type === "海運") {
+          if (c.hawb) parts.push("HBL " + c.hawb);
+          if (c.mawb) parts.push("MBL " + c.mawb);
+        } else {
+          if (c.hawb) parts.push("HAWB " + c.hawb);
+          if (c.mawb) parts.push("MAWB " + c.mawb);
+        }
+        return parts.length ? parts.join(" · ") : "—（提單號未填）";
+      }
+      function checkResultForCase(c) {
+        var sup = INVOICES.filter(function (i) { return i.case === c.ref && i.cat === "供應商發票"; });
+        var cus = INVOICES.filter(function (i) { return i.case === c.ref && i.cat === "客人發票"; });
+        var t = totals(c.ref);
+        var hasSup = sup.length > 0 || t.cost > 0;
+        var hasCus = cus.length > 0;
+        if (hasSup && !hasCus) return { kind: "leak", sup: sup, cus: cus };
+        if (hasSup && hasCus) return { kind: "ok", sup: sup, cus: cus };
+        if (!hasSup && hasCus) return { kind: "no-sup", sup: sup, cus: cus };
+        return { kind: "none", sup: sup, cus: cus };
+      }
+      function supplierCheckResultHtml(c, query) {
+        var chk = checkResultForCase(c);
+        var t = totals(c.ref), p = t.rev - t.cost;
+        var supHtml, cusHtml;
+        if (chk.sup.length) {
+          supHtml = chk.sup.map(function (i) {
+            return '<div class="cc-big mono">' + esc(i.no) + '</div><div class="cc-line">日期：' + fmtDate(i.date) + '</div><div class="cc-line">金額：<strong>' + esc(i.curr) + " " + fmt(i.total) + '</strong> · 付款：' + esc(i.pay) + "</div>";
+          }).join("");
+        } else if (t.cost > 0) {
+          supHtml = '<div class="cc-big">已記錄供應商成本</div><div class="cc-line">金額：<strong>HKD ' + fmt(t.cost) + '</strong></div><div class="cc-line">（成本行見個案詳情）</div>';
+        } else {
+          supHtml = '<div class="cc-big">未收到／未記錄</div><div class="cc-line">此個案暫無供應商發票及成本記錄。</div>';
+        }
+        if (chk.cus.length) {
+          cusHtml = chk.cus.map(function (i) {
+            return '<div class="cc-big mono">' + esc(i.no) + '</div><div class="cc-line">日期：' + fmtDate(i.date) + '</div><div class="cc-line">金額：<strong>' + esc(i.curr) + " " + fmt(i.total) + '</strong> · 收款：' + esc(i.pay) + "</div>";
+          }).join("");
+        } else {
+          cusHtml = '<div class="cc-big">未出客人發票</div><div class="cc-line">系統內搵唔到此個案的客人發票。</div>';
+        }
+        var verdict;
+        if (chk.kind === "leak") {
+          verdict = '<div class="verdict verdict-danger"><span aria-hidden="true">⚠</span><span>核對結果：未向客人開票 — 已收供應商發票（HKD ' + fmt(t.cost) + '），未向客人開票。請即跟進開票，否則成本會變成淨虧損（目前利潤 HKD ' + fmt(p) + '）。</span></div>';
+        } else if (chk.kind === "ok") {
+          verdict = '<div class="verdict verdict-ok"><span aria-hidden="true">✓</span><span>核對結果：已向客人開票 — 供應商發票與客人發票齊全，金額對照見下表。</span></div>';
+        } else if (chk.kind === "no-sup") {
+          verdict = '<div class="verdict verdict-grey"><span aria-hidden="true">ℹ</span><span>核對結果：客人發票已出，但此個案暫未記錄外判供應商發票／成本。如剛收到供應商發票，請核對提單號是否屬於另一宗個案。</span></div>';
+        } else {
+          verdict = '<div class="verdict verdict-grey"><span aria-hidden="true">ℹ</span><span>核對結果：此個案暫無供應商發票，亦未出客人發票 — 未有外判成本需要核對。</span></div>';
+        }
+        return '<div class="card" style="margin-top:14px">' +
+          '<div style="display:flex; gap:10px; align-items:flex-start; flex-wrap:wrap">' +
+          '<div style="min-width:0"><a class="ref-link mono" href="#" data-open-case="' + esc(c.ref) + '" style="font-size:17px">' + esc(c.ref) + "</a>" +
+          '<div class="small muted" style="margin-top:3px">' + esc(billNosOf(c)) + " · " + esc(c.pol || "—") + " → " + esc(c.pod || "—") + (c.flight ? " · " + esc(c.flight) : "") + (c.etd ? " · ETD " + fmtDate(c.etd) : "") + "</div>" +
+          '<div class="small" style="margin-top:2px">' + esc(c.shipper || "—") + ' <span class="muted">→</span> ' + esc(c.consignee || "—") + "</div></div>" +
+          '<span style="flex:1"></span>' + typeChip(c.type) + (c.dir ? ' <span class="badge badge-grey">' + esc(c.dir) + "</span>" : "") + " " + statusBadge(c) + "</div>" +
+          '<p class="small muted" style="margin:10px 0 0">配對依據：您輸入的「' + esc(query) + '」與此個案的 ' + (c.type === "海運" ? "HBL／MBL" : "HAWB／MAWB") + ' 號相同（外判供應商發票與客人文件共用同一提單號）。' + (c.ref === "2020-CX086" ? "此案 HAWB 一欄空白，今次以 MAWB 160-22268676 配對。" : "") + "</p>" +
+          '<div class="check-compare">' +
+          '<div class="check-col ' + (chk.sup.length || t.cost > 0 ? "present" : "") + '"><div class="cc-title">供應商發票（外判公司收回） ' + (chk.sup.length || t.cost > 0 ? '<span class="badge badge-ok">已收到</span>' : '<span class="badge badge-grey">未有記錄</span>') + "</div>" + supHtml + "</div>" +
+          '<div class="check-col ' + (chk.cus.length ? "present" : (chk.kind === "leak" ? "missing" : "")) + '"><div class="cc-title">客人發票（有冇出俾客人） ' + (chk.cus.length ? '<span class="badge badge-ok">已出</span>' : '<span class="badge badge-danger">未出</span>') + "</div>" + cusHtml + "</div>" +
+          "</div>" + verdict +
+          '<div class="summary-strip">' +
+          '<div class="s"><div class="k">供應商成本 (HKD)</div><div class="v">' + fmt(t.cost) + '</div></div>' +
+          '<div class="s"><div class="k">向客收費 (HKD)</div><div class="v">' + fmt(t.rev) + '</div></div>' +
+          '<div class="s"><div class="k">利潤 (HKD)</div><div class="v' + (p < 0 ? " neg" : "") + '">' + fmt(p) + "</div></div>" +
+          "</div>" +
+          '<div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap"><button class="btn ghost small" type="button" data-open-case="' + esc(c.ref) + '">查看個案詳情</button></div>' +
+          "</div>";
+      }
+      function viewSupplierCheck() {
+        var q = state.supplierSubmitted;
+        var resultHtml = "";
+        if (q) {
+          var matched = findCasesByBillNo(q);
+          if (!matched.length) {
+            resultHtml = '<div class="verdict verdict-danger" style="margin-top:14px"><span aria-hidden="true">⚠</span><span>搵唔到提單號「' + esc(q) + '」對應的個案。請核對供應商發票上的 HAWB／HBL 號碼有冇打錯；如號碼正確，可能係未開案 — 請先到 <a href="#" data-nav-go="newcase">開新單</a> 或 <a href="#" data-nav-go="intake">落單認讀</a> 建立個案，再重新核對。</span></div>';
+          } else {
+            resultHtml = matched.map(function (c) { return supplierCheckResultHtml(c, q); }).join("");
+            if (matched.length > 1) {
+              resultHtml = '<div class="note-box" style="margin-top:14px">提單號「' + esc(q) + '」對應 ' + matched.length + ' 宗個案（包括待確認的測試／重複個案），以下逐宗列出核對結果。</div>' + resultHtml;
+            }
+          }
+        }
+        var supInvoices = INVOICES.filter(function (i) { return i.cat === "供應商發票"; });
+        var supRows = supInvoices.map(function (i) {
+          var c = findCase(i.case) || {};
+          var chk = checkResultForCase(c);
+          var t = totals(i.case), p = t.rev - t.cost;
+          var cusTxt = chk.cus.length ? chk.cus.map(function (x) { return '<span class="mono">' + esc(x.no) + "</span><div class='small muted'>" + fmtDate(x.date) + " · " + esc(x.pay) + "</div>"; }).join("") : '<span class="badge badge-danger">未出</span>';
+          var verdictBadge = chk.kind === "leak" ? '<span class="badge badge-danger">未向客人開票</span>' : chk.kind === "ok" ? '<span class="badge badge-ok">已向客人開票</span>' : '<span class="badge badge-grey">待核對</span>';
+          var billKey = c.hawb || c.mawb || "";
+          return "<tr><td data-label='供應商發票'><div class='doc-cell'>" + invoiceThumbHtml(i, INVOICES.indexOf(i)) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div><div class='small muted'>" + fmtDate(i.date) + " · " + esc(i.pay) + "</div><button type='button' class='preview-link' data-preview-invoice='" + INVOICES.indexOf(i) + "'>預覽發票</button></div></div></td>" +
+            "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(i.case) + "'>" + esc(i.case) + "</a><div class='small muted'>" + esc(billNosOf(c)) + "</div></td>" +
+            "<td data-label='供應商金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td>" +
+            "<td data-label='客人發票'>" + cusTxt + "</td>" +
+            "<td data-label='向客金額' class='num'>" + (t.rev ? "HKD " + fmt(t.rev) : "—") + "</td>" +
+            "<td data-label='利潤' class='num" + (p < 0 ? " neg" : "") + "'>" + fmt(p) + "</td>" +
+            "<td data-label='核對結果'>" + verdictBadge + (billKey ? "<div style='margin-top:6px'><button class='btn ghost small' type='button' data-check-bill='" + esc(billKey) + "'>用提單號核對</button></div>" : "") + "</td></tr>";
+        }).join("");
+        var leakCount = CASES.filter(function (c) { return hasLeak(c.ref); }).length;
+        return '<div class="page-head"><div><h1>外判發票核對</h1><div class="sub">判出去俾其他公司做的貨，收到對方 invoice 返嚟嗰陣，用同一 HAWB／HBL 號核對有冇出過單俾客人</div></div></div>' +
+          '<div class="card"><h2 class="section-title">輸入提單號核對</h2>' +
+          '<p style="margin:0 0 12px">外判供應商出 invoice 嗰陣，會跟返同一張單的 <strong>HAWB（空運）／HBL（海運）號碼</strong> — 同您出俾客人的提單號一樣。將發票上的號碼打入嚟，系統即刻搵返個案，對照「收咗供應商發票未」同「出咗客人發票未」，未出會紅色警告，同飛書 Base 的漏開票提示一致。</p>' +
+          '<form id="supplier-check-form"><div class="supplier-search">' +
+          '<input id="supplier-query" type="text" inputmode="text" autocomplete="off" placeholder="輸入 HAWB / HBL 號，例如 AMLA2606040、AMLS2610002，或 MAWB 160-22268676" value="' + esc(state.supplierQuery) + '" aria-label="HAWB 或 HBL 號碼" />' +
+          '<button class="btn" type="submit">核對</button>' +
+          (q ? '<button class="btn ghost" type="button" data-clear-supplier>清除</button>' : "") +
+          "</div></form>" +
+          '<div class="quick-row"><span class="small muted">試查：</span>' +
+          '<button class="quick-chip mono" type="button" data-check-bill="160-22268676">160-22268676 — 2020-CX086（未開票）</button>' +
+          '<button class="quick-chip mono" type="button" data-check-bill="AMLA2606040">AMLA2606040 — 已開票個案</button>' +
+          '<button class="quick-chip mono" type="button" data-check-bill="AMLS2610002">AMLS2610002 — HBL 個案</button>' +
+          "</div>" + resultHtml + "</div>" +
+          '<h2 class="section-title">全部供應商發票一覽（核對清單）</h2>' +
+          (leakCount ? '<div class="alert-box" style="margin-bottom:12px"><span aria-hidden="true">⚠</span><span>目前有 ' + leakCount + ' 宗個案已收供應商發票但未向客人開票，請優先跟進。</span></div>' : "") +
+          '<div class="table-wrap"><table class="data"><thead><tr><th>供應商發票</th><th>個案 / 提單號</th><th style="text-align:right">供應商金額</th><th>客人發票</th><th style="text-align:right">向客金額 (HKD)</th><th style="text-align:right">利潤 (HKD)</th><th>核對結果</th></tr></thead><tbody>' +
+          (supRows || '<tr><td colspan="7"><div class="empty-state">暫無供應商發票記錄。</div></td></tr>') + "</tbody></table></div>" +
+          '<div class="note-box" style="margin-top:14px">配對規則：供應商發票上的 HAWB／HBL 號 = 客人提單號 = 個案的提單號，三者相同先算配對成功。如果個案的 HAWB／HBL 一欄空白（例如 2020-CX086），系統會改用 MAWB／MBL 號配對。參考版數據截至 2026-11-16：目前只有 1 張真供應商發票（2020-CX086，HKD 32,890），正正係「收咗外判 invoice、未出客人單」的情況；正式版會直接讀寫飛書 Base 的發票表。</div>';
+      }
+
+      /* ---------- 收費項目 ---------- */
+      function chargeCatalog(title, ref) {
+        var list = CHARGES.filter(function (ch) { return ch.case === ref && ch.cat === "向客收費"; });
+        var sum = list.reduce(function (s, ch) { return s + ch.amount; }, 0);
+        return '<h2 class="section-title">' + esc(title) + '（<span class="mono">' + esc(ref) + "</span>）</h2>" + chargeTable(list, totals(ref).rev || sum, "合計 (HKD)");
+      }
+      function viewCharges() {
+        return '<div class="page-head"><div><h1>收費項目</h1><div class="sub">出口及入口收費項目一覽（取自實際個案樣本）</div></div></div>' +
+          '<div class="note-box">下列項目為樣本實際收費，並非客人確認的標準費率（飛書 Base 標準費率表目前為空）。金額 (HKD) 已按匯率 CNY = 1.153、USD = 7.85 換算。</div>' +
+          chargeCatalog("出口 · 空運（11 項）", "AMLA2606040") +
+          chargeCatalog("出口 · 海運（9 項）", "AMLS2608022") +
+          chargeCatalog("入口 · 空運（4 項）", "AML2610063") +
+          chargeCatalog("入口 · 海運（7 項）", "AML2609082") +
+          '<div class="note-box" style="margin-top:14px">備註：「REGRISTRATION FEE」為文件原有串法，照錄。AML2610063 的 DELIVERY CHARGE 數量 1,170 KG 為文件公式計算（計費重量 1,462.5 × 0.8）。</div>';
+      }
+
+      /* ---------- 路由 ---------- */
+      function render() {
+        var html;
+        if (state.view === "dashboard") html = viewDashboard();
+        else if (state.view === "cases") html = viewCases();
+        else if (state.view === "detail") html = viewDetail(state.detailRef);
+        else if (state.view === "newcase") html = viewNewCase();
+        else if (state.view === "intake") html = viewIntake();
+        else if (state.view === "invoices") html = viewInvoices();
+        else if (state.view === "suppliercheck") html = viewSupplierCheck();
+        else if (state.view === "docs") html = viewDocs();
+        else if (state.view === "docsettings") html = viewDocSettings();
+        else if (state.view === "charges") html = viewCharges();
+        content.innerHTML = trText(html);
+        applyStaticLang();
+        document.querySelectorAll(".nav-btn").forEach(function (b) {
+          b.classList.toggle("active", b.getAttribute("data-nav") === state.view || (state.view === "detail" && b.getAttribute("data-nav") === "cases"));
+        });
+        window.scrollTo(0, 0);
+        bindView();
+      }
+      function go(view) { state.view = view; render(); }
+      function openCase(ref) { state.detailRef = ref; state.view = "detail"; render(); }
+
+      function bindView() {
+        var supForm = document.getElementById("supplier-check-form");
+        if (supForm) {
+          supForm.addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            var inp = document.getElementById("supplier-query");
+            var v = inp ? inp.value.trim() : "";
+            state.supplierQuery = v;
+            state.supplierSubmitted = v;
+            render();
+          });
+          var supInput = document.getElementById("supplier-query");
+          if (supInput) {
+            supInput.addEventListener("input", function () { state.supplierQuery = supInput.value; });
+          }
+        }
+        var search = document.getElementById("case-search");
+        if (search) {
+          search.addEventListener("input", function () {
+            state.caseQuery = search.value;
+            var pos = search.selectionStart;
+            render();
+            var s2 = document.getElementById("case-search");
+            if (s2) { s2.focus(); s2.setSelectionRange(pos, pos); }
+          });
+        }
+        var form = document.getElementById("newcase-form");
+        if (form) {
+          form.addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            var t = state.newType;
+            var ref = refPreview(t);
+            var get = function (id) { var el = document.getElementById("nf-" + id); return el ? el.value.trim() : ""; };
+            var shipper = get("shipper"), consignee = get("consignee");
+            var route = t === "本地派送" ? get("address") : ((get("pol") || "—") + " → " + (get("pod") || "—"));
+            var dateLine = get("etd") ? fmtDate(get("etd")) : "—";
+            var result = document.getElementById("newcase-result");
+            result.innerHTML = trText('<div class="success-box"><h3>個案預覽已建立：<span class="mono">' + esc(ref) + "</span></h3>" +
+              "<div>" + typeChip(t) + " · Shipper：" + esc(shipper || "—") + " · Consignee：" + esc(consignee || "—") + "</div>" +
+              "<div>" + (t === "本地派送" ? "送貨地址：" + esc(route) + " · 送貨日期：" : "航線：" + esc(route) + " · " + (t === "海運" ? "ETD：" : "日期：")) + esc(dateLine) + "</div>" +
+              '<p class="small" style="margin:8px 0 0">參考版不會將資料寫入飛書。正式版啟用後，此個案會直接寫入飛書 Base 個案主表，並以同一編號作為 Job No.／Invoice No.。</p></div>');
+            result.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          });
+        }
+      }
+
+      document.addEventListener("click", function (ev) {
+        if (ev.target && ev.target.id === "preview-overlay") { closePreview(); return; }
+        var t = ev.target.closest("[data-nav],[data-nav-go],[data-open-case],[data-seg],[data-newtype],[data-open-intake],[data-ai-demo],[data-ai-reset],[data-ai-open],[data-reset-triggers],[data-preview-doc],[data-preview-invoice],[data-close-preview],[data-check-bill],[data-clear-supplier]");
+        if (!t) return;
+        if (t.hasAttribute("data-close-preview")) { closePreview(); }
+        else if (t.hasAttribute("data-check-bill")) {
+          var bill = t.getAttribute("data-check-bill") || "";
+          state.supplierQuery = bill;
+          state.supplierSubmitted = bill;
+          state.view = "suppliercheck";
+          render();
+          window.scrollTo(0, 0);
+        }
+        else if (t.hasAttribute("data-clear-supplier")) {
+          state.supplierQuery = "";
+          state.supplierSubmitted = "";
+          render();
+        }
+        else if (t.hasAttribute("data-preview-doc")) {
+          var pd = DOCS[Number(t.getAttribute("data-preview-doc"))];
+          if (pd) openPreview(pd.cat + " — " + pd.name, "個案 " + pd.case + " · 上載 " + fmtDate(pd.date), previewPaperForDoc(pd));
+        } else if (t.hasAttribute("data-preview-invoice")) {
+          var pi = INVOICES[Number(t.getAttribute("data-preview-invoice"))];
+          if (pi) openPreview(pi.cat + " — " + pi.no, "個案 " + pi.case + " · " + fmtDate(pi.date) + " · " + pi.curr + " " + fmt(pi.total), previewPaperForInvoice(pi));
+        }
+        else if (t.hasAttribute("data-nav")) { go(t.getAttribute("data-nav")); }
+        else if (t.hasAttribute("data-nav-go")) { ev.preventDefault(); go(t.getAttribute("data-nav-go")); }
+        else if (t.hasAttribute("data-open-case")) { ev.preventDefault(); openCase(t.getAttribute("data-open-case")); }
+        else if (t.hasAttribute("data-seg")) {
+          var kind = t.getAttribute("data-seg"), val = canon(t.getAttribute("data-val"));
+          if (kind === "type") state.caseType = val; else state.caseDir = val;
+          render();
+        } else if (t.hasAttribute("data-newtype")) {
+          state.newType = canon(t.getAttribute("data-newtype"));
+          render();
+        } else if (t.hasAttribute("data-ai-demo")) {
+          state.intakeAi = { stage: "recognized", fileName: "示範落單紙 — AMLA2606040 客人落單紙", preview: "", openedRef: null };
+          render();
+        } else if (t.hasAttribute("data-ai-reset")) {
+          state.intakeAi = { stage: "idle", fileName: "", preview: "", openedRef: null };
+          render();
+        } else if (t.hasAttribute("data-ai-open")) {
+          var aiRef = "AMLA2611" + String(100 + CASES.length + Object.keys(state.openedIntakes).length + 1).slice(1);
+          state.openedIntakes["AML202611002"] = aiRef;
+          state.intakeAi.stage = "opened";
+          state.intakeAi.openedRef = aiRef;
+          var aiBadge = document.getElementById("nav-intake-badge");
+          var aiRemain = INTAKES.filter(function (x) { return x.status === "待核對" && !state.openedIntakes[x.ref]; }).length;
+          if (aiBadge) aiBadge.textContent = aiRemain;
+          render();
+        } else if (t.hasAttribute("data-reset-triggers")) {
+          state.docTriggers = defaultDocTriggers();
+          render();
+        } else if (t.hasAttribute("data-open-intake")) {
+          var idx = Number(t.getAttribute("data-open-intake"));
+          var it = INTAKES[idx];
+          var letter = it.type === "空運" ? "A" : it.type === "海運" ? "S" : "L";
+          var newRef = "AML" + letter + "2611" + String(100 + CASES.length + Object.keys(state.openedIntakes).length + 1).slice(1);
+          state.openedIntakes[it.ref] = newRef;
+          var badge = document.getElementById("nav-intake-badge");
+          var remain = INTAKES.filter(function (x) { return x.status === "待核對" && !state.openedIntakes[x.ref]; }).length;
+          if (badge) badge.textContent = remain;
+          render();
+          var box = document.getElementById("intake-result");
+          if (box) {
+            box.innerHTML = trText('<div class="success-box"><h3>已開案（畫面流程示範）</h3><p style="margin:0">落單「' + esc(it.title) + '」已建立新個案 <strong class="mono">' + esc(newRef) + "</strong>，並與認讀編號 " + esc(it.ref) + " 連結。參考版不會寫入飛書；正式版會經飛書自動化即時開案。</p></div>");
+            box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+        }
+      });
+
+      document.addEventListener("keydown", function (ev) { if (ev.key === "Escape") closePreview(); });
+
+      document.addEventListener("click", function (ev) {
+        var lb = ev.target.closest ? ev.target.closest("[data-set-lang]") : null;
+        if (!lb) return;
+        var lang = lb.getAttribute("data-set-lang");
+        if (lang !== state.lang) { state.lang = lang; render(); }
+      });
+
+      document.addEventListener("change", function (ev) {
+        var el = ev.target;
+        if (!el || !el.hasAttribute) return;
+        if (el.hasAttribute("data-detail-status")) {
+          var c2 = findCase(el.getAttribute("data-detail-status"));
+          if (!c2) return;
+          var newStatus = canon(el.value);
+          c2.status = newStatus;
+          state.statusNotice = { ref: c2.ref, to: newStatus || "處理中", docs: docsForStatus(newStatus, c2.type).map(function (d) { return d.name; }) };
+          render();
+        } else if (el.hasAttribute("data-trigger-doc")) {
+          state.docTriggers[el.getAttribute("data-trigger-doc")] = canon(el.value);
+          render();
+        } else if (el.id === "ai-file" && el.files && el.files.length) {
+          state.intakeAi = { stage: "recognized", fileName: el.files[0].name, preview: URL.createObjectURL(el.files[0]), openedRef: null };
+          render();
+        }
+      });
+
+      render();
+    </script>
+  </body>
+</html>
