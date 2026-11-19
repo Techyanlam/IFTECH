@@ -554,10 +554,8 @@ function passProdCat(r){
   return true;
 }
 function applyDate(){
-  // 日期二揀一：填咗範圍，單日下拉就停用（唔係兩個一齊生效）
+  // 日期二揀一：填咗範圍就提示單日唔生效（下拉保持可用，等用戶隨時轉返單日）
   var rg0 = getRange();
-  var ds0 = document.getElementById("dateSel");
-  if (ds0) ds0.disabled = rg0.active;
   var rn = document.getElementById("rangeNote");
   if (rn) rn.textContent = rg0.active ? "已揀範圍，單日唔生效。" : "";
   var base = baseRows();
