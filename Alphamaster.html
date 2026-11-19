@@ -517,7 +517,7 @@
         <div class="notice-bar" id="notice-bar">
           <span class="notice-dot" id="notice-dot" aria-hidden="true"></span>
           <strong id="notice-title">Reference Version</strong>
-          <span id="notice-text">Data as of 16 Nov 2026 (verified Feishu Base snapshot). Actions on this site do not write to Feishu. The production version will connect to Feishu Base as its database via a backend.</span>
+          <span id="notice-text">Snapshot: system cleared for client handover on 20 Nov 2026 (no records). Actions on this site do not write to Feishu. The production version will connect to Feishu Base as its database via a backend.</span>
           <button class="btn ghost small notice-refresh" type="button" data-notice-refresh id="notice-refresh">Reconnect</button>
           <span class="lang-switch" role="group" aria-label="Language / 語言">
             <button type="button" data-set-lang="zh">中文</button>
@@ -547,106 +547,27 @@
 
     <script>
       "use strict";
-      /* ===== 數據快照（2026-11-16 飛書 Base 核實匯出） ===== */
-      var CASES = [
-        {"ref":"AMLA2606040","type":"空運","dir":"出口","status":"已開票","shipper":"JEB FURNITURE SOLUTIONS LTD","consignee":"INSCAPEDESIGN","notify":"","pol":"CAN","pod":"ICN","finalDest":"","flight":"KJ934","etd":"2026-06-30","eta":"","pcs":28,"pcsNote":"","gross":1336,"chargeable":1336,"cbmLabel":"計費重量 (KG)","mawb":"994-32476286","hawb":"AMLA2606040","booking":"","desc":"","container":"","quoteDate":"2026-06-30","validUntil":"2026-07-14","extra":""},
-        {"ref":"AMLS2608022","type":"海運","dir":"出口","status":"已開票","shipper":"INFOACTION TENOLOGY,INC.","consignee":"SCREENBEAM INC","notify":"","pol":"HONG KONG","pod":"OAKLAND","finalDest":"OAKLAND","flight":"EVER MACRO / 1372-009E","etd":"2026-08-18","eta":"2026-09-16","pcs":173,"pcsNote":"8PLTS = 173CTNS","gross":1477.84,"chargeable":11.44,"cbmLabel":"CBM","mawb":"FHKOAK26024888","hawb":"AMLS2608022","booking":"","desc":"","container":"","quoteDate":"","validUntil":"","extra":""},
-        {"ref":"AML2610063","type":"空運","dir":"進口","status":"","shipper":"TENSO,INC.","consignee":"ALPHA MASTER LOGISTICS LTD.","notify":"","pol":"NRT","pod":"HKG","finalDest":"","flight":"JL6781","etd":"","eta":"2026-10-28","pcs":45,"pcsNote":"","gross":653,"chargeable":1462.5,"cbmLabel":"計費重量 (KG)","mawb":"131-26042590","hawb":"SBS-0002 3469","booking":"","desc":"","container":"","quoteDate":"","validUntil":"","extra":""},
-        {"ref":"AML2609082","type":"海運","dir":"進口","status":"","shipper":"","consignee":"","notify":"","pol":"TAIPEI","pod":"HONG KONG","finalDest":"","flight":"WAN HAI 357 / S039","etd":"","eta":"2026-09-22","pcs":8,"pcsNote":"1PLT = 8CTNS","gross":100,"chargeable":0.33,"cbmLabel":"CBM","mawb":"","hawb":"","booking":"","desc":"","container":"","quoteDate":"","validUntil":"","extra":""},
-        {"ref":"AML2608109","type":"物流服務","dir":"","status":"","shipper":"","consignee":"","notify":"","pol":"","pod":"","finalDest":"","flight":"","etd":"","eta":"","pcs":null,"pcsNote":"","gross":null,"chargeable":null,"cbmLabel":"","mawb":"","hawb":"","booking":"","desc":"","container":"","quoteDate":"","validUntil":"","extra":"SOS PO No.：FPO26080087R0；Job No.：MSS26013"},
-        {"ref":"2020-CX086","type":"空運","dir":"出口","status":"","shipper":"SHENZHEN BRIGHT LIGHTING TECH.","consignee":"RMCS IMPORTACTION EXPORTACTION","notify":"","pol":"HONG KONG","pod":"MEXICO CITY","finalDest":"","flight":"CX086","etd":"2020-12-28","eta":"2020-12-29","pcs":29,"pcsNote":"","gross":492,"chargeable":598,"cbmLabel":"計費重量 (KG)","mawb":"160-22268676","hawb":"","booking":"","desc":"","container":"","quoteDate":"","validUntil":"","extra":"供應商發票（另一間公司開給 ALPHA）；Reference No. 為後加標籤，文件本身並無 Invoice No./Job No.。"},
-        {"ref":"AMLA2610065","type":"空運","dir":"出口","status":"","shipper":"","consignee":"","notify":"","pol":"HKG","pod":"FRA","finalDest":"","flight":"EK9845","etd":"2026-10-31","eta":"","pcs":7,"pcsNote":"","gross":132,"chargeable":132,"cbmLabel":"計費重量 (KG)","mawb":"176-64464621","hawb":"AMLA2610065","booking":"","desc":"WIRELESS DISPLAY RECEIVER\nHS CODE: 851762","container":"","quoteDate":"","validUntil":"","extra":""},
-        {"ref":"AMLS2610002","type":"海運","dir":"出口","status":"","shipper":"","consignee":"","notify":"","pol":"HONG KONG","pod":"KEELUNG","finalDest":"KEELUNG","flight":"TS PUSAN 2617N","etd":"2026-11-01","eta":"","pcs":8,"pcsNote":"","gross":100,"chargeable":0.333,"cbmLabel":"CBM","mawb":"AMLS2610002","hawb":"AMLS2610002","booking":"","desc":"MEGA ZINC TABLET\nNEW MEGA ZINC TABLET\nLINO ZINC TABLET\n1PLTS=8CTNS\nTOTAL: ONE PLT(S) CONTAINS EIGHT CARTONS ONLY","container":"TSSU5315448 / TSH2983329 / 40'HQ","quoteDate":"","validUntil":"","extra":"Telex Release"},
-        {"ref":"AML202611003","type":"空運","dir":"出口","status":"已下單","shipper":"JEB FURNITURE SOLUTIONS LTD","consignee":"INSCAPEDESIGN","notify":"","pol":"CAN","pod":"ICN","finalDest":"","flight":"","etd":"","eta":"","pcs":28,"pcsNote":"","gross":1336,"chargeable":1336,"cbmLabel":"計費重量 (KG)","mawb":"994-32476286","hawb":"AMLA2606040","booking":"","desc":"","container":"","quoteDate":"","validUntil":"","extra":"","pending":"待確認：測試單或真實訂單"},
-        {"ref":"AML202611004","type":"空運","dir":"出口","status":"已下單","shipper":"JEB FURNITURE SOLUTIONS LTD","consignee":"INSCAPEDESIGN","notify":"","pol":"CAN","pod":"ICN","finalDest":"","flight":"","etd":"2026-06-30","eta":"","pcs":28,"pcsNote":"","gross":1336,"chargeable":1336,"cbmLabel":"計費重量 (KG)","mawb":"994-32476286","hawb":"AMLA2606040","booking":"","desc":"","container":"","quoteDate":"","validUntil":"","extra":"","pending":"待確認：測試單或真實訂單"}
-      ];
+      /* ===== 數據快照（2026-11-20 交客清空：無記錄） ===== */
+      var CASES = [];
 
-      var CHARGES = [
-        {"case":"AMLA2606040","name":"AIR FREIGHT","cat":"向客收費","curr":"CNY","price":12,"unit":"KG","qty":1336,"amount":18484.90},
-        {"case":"AMLA2606040","name":"PICKING UP & LOCAL CHARGE","cat":"向客收費","curr":"CNY","price":6334.64,"unit":"SHPT","qty":1,"amount":7303.84},
-        {"case":"AMLA2606040","name":"AIRPORT TERMINAL CHARGE","cat":"向客收費","curr":"USD","price":169,"unit":"SHPT","qty":1,"amount":1326.65},
-        {"case":"AMLA2606040","name":"CUSTOM BROKER FEE","cat":"向客收費","curr":"USD","price":65,"unit":"SHPT","qty":1,"amount":510.25},
-        {"case":"AMLA2606040","name":"CUSTOM DUTY & VAT","cat":"向客收費","curr":"USD","price":1690,"unit":"SHPT","qty":1,"amount":13266.50},
-        {"case":"AMLA2606040","name":"TRUCKING FEE","cat":"向客收費","curr":"USD","price":546,"unit":"SHPT","qty":1,"amount":4286.10},
-        {"case":"AMLA2606040","name":"ELEVATOR GUARD PER 1EA","cat":"向客收費","curr":"USD","price":120,"unit":"SHPT","qty":1,"amount":942.00},
-        {"case":"AMLA2606040","name":"UNLOADING FROM TRUCK PER LIFT","cat":"向客收費","curr":"USD","price":97.5,"unit":"SHPT","qty":1,"amount":765.38},
-        {"case":"AMLA2606040","name":"MOVE TO UPSTAIRS","cat":"向客收費","curr":"USD","price":299,"unit":"SHPT","qty":1,"amount":2347.15},
-        {"case":"AMLA2606040","name":"HANDLING FEE","cat":"向客收費","curr":"USD","price":115,"unit":"SHPT","qty":1,"amount":902.75},
-        {"case":"AMLA2606040","name":"AIR FREIGHT (FOR GAS LIFT)","cat":"向客收費","curr":"CNY","price":845,"unit":"SHPT","qty":1,"amount":974.29},
-        {"case":"AMLS2608022","name":"OCEAN FREIGHT CHARGE","cat":"向客收費","curr":"USD","price":100,"unit":"CBM","qty":11.44,"amount":8980.40},
-        {"case":"AMLS2608022","name":"ADMINISTRATION CHARGE","cat":"向客收費","curr":"USD","price":15,"unit":"SHPT","qty":1,"amount":117.75},
-        {"case":"AMLS2608022","name":"AMS FEE","cat":"向客收費","curr":"USD","price":51.61,"unit":"SHPT","qty":1,"amount":405.14},
-        {"case":"AMLS2608022","name":"CFS CHARGE","cat":"向客收費","curr":"USD","price":25.55,"unit":"CBM","qty":11.44,"amount":2294.49},
-        {"case":"AMLS2608022","name":"DELIVERY CHARGE","cat":"向客收費","curr":"USD","price":180,"unit":"SHPT","qty":1,"amount":1413.00},
-        {"case":"AMLS2608022","name":"DOCUMENTATION CHARGE","cat":"向客收費","curr":"USD","price":77.42,"unit":"SET","qty":1,"amount":607.75},
-        {"case":"AMLS2608022","name":"HANDLING CHARGE","cat":"向客收費","curr":"USD","price":38.71,"unit":"SHPT","qty":1,"amount":303.87},
-        {"case":"AMLS2608022","name":"REGRISTRATION FEE","cat":"向客收費","curr":"USD","price":94.19,"unit":"SHPT","qty":1,"amount":739.39},
-        {"case":"AMLS2608022","name":"PALLET FEE","cat":"向客收費","curr":"USD","price":64.52,"unit":"PLT","qty":2,"amount":1012.96},
-        {"case":"AML2610063","name":"TERMINAL CHARGE","cat":"向客收費","curr":"HKD","price":1.68,"unit":"KG","qty":653,"amount":1097.04},
-        {"case":"AML2610063","name":"AIRLINES DOCUMENT CHARGE","cat":"向客收費","curr":"HKD","price":13,"unit":"SHPT","qty":1,"amount":13.00},
-        {"case":"AML2610063","name":"IMPORT DECLARATION CHARGE","cat":"向客收費","curr":"HKD","price":150,"unit":"SHPT","qty":1,"amount":150.00},
-        {"case":"AML2610063","name":"DELIVERY CHARGE","cat":"向客收費","curr":"HKD","price":0.7,"unit":"KG","qty":1170,"amount":819.00},
-        {"case":"AML2609082","name":"CHARGES OF SHIPPING COMPANY","cat":"向客收費","curr":"HKD","price":1540,"unit":"SHPT","qty":1,"amount":1540.00},
-        {"case":"AML2609082","name":"HANDLING CHARGE","cat":"向客收費","curr":"HKD","price":300,"unit":"SHPT","qty":1,"amount":300.00},
-        {"case":"AML2609082","name":"IMPORT DECLARATION FEE","cat":"向客收費","curr":"HKD","price":263,"unit":"SHPT","qty":1,"amount":263.00},
-        {"case":"AML2609082","name":"REGISTRATION FEE","cat":"向客收費","curr":"HKD","price":960,"unit":"SHPT","qty":1,"amount":960.00},
-        {"case":"AML2609082","name":"GATE CHARGE","cat":"向客收費","curr":"HKD","price":150,"unit":"SHPT","qty":1,"amount":150.00},
-        {"case":"AML2609082","name":"PARKING FEE","cat":"向客收費","curr":"HKD","price":330,"unit":"SHPT","qty":1,"amount":330.00},
-        {"case":"AML2609082","name":"DELIVERY CHARGE TO CFS WAREHOUSE","cat":"向客收費","curr":"HKD","price":700,"unit":"SHPT","qty":1,"amount":700.00},
-        {"case":"AML2608109","name":"Inventory Take for HQ L2, L6, L8","cat":"向客收費","curr":"HKD","price":1200,"unit":"Man","qty":9,"amount":10800.00},
-        {"case":"AML2608109","name":"Provide labour to dismantle and remove furniture and delivery charges","cat":"向客收費","curr":"HKD","price":131100,"unit":"Shpt","qty":1,"amount":131100.00},
-        {"case":"AML2608109","name":"Site Management","cat":"向客收費","curr":"HKD","price":4500,"unit":"Shpt","qty":1,"amount":4500.00},
-        {"case":"AML2608109","name":"40' Container","cat":"向客收費","curr":"HKD","price":55000,"unit":"Shpt","qty":1,"amount":55000.00},
-        {"case":"2020-CX086","name":"AIRFREIGHT","cat":"供應商成本","curr":"HKD","price":55,"unit":"KG","qty":598,"amount":32890.00}
-      ];
+      var CHARGES = [];
 
       /* 各案總額以飛書 Base 記錄為準（逐行 2 位小數相加或與 TOTAL 相差 0.01） */
-      var TOTALS = {
-        "AMLA2606040": {"rev":51109.79592,"cost":0},
-        "AMLS2608022": {"rev":15874.7567,"cost":0},
-        "AML2610063": {"rev":2079.04,"cost":0},
-        "AML2609082": {"rev":4243.00,"cost":0},
-        "AML2608109": {"rev":201400.00,"cost":0},
-        "2020-CX086": {"rev":0,"cost":32890.00}
-      };
+      var TOTALS = {};
 
-      var INVOICES = [
-        {"no":"AMLA2606040","case":"AMLA2606040","cat":"客人發票","date":"2026-06-30","total":51109.79592,"curr":"HKD","pay":"未收"},
-        {"no":"AMLS2608022","case":"AMLS2608022","cat":"客人發票","date":"2026-08-18","total":15874.7567,"curr":"HKD","pay":"未收"},
-        {"no":"AML2610063","case":"AML2610063","cat":"客人發票","date":"2026-10-28","total":2079.04,"curr":"HKD","pay":"未收"},
-        {"no":"AML2609082","case":"AML2609082","cat":"客人發票","date":"2026-09-22","total":4243.00,"curr":"HKD","pay":"未收"},
-        {"no":"AML2608109","case":"AML2608109","cat":"客人發票","date":"2026-10-07","total":201400.00,"curr":"HKD","pay":"未收"},
-        {"no":"2020-CX086","case":"2020-CX086","cat":"供應商發票","date":"2020-12-28","total":32890.00,"curr":"HKD","pay":"未付"}
-      ];
+      var INVOICES = [];
 
-      var DOCS = [
-        {"name":"CARGO_MANIFEST_FORMAT__FOR_AIR_SHPT.xls","case":"AMLA2610065","cat":"Cargo Manifest","date":"2026-11-16"},
-        {"name":"HAWB_FORMAT__FOR_AIR_SHPT.xlsx","case":"AMLA2610065","cat":"HAWB","date":"2026-11-16"},
-        {"name":"HBL_FORMAT__FOR_OCEAN_SHPT.xlsx","case":"AMLS2610002","cat":"HBL","date":"2026-11-16"}
-      ];
+      var DOCS = [];
 
-      var INTAKES = [
-        {"title":"測試-AMLA2606040","ref":"AML202611002","status":"待核對","date":"2026-11-16","type":"空運","dir":"出口","shipper":"JEB FURNITURE SOLUTIONS LTD","consignee":"INSCAPEDESIGN","pol":"CAN","pod":"ICN","flight":"無","etd":"2026-06-30","eta":"無","pcs":"28","gross":"1336","chargeable":"1336 KGS","mawb":"994-32476286","hawb":"AMLA2606040","desc":"無"},
-        {"title":"測試2-AMLA2606040（無附註）","ref":"AML202611001","status":"待核對","date":"2026-11-16","type":"空運","dir":"出口","shipper":"JEB FURNITURE SOLUTIONS LTD","consignee":"INSCAPEDESIGN","pol":"CAN","pod":"ICN","flight":"無","etd":"無","eta":"無","pcs":"28","gross":"1336","chargeable":"1336KGS","mawb":"無","hawb":"無","desc":"無"},
-        {"title":"（客人落單第 3 行）","ref":"AML202611003","status":"開案","date":"2026-11-16","type":"空運","dir":"出口","shipper":"JEB FURNITURE SOLUTIONS LTD","consignee":"INSCAPEDESIGN","pol":"CAN","pod":"ICN","flight":"無","etd":"無","eta":"無","pcs":"28","gross":"1336","chargeable":"1336","mawb":"無","hawb":"無","desc":"無","caseRef":"AML202611003"},
-        {"title":"（客人落單第 4 行）","ref":"AML202611004","status":"開案","date":"2026-11-16","type":"空運","dir":"出口","shipper":"JEB FURNITURE SOLUTIONS LTD","consignee":"INSCAPEDESIGN","pol":"CAN","pod":"ICN","flight":"無","etd":"2026-06-30","eta":"無","pcs":"28","gross":"1336","chargeable":"1336","mawb":"994-32476286","hawb":"AMLA2606040","desc":"無","caseRef":"AML202611004"}
-      ];
+      var INTAKES = [];
 
       /* 報價單/客人發票生成狀態（DocuGenius 測試記錄） */
-      var DOCGEN = [
-        {"case":"AMLA2606040","quote":"已生成","invoice":"已生成","note":"發票範本 v3、報價單範本 v2 已核實（各 1 頁 A4）"},
-        {"case":"AMLA2610065","quote":"已生成","invoice":"未生成","note":"報價單測試 PDF 已出；HAWB 已生成"},
-        {"case":"AMLS2610002","quote":"未生成","invoice":"未生成","note":"HBL 已生成（visual 範本，2 頁 A4）"},
-        {"case":"AMLS2608022","quote":"未生成","invoice":"已生成","note":""},
-        {"case":"AML2610063","quote":"未生成","invoice":"已生成","note":""},
-        {"case":"AML2609082","quote":"未生成","invoice":"已生成","note":""},
-        {"case":"AML2608109","quote":"未生成","invoice":"已生成","note":"物流服務發票需另設範本"}
-      ];
+      var DOCGEN = [];
 
       /* 飛書「標準費率」表（快照模式為空；即時模式由 /api/rates 載入） */
       var RATES = [];
 
-      /* 快照副本：Worker 未設定/未能連接時跌返嚟用（2026-11-16 核實） */
+      /* 快照副本：Worker 未設定/未能連接時跌返嚟用（2026-11-20 清空交客） */
       var SNAPSHOT_DATA = JSON.parse(JSON.stringify({ cases: CASES, charges: CHARGES, totals: TOTALS, invoices: INVOICES, docs: DOCS, intakes: INTAKES, docgen: DOCGEN, rates: RATES }));
       function restoreSnapshot() {
         var s = JSON.parse(JSON.stringify(SNAPSHOT_DATA));
@@ -663,7 +584,7 @@
       var ZH_EN = [
         ["數據即時來自飛書 Base；於本網站進行的操作（開案、轉換狀態、落單開案）會直接寫入飛書。", "Data is live from Feishu Base. Actions on this site (creating cases, changing status, opening cases from intake) write directly to Feishu."],
         ["正在向後端 Worker 查核飛書連接；連接成功後會自動轉為即時數據，其間先顯示資料快照。", "Checking the Feishu connection with the backend Worker. Live data will load automatically once connected; the snapshot is shown in the meantime."],
-        ["後端 Worker 尚未設定飛書密鑰或暫時未能連接，現顯示 2026 年 11 月 16 日核實的資料快照；於本網站進行的操作不會寫入飛書。", "The backend Worker does not have the Feishu credentials set yet, or is temporarily unreachable. The verified snapshot of 16 Nov 2026 is shown; actions on this site do not write to Feishu."],
+        ["後端 Worker 尚未設定飛書密鑰或暫時未能連接，現顯示空白快照（系統已於 2026 年 11 月 20 日清空交客）；於本網站進行的操作不會寫入飛書。", "The backend Worker does not have the Feishu credentials set yet, or is temporarily unreachable. The empty handover snapshot (system cleared on 20 Nov 2026) is shown; actions on this site do not write to Feishu."],
         ["個案狀態一經轉換，會即時寫入飛書 Base，並觸發飛書自動化：客人發票於個案轉為「已開票」時生成、報價單於轉為「已向供應商落單」時生成；HAWB/HBL/MAWB 飛書暫無自動化，需人手處理。", "Changing a case status saves it to Feishu Base at once and triggers Feishu automations: a customer invoice is generated when the status becomes Invoiced, and a quotation when it becomes Ordered to Supplier. HAWB / HBL / MAWB have no Feishu automation yet and are handled manually."],
         ["文件生成由飛書自動化負責，觸發狀態於飛書內設定，本頁只作說明，不能在此更改。", "Document generation is handled by Feishu automations. Trigger statuses are configured inside Feishu; this page is explanatory only and cannot change them."],
         ["認讀欄位來自飛書落單記錄；開案以飛書記錄為準。如需修正欄位，請於飛書 Base 直接修改該行後再開案。", "The recognised fields come from the Feishu intake record, and case creation follows that record. To correct a field, edit the row in Feishu Base first, then create the case."],
@@ -671,7 +592,7 @@
         ["配對規則：供應商發票上的 HAWB/HBL 號 = 客人提單號 = 個案的提單號，三者相同先算配對成功。如果個案的 HAWB/HBL 一欄空白（例如 2020-CX086），系統會改用 MAWB/MBL 號配對。數據即時來自飛書 Base 發票表。", "Matching rule: the HAWB / HBL No. on the supplier invoice = the customer's bill of lading No. = the case's bill of lading No. All three must match. If a case's HAWB / HBL field is blank (e.g. 2020-CX086), the system matches by MAWB / MBL No. instead. Data is live from the Feishu Base invoice table."],
         ["文件生成需時，飛書自動化完成後文件會出現在發票/文件列表；如未即時顯示，請稍後重新整理。", "Document generation takes a moment. Once the Feishu automation finishes, the document will appear in the invoice / document lists; refresh shortly if it is not shown yet."],
         ["Reference No. 將於提交時由系統按飛書即時數據編配（AML＋業務字母＋年月＋流水號）。", "The Reference No. is assigned by the system from live Feishu data when you submit (AML + business letter + year-month + serial)."],
-        ["資料截至 2026 年 11 月 16 日（飛書 Base 核實快照）；於本網站進行的操作不會寫入飛書。正式版將經後端接駁飛書 Base 作為資料庫。", "Data as of 16 Nov 2026 (verified Feishu Base snapshot). Actions on this site do not write to Feishu. The production version will connect to Feishu Base as its database via a backend."],
+        ["資料快照：系統已於 2026 年 11 月 20 日清空交客（無記錄）；於本網站進行的操作不會寫入飛書。正式版將經後端接駁飛書 Base 作為資料庫。", "Snapshot: system cleared for client handover on 20 Nov 2026 (no records). Actions on this site do not write to Feishu. The production version will connect to Feishu Base as its database via a backend."],
         ["已接駁飛書（即時數據）", "Live Data — Connected to Feishu"],
         ["參考版（快照）", "Reference Version (Snapshot)"],
         ["正在連接飛書", "Connecting to Feishu"],
@@ -718,7 +639,7 @@
         ["入口 · 海運（7 項）", "Import · Sea (7 items)"],
         ["荃灣白田壩街 5-21 號嘉力工業中心 A 座 9 樓 17 室", "Unit 17, 9/F, Block A, Kailey Industrial Centre, 5-21 Pak Tin Par Street, Tsuen Wan"],
         ["派送單", "Delivery Note"],
-        ["配對規則：供應商發票上的 HAWB/HBL 號 = 客人提單號 = 個案的提單號，三者相同先算配對成功。如果個案的 HAWB/HBL 一欄空白（例如 2020-CX086），系統會改用 MAWB/MBL 號配對。參考版數據截至 2026-11-16：目前只有 1 張真供應商發票（2020-CX086，HKD 32,890），正正係「收咗外判 invoice、未出客人單」的情況；正式版會直接讀寫飛書 Base 的發票表。", "Matching rule: the HAWB / HBL No. on the supplier invoice = the customer's bill of lading No. = the case's bill of lading No. All three must match. If a case's HAWB / HBL field is blank (e.g. 2020-CX086), the system matches by MAWB / MBL No. instead. Reference data as of 2026-11-16: there is currently only 1 genuine supplier invoice (2020-CX086, HKD 32,890) — exactly a case where the supplier invoice was received but no customer invoice was issued. The production version will read and write the Feishu Base invoice table directly."],
+        ["配對規則：供應商發票上的 HAWB/HBL 號 = 客人提單號 = 個案的提單號，三者相同先算配對成功。如果個案的 HAWB/HBL 一欄空白（例如 2020-CX086），系統會改用 MAWB/MBL 號配對。系統已於 2026 年 11 月 20 日清空交客，現時未有任何供應商發票記錄；本頁直接讀寫飛書 Base 的發票表。", "Matching rule: the HAWB / HBL No. on the supplier invoice = the customer's bill of lading No. = the case's bill of lading No. All three must match. If a case's HAWB / HBL field is blank (e.g. 2020-CX086), the system matches by MAWB / MBL No. instead. The system was cleared for client handover on 20 Nov 2026; there are currently no supplier invoice records. This page reads and writes the Feishu Base invoice table directly."],
         ["客人發票 BILL TO 目前顯示「COMPANY NAME」（樣本遮蓋了真實名稱），正式出單前須填上客戶真實名稱。發票上款：ALPHA MASTER LOGISTICS LIMITED，荃灣白田壩街 5-21 號嘉力工業中心 A 座 9 樓 17 室，Tel (852) 3500 7163。下款收款銀行：HSBC Hong Kong，戶口 819-860339-838（USD/HKD），SWIFT HSBCHKHHHKH。", "The customer invoice BILL TO currently shows COMPANY NAME (the real name is masked in the sample). Enter the customer's real name before issuing. Invoice header: ALPHA MASTER LOGISTICS LIMITED, Unit 17, 9/F, Block A, Kailey Industrial Centre, 5-21 Pak Tin Par Street, Tsuen Wan, Tel (852) 3500 7163. Payment bank: HSBC Hong Kong, A/C 819-860339-838 (USD/HKD), SWIFT HSBCHKHHHKH."],
         ["發票範本：五份樣本（空運出口/海運出口/空運入口/海運入口/物流）的上款與下款完全相同，一個範本可涵蓋四份空運/海運發票，物流服務需另設範本。發票 Sheet 範本尚待建立（收費表循環寫法待定）。每種文件於個案轉為哪個狀態時自動生成，可於", "Invoice template: the headers and footers of all five samples (air export / sea export / air import / sea import / logistics) are identical, so one template covers the four air / sea invoices; logistics services need a separate template. The invoice Sheet template is still to be built (the charge-table loop syntax is to be decided). Which status triggers each document can be chosen in"],
         ["空運落單紙：無圖版 v3 可生成（DocuGenius 的 Office 引擎無法處理 xlsx 內的圖片，連細圖/JPEG 亦失敗）", "Air order form: the image-free v3 can be generated (the DocuGenius Office engine cannot handle images inside xlsx files; even small images / JPEGs fail)"],
@@ -1106,7 +1027,7 @@
       function noticeInfo() {
         if (state.dataMode === "live") return { title: "已接駁飛書（即時數據）", text: "數據即時來自飛書 Base；於本網站進行的操作（開案、轉換狀態、落單開案）會直接寫入飛書。" + (state.workerVersion ? "（Worker " + state.workerVersion + "）" : ""), btn: "重新整理" };
         if (state.dataMode === "loading") return { title: "正在連接飛書", text: "正在向後端 Worker 查核飛書連接；連接成功後會自動轉為即時數據，其間先顯示資料快照。", btn: "重新連接" };
-        return { title: "參考版（快照）", text: "後端 Worker 尚未設定飛書密鑰或暫時未能連接，現顯示 2026 年 11 月 16 日核實的資料快照；於本網站進行的操作不會寫入飛書。", btn: "重新連接" };
+        return { title: "參考版（快照）", text: "後端 Worker 尚未設定飛書密鑰或暫時未能連接，現顯示空白快照（系統已於 2026 年 11 月 20 日清空交客）；於本網站進行的操作不會寫入飛書。", btn: "重新連接" };
       }
       function applyStaticLang() {
         var en = state.lang === "en";
@@ -2273,7 +2194,7 @@
           (supRows || '<tr><td colspan="7"><div class="empty-state">暫無供應商發票記錄。</div></td></tr>') + "</tbody></table></div>" +
           '<div class="note-box" style="margin-top:14px">' + (state.dataMode === "live"
             ? "配對規則：供應商發票上的 HAWB/HBL 號 = 客人提單號 = 個案的提單號，三者相同先算配對成功。如果個案的 HAWB/HBL 一欄空白（例如 2020-CX086），系統會改用 MAWB/MBL 號配對。數據即時來自飛書 Base 發票表。"
-            : "配對規則：供應商發票上的 HAWB/HBL 號 = 客人提單號 = 個案的提單號，三者相同先算配對成功。如果個案的 HAWB/HBL 一欄空白（例如 2020-CX086），系統會改用 MAWB/MBL 號配對。參考版數據截至 2026-11-16：目前只有 1 張真供應商發票（2020-CX086，HKD 32,890），正正係「收咗外判 invoice、未出客人單」的情況；正式版會直接讀寫飛書 Base 的發票表。") + "</div>";
+            : "配對規則：供應商發票上的 HAWB/HBL 號 = 客人提單號 = 個案的提單號，三者相同先算配對成功。如果個案的 HAWB/HBL 一欄空白（例如 2020-CX086），系統會改用 MAWB/MBL 號配對。系統已於 2026 年 11 月 20 日清空交客，現時未有任何供應商發票記錄；本頁直接讀寫飛書 Base 的發票表。") + "</div>";
       }
 
       /* ---------- 收費項目 ---------- */
