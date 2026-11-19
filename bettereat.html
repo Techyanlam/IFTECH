@@ -57,6 +57,7 @@
   .reportMain { flex: 1; min-width: 0; }
   .reportMain h2.sec { margin-top: 0; }
   .reportSec { margin-bottom: 22px; }
+  tr.tot td { border-top: 2px solid #c98a2d; }
   @media (max-width: 860px) {
     .reportWrap { flex-direction: column; }
     .reportNav { width: 100%; position: static; flex-direction: row; overflow-x: auto; padding-bottom: 4px; }
@@ -168,6 +169,7 @@
         <button class="navbtn" id="navBtn-promo" onclick="setReportSection('promo')">優惠成本</button>
         <button class="navbtn" id="navBtn-stock" onclick="setReportSection('stock')">庫存價值</button>
         <button class="navbtn" id="navBtn-daily" onclick="setReportSection('daily')">每日清單</button>
+        <button class="navbtn" id="navBtn-dailyReport" onclick="setReportSection('dailyReport')">每日報表</button>
       </div>
       <div class="reportMain">
       <div class="reportSec" id="sec-trend">
@@ -236,6 +238,12 @@
       <tbody id="tbody"></tbody>
       <tfoot id="tfoot"></tfoot>
     </table>
+      </div>
+      <div class="reportSec" id="sec-dailyReport">
+    <h2 class="sec">每日報表</h2>
+    <div class="minihead"><span class="sub">一日一行，最新嗰日喺頂。跟門店／產品／類別／日期範圍篩選。</span><button class="xbtn" id="expDailyReport">⬇ 匯出每日報表 CSV</button></div>
+    <table><thead><tr><th>日期</th><th class="num">已銷售（件）</th><th class="num">淨銷售額</th><th class="num">毛利</th><th class="num">MAP</th><th class="num">MJF</th><th class="num">MKH</th><th class="num">MMCP</th></tr></thead><tbody id="dailyReportBody"></tbody></table>
+    <div class="sub">每日數字係 C 表夜晚快照，同一組數可能連續幾日重複，唔係真正逐日增量；已刪產品冇價錢唔計入金額。</div>
       </div>
       </div>
     </div>
@@ -716,6 +724,38 @@ function aggDaily(rows){
   });
   return order.sort().map(function(d){ return map[d]; });
 }
+// 每日報表用：逐日聚合（最新喺頂），連每間店當日金額
+function aggDailyFull(rows){
+  var map = {}, order = [];
+  rows.forEach(function(r){
+    var e = enrichRow(r);
+    var d = r._d;
+    if (!map[d]) { map[d] = { date: d, sold: 0, amount: 0, profit: 0, hasCost: false, stores: { MAP: 0, MJF: 0, MKH: 0, MMCP: 0 } }; order.push(d); }
+    var m = map[d];
+    m.sold += r.sold_pcs || 0;
+    m.amount += (e.amount === null ? 0 : e.amount);
+    if (e.profit !== null) { m.profit += e.profit; m.hasCost = true; }
+    var s = storeCode(r.store);
+    if (m.stores[s] === undefined) m.stores[s] = 0;
+    m.stores[s] += (e.amount === null ? 0 : e.amount);
+  });
+  return order.sort().reverse().map(function(d){ return map[d]; });
+}
+function renderDailyReport(){
+  var body = document.getElementById("dailyReportBody"); if (!body) return;
+  var days = aggDailyFull(trendHistoryRows());
+  if (!days.length) { body.innerHTML = "<tr><td colspan=\"8\">呢段時間冇數據。</td></tr>"; return; }
+  var tSold = 0, tAmt = 0, tProfit = 0, tHasCost = false;
+  var tStores = { MAP: 0, MJF: 0, MKH: 0, MMCP: 0 };
+  var html = days.map(function(m){
+    tSold += m.sold; tAmt += m.amount;
+    if (m.hasCost) { tProfit += m.profit; tHasCost = true; }
+    ["MAP", "MJF", "MKH", "MMCP"].forEach(function(s){ tStores[s] += m.stores[s] || 0; });
+    return "<tr><td><b>" + m.date + "</b></td><td class=\"num\">" + fmt(m.sold) + "</td><td class=\"num\">" + fmtMoney(m.amount) + "</td><td class=\"num\">" + (m.hasCost ? fmtMoney(m.profit) : "待填成本") + "</td><td class=\"num\">" + fmtMoney(m.stores.MAP || 0) + "</td><td class=\"num\">" + fmtMoney(m.stores.MJF || 0) + "</td><td class=\"num\">" + fmtMoney(m.stores.MKH || 0) + "</td><td class=\"num\">" + fmtMoney(m.stores.MMCP || 0) + "</td></tr>";
+  }).join("");
+  html += "<tr class=\"tot\"><td><b>合計</b></td><td class=\"num\"><b>" + fmt(tSold) + "</b></td><td class=\"num\"><b>" + fmtMoney(tAmt) + "</b></td><td class=\"num\"><b>" + (tHasCost ? fmtMoney(tProfit) : "待填成本") + "</b></td><td class=\"num\"><b>" + fmtMoney(tStores.MAP) + "</b></td><td class=\"num\"><b>" + fmtMoney(tStores.MJF) + "</b></td><td class=\"num\"><b>" + fmtMoney(tStores.MKH) + "</b></td><td class=\"num\"><b>" + fmtMoney(tStores.MMCP) + "</b></td></tr>";
+  body.innerHTML = html;
+}
 function aggByStore(rows, days){
   var map = {};
   ALL_STORES.forEach(function(s){ map[s] = { store: s, sold: 0, amount: 0, profit: 0, hasCost: false }; });
@@ -1007,7 +1047,7 @@ function fetchWorkerExtra(){
   });
 }
 function renderReportExtra(){
-  renderTrend(); renderBranch(); renderCatMix(); renderBest(); renderPromo(); renderStock();
+  renderTrend(); renderBranch(); renderCatMix(); renderBest(); renderPromo(); renderStock(); renderDailyReport();
 }
 function downloadCSVGeneric(name, head, rows){
   var lines = [head.map(csvCell).join(",")];
@@ -1037,6 +1077,13 @@ if (expBranchBtn) expBranchBtn.onclick = function(){
   downloadCSVGeneric("branch_compare_" + (curDate || "all") + ".csv",
     ["門店", "淨銷售額", "已銷售（件）", "佔比%（金額）", "毛利"],
     agg.map(function(m){ return [m.store, Math.round(m.amount * 100) / 100, m.sold, total ? Math.round(m.amount / total * 1000) / 10 : 0, m.hasCost ? Math.round(m.profit * 100) / 100 : "待填成本"]; }));
+};
+var expDailyBtn = document.getElementById("expDailyReport");
+if (expDailyBtn) expDailyBtn.onclick = function(){
+  var days = aggDailyFull(trendHistoryRows());
+  downloadCSVGeneric("daily_report_" + (curDate || "all") + ".csv",
+    ["日期", "已銷售（件）", "淨銷售額", "毛利", "MAP", "MJF", "MKH", "MMCP"],
+    days.map(function(m){ return [m.date, m.sold, Math.round(m.amount * 100) / 100, m.hasCost ? Math.round(m.profit * 100) / 100 : "待填成本", Math.round((m.stores.MAP || 0) * 100) / 100, Math.round((m.stores.MJF || 0) * 100) / 100, Math.round((m.stores.MKH || 0) * 100) / 100, Math.round((m.stores.MMCP || 0) * 100) / 100]; }));
 };
 document.getElementById("dateSel").addEventListener("change", function(){
   curDate = this.value; applyDate();
@@ -1070,7 +1117,7 @@ document.getElementById("expAll").onclick = function(){
 };
 
 // ===== 報表左邊分類（2026-11-19）：撳左邊切換顯示邊一節，預設銷售趨勢；選擇會記住 =====
-var REPORT_SECTIONS = ["all", "trend", "branch", "cat", "best", "promo", "stock", "daily"];
+var REPORT_SECTIONS = ["all", "trend", "branch", "cat", "best", "promo", "stock", "daily", "dailyReport"];
 function setReportSection(key){
   if (REPORT_SECTIONS.indexOf(key) < 0) key = "trend";
   REPORT_SECTIONS.forEach(function(k){
