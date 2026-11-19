@@ -657,7 +657,7 @@
     <script>
       "use strict";
       var content = document.getElementById("content");
-      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "" };
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "" };
 
       /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
       var ZH_EN = [
@@ -934,6 +934,8 @@
         ["飛書標準費率與實際個案收費一覽", "Feishu standard rates and actual case charges"],
         ["生效日期", "Effective Date"],
         ["範本收費 — ", "Charge Template — "],
+        ["＋ 展開", "+ Expand"],
+        ["－ 收起", "− Collapse"],
         ["加入已填收費", "Add Filled Charges"],
         ["自訂項目（逐項加入）", "Custom Item (Add One by One)"],
         ["預計金額 (HKD)", "Est. Amount (HKD)"],
@@ -1680,7 +1682,9 @@
         h += costCharges.length ? chargeTable(costCharges, t.cost, "供應商成本小計 (HKD)", state.dataMode === "live") : '<div class="note-box">本案暫無供應商成本記錄。</div>';
 
         /* 新增收費（輸入發票內容）：項目參考飛書標準費率，日期自動今日 */
-        h += '<div class="card" style="margin-top:18px"><h2 class="section-title">新增收費（輸入發票內容）</h2>';
+        h += '<div class="card" style="margin-top:18px"><div style="display:flex;align-items:center;justify-content:space-between;gap:10px"><h2 class="section-title" style="margin:0">新增收費（輸入發票內容）</h2>' +
+          '<button type="button" class="btn btn-ghost" data-action="toggle-charge-card" aria-expanded="' + (state.chargeCardOpen ? "true" : "false") + '">' + (state.chargeCardOpen ? "－ 收起" : "＋ 展開") + "</button></div>";
+        if (state.chargeCardOpen) {
         if (state.chargeNotice && state.chargeNotice.ref === ref) {
           var cn = state.chargeNotice;
           h += cn.error
@@ -1739,6 +1743,7 @@
             '<p class="small muted" style="margin:12px 0 0">開單日期：<strong>' + esc(todayStr) + '</strong>（今日，自動生成） · 預計金額 (HKD)：<strong id="cf-amount">—</strong>（匯率 CNY = 1.153、USD = 7.85；實際金額以飛書公式為準）</p>' +
             '<div style="margin-top:14px"><button class="btn" type="submit"' + (state.chargeBusy ? " disabled" : "") + ">" + (state.chargeBusy ? "正在寫入飛書…" : "加入收費並寫入飛書") + "</button></div>" +
             '<div id="charge-result"></div></form>';
+        }
         }
         h += "</div>";
 
@@ -2623,9 +2628,10 @@
       document.addEventListener("click", function (ev) {
         if (ev.target && ev.target.id === "preview-overlay") { closePreview(); return; }
         if (ev.target && ev.target.closest && ev.target.closest("[data-file-link]")) return;
-        var t = ev.target.closest("[data-nav],[data-nav-go],[data-open-case],[data-seg],[data-newtype],[data-open-intake],[data-ai-demo],[data-ai-reset],[data-ai-open],[data-reset-triggers],[data-preview-doc],[data-preview-invoice],[data-close-preview],[data-check-bill],[data-clear-supplier],[data-notice-refresh],[data-del-charge],[data-gen-invoice]");
+        var t = ev.target.closest("[data-nav],[data-nav-go],[data-open-case],[data-seg],[data-newtype],[data-open-intake],[data-ai-demo],[data-ai-reset],[data-ai-open],[data-reset-triggers],[data-preview-doc],[data-preview-invoice],[data-close-preview],[data-check-bill],[data-clear-supplier],[data-notice-refresh],[data-del-charge],[data-gen-invoice],[data-action]");
         if (!t) return;
-        if (t.hasAttribute("data-notice-refresh")) { refreshLive(); }
+        if (t.hasAttribute("data-action") && t.getAttribute("data-action") === "toggle-charge-card") { state.chargeCardOpen = !state.chargeCardOpen; render(); }
+        else if (t.hasAttribute("data-notice-refresh")) { refreshLive(); }
         else if (t.hasAttribute("data-gen-invoice")) {
           if (state.invoiceBusy) return;
           var cid = t.getAttribute("data-gen-invoice");
