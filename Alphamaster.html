@@ -1085,7 +1085,7 @@
         ["。", "."]
       ];
       /* 把英文顯示值還原為內部中文值（篩選/狀態邏輯用） */
-      var CANON = { "All": "全部", "Air": "空運", "Sea": "海運", "Local Delivery": "本地派送", "Logistics Service": "物流服務", "Export": "出口", "Import": "進口", "Ordered": "已下單", "Ordered to Supplier": "已向供應商落單", "Completed": "已完成", "Invoiced": "已開票", "Paid": "已收款", "Closed": "結案", "In Progress": "處理中", "Manual": "手動" };
+      var CANON = { "All": "全部", "Air": "空運", "Sea": "海運", "Local Delivery": "本地派送", "Logistics Service": "物流服務", "Export": "出口", "Import": "進口", "Ordered": "已下單", "Ordered to Supplier": "已向供應商落單", "Completed": "已完成", "Invoiced": "已開票", "Paid": "已收款", "Closed": "結案", "In Progress": "處理中", "Manual": "手動", "Customer Charges": "向客收費", "Supplier Costs": "供應商成本" };
       function canon(v) { return CANON[v] || v; }
       var ZH_EN_SORTED = ZH_EN.slice().sort(function (a, b) { return b[0].length - a[0].length; });
       function trText(s) {
@@ -1700,7 +1700,7 @@
           h += '<form id="charge-form"><div class="form-grid">' +
             '<div class="field wide"><label for="cf-rate">標準收費項目（參考飛書收費標準）</label><select id="cf-rate">' + rateOpts + "</select></div>" +
             '<div class="field wide"><label for="cf-name">收費名稱</label><input id="cf-name" type="text" /></div>' +
-            '<div class="field"><label for="cf-cat">類別</label><select id="cf-cat"><option>向客收費</option><option>供應商成本</option></select></div>' +
+            '<div class="field"><label for="cf-cat">類別</label><select id="cf-cat"><option value="向客收費">向客收費</option><option value="供應商成本">供應商成本</option></select></div>' +
             '<div class="field"><label for="cf-curr">幣種</label><select id="cf-curr"><option>HKD</option><option>USD</option><option>CNY</option><option>EUR</option></select></div>' +
             '<div class="field"><label for="cf-price">單價</label><input id="cf-price" type="number" step="any" min="0" /></div>' +
             '<div class="field"><label for="cf-unit">單位</label><input id="cf-unit" type="text" /></div>' +
@@ -2286,7 +2286,7 @@
             if (priceS === "" || isNaN(price) || price < 0) { fail("請輸入有效單價。"); return; }
             if (qtyS === "" || isNaN(qty) || qty <= 0) { fail("請輸入有效數量。"); return; }
             var rateSel = document.getElementById("cf-rate");
-            var payload = { name: name, cat: gv("cf-cat"), curr: gv("cf-curr"), price: price, unit: gv("cf-unit"), qty: qty, standard: !!(rateSel && rateSel.value !== "") };
+            var payload = { name: name, cat: canon(gv("cf-cat")), curr: gv("cf-curr"), price: price, unit: gv("cf-unit"), qty: qty, standard: !!(rateSel && rateSel.value !== "") };
             state.chargeBusy = true;
             state.chargeNotice = null;
             var btn = cform.querySelector('button[type="submit"]');
