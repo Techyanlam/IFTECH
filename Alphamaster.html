@@ -657,7 +657,7 @@
     <script>
       "use strict";
       var content = document.getElementById("content");
-      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "" };
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "" };
 
       /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
       var ZH_EN = [
@@ -933,6 +933,10 @@
         ["本案未有向客收費，要先加入向客收費，先可以生成發票。", "This case has no customer charges yet. Add a customer charge first to generate an invoice."],
         ["飛書標準費率與實際個案收費一覽", "Feishu standard rates and actual case charges"],
         ["生效日期", "Effective Date"],
+        ["範本收費 — ", "Charge Template — "],
+        ["加入已填收費", "Add Filled Charges"],
+        ["自訂項目（逐項加入）", "Custom Item (Add One by One)"],
+        ["預計金額 (HKD)", "Est. Amount (HKD)"],
         ["在飛書開啟 Base", "Open Base in Feishu"],
         ["資料庫：飛書 Base", "Database: Feishu Base"],
         ["物流系統", "Logistics System"],
@@ -1699,6 +1703,28 @@
             });
             rateOpts += "</optgroup>";
           });
+          var caseCat = (c.type || "") + (c.dir || "");
+          var tpl = RATES.filter(function (r) { return r.type === caseCat; });
+          if (tpl.length) {
+            var trows = tpl.map(function (r) {
+              var gi = RATES.indexOf(r);
+              return "<tr><td data-label='收費項目'>" + esc(r.name) + "</td>" +
+                "<td data-label='貨幣'>" + esc(r.curr) + "</td>" +
+                "<td data-label='單價'><input type='number' step='any' min='0' class='tpl-price' data-idx='" + gi + "' value='" + esc(r.price) + "' style='width:110px' /></td>" +
+                "<td data-label='單位'>" + esc(r.unit) + "</td>" +
+                "<td data-label='數量'><input type='number' step='any' min='0' class='tpl-qty' data-idx='" + gi + "' placeholder='0' style='width:90px' /></td>" +
+                "<td data-label='預計金額 (HKD)' class='num tpl-amt' data-amt='" + gi + "'>—</td></tr>";
+            }).join("");
+            h += '<h3 style="margin:4px 0 8px">範本收費 — ' + esc(caseCat) + '</h3>' +
+              '<p class="small muted" style="margin:0 0 10px">本案係' + esc(caseCat) + '，以下係飛書標準費率嘅範本收費。填咗數量嘅行會一次過加入（單價可以改），冇填嘅唔會加入。</p>' +
+              '<form id="tpl-form"><div class="form-grid" style="margin-bottom:10px"><div class="field"><label for="tf-cat">類別</label><select id="tf-cat"><option value="向客收費">向客收費</option><option value="供應商成本">供應商成本</option></select></div></div>' +
+              '<div class="table-wrap"><table class="data"><thead><tr><th>收費項目</th><th>貨幣</th><th>單價</th><th>單位</th><th>數量</th><th style="text-align:right">預計金額 (HKD)</th></tr></thead><tbody>' + trows + "</tbody></table></div>" +
+              '<div style="margin-top:12px"><button class="btn" type="submit"' + (state.templateBusy ? " disabled" : "") + ">" + (state.templateBusy ? "正在寫入飛書…" : "加入已填收費") + "</button></div>" +
+              '<div id="tpl-result"></div></form>' +
+              '<h3 style="margin:18px 0 8px">自訂項目（逐項加入）</h3>';
+          } else {
+            h += '<div class="note-box" style="margin-bottom:12px">本案類別「' + esc(caseCat || "未定") + '」喺飛書標準費率表未有範本收費，請用下面自訂項目逐項加入。</div>';
+          }
           h += '<form id="charge-form"><div class="form-grid">' +
             '<div class="field wide"><label for="cf-rate">標準收費項目（參考飛書收費標準）</label><select id="cf-rate">' + rateOpts + "</select></div>" +
             '<div class="field wide"><label for="cf-name">收費名稱</label><input id="cf-name" type="text" /></div>' +
@@ -2267,6 +2293,72 @@
       function openCase(ref) { state.detailRef = ref; state.view = "detail"; render(); }
 
       function bindView() {
+        var tform = document.getElementById("tpl-form");
+        if (tform) {
+          var updRow = function (idx) {
+            var p = tform.querySelector(".tpl-price[data-idx='" + idx + "']");
+            var q = tform.querySelector(".tpl-qty[data-idx='" + idx + "']");
+            var cell = tform.querySelector("[data-amt='" + idx + "']");
+            if (!cell) return;
+            var r = RATES[Number(idx)];
+            var qty = q ? Number(q.value) : NaN;
+            if (!(qty > 0) || !r) { cell.textContent = "—"; return; }
+            var price = p ? Number(p.value) : NaN;
+            if (isNaN(price) || price < 0) price = r.price;
+            cell.textContent = fmt(price * qty * (FX_HKD[r.curr] || 1));
+          };
+          tform.addEventListener("input", function (ev) {
+            var el = ev.target;
+            if (el && el.getAttribute && el.getAttribute("data-idx") != null && (el.classList.contains("tpl-qty") || el.classList.contains("tpl-price"))) updRow(el.getAttribute("data-idx"));
+          });
+          tform.addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            if (state.templateBusy) return;
+            var c = findCase(state.detailRef);
+            var result = document.getElementById("tpl-result");
+            var failBox = function (msg) { if (result) { result.innerHTML = trText('<div class="alert-box" style="margin-top:12px"><span aria-hidden="true">⚠</span><span>' + esc(msg) + "</span></div>"); } };
+            if (!c || !c.recordId) { failBox("找不到個案記錄，請重新整理後再試。"); return; }
+            var catSel = document.getElementById("tf-cat");
+            var cat = canon(catSel ? catSel.value : "向客收費");
+            var items = [];
+            tform.querySelectorAll(".tpl-qty").forEach(function (q) {
+              var qty = Number(q.value);
+              if (!(qty > 0)) return;
+              var idx = Number(q.getAttribute("data-idx"));
+              var r = RATES[idx];
+              if (!r) return;
+              var p = tform.querySelector(".tpl-price[data-idx='" + idx + "']");
+              var price = p ? Number(p.value) : NaN;
+              if (isNaN(price) || price < 0) price = r.price;
+              items.push({ name: r.name, cat: cat, curr: r.curr, price: price, unit: r.unit, qty: qty, standard: true });
+            });
+            if (!items.length) { failBox("請先喺範本填至少一行數量。"); return; }
+            state.templateBusy = true;
+            state.chargeNotice = null;
+            var btn = tform.querySelector('button[type="submit"]');
+            if (btn) { btn.disabled = true; btn.textContent = trText("正在寫入飛書…"); }
+            if (result) result.innerHTML = "";
+            var failed = [];
+            var chain = Promise.resolve();
+            items.forEach(function (it) {
+              chain = chain.then(function () {
+                return apiJson("/api/cases/" + encodeURIComponent(c.recordId) + "/charges", "POST", it).then(function (r) {
+                  if (!r.body || !r.body.ok) failed.push(it.name + "（" + apiErrorText(r, "未知錯誤") + "）");
+                }).catch(function (e) { failed.push(it.name + "（" + (e && e.message ? e.message : "連線失敗") + "）"); });
+              });
+            });
+            chain.then(function () {
+              state.templateBusy = false;
+              var okCount = items.length - failed.length;
+              if (failed.length) {
+                state.chargeNotice = { ref: c.ref, error: "範本收費加入部分失敗：成功 " + okCount + " 項；失敗：" + failed.join("、") };
+              } else {
+                state.chargeNotice = { ref: c.ref, msg: "已按範本加入 " + okCount + " 項收費並寫入飛書；個案總額由飛書公式計算，約半分鐘後自動更新。" };
+              }
+              refreshLive();
+            });
+          });
+        }
         var cform = document.getElementById("charge-form");
         if (cform) {
           var updCf = function () { updateCfAmount(); };
