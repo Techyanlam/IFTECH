@@ -657,7 +657,7 @@
     <script>
       "use strict";
       var content = document.getElementById("content");
-      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "" };
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "" };
 
       /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
       var ZH_EN = [
@@ -1569,6 +1569,7 @@
         var list = CASES.filter(function (c) {
           if (state.caseType !== "全部" && c.type !== state.caseType) return false;
           if (state.caseDir !== "全部" && c.dir !== state.caseDir) return false;
+          if (state.caseStatus !== "全部" && (c.status || "處理中") !== state.caseStatus) return false;
           if (state.caseQuery) {
             var q = state.caseQuery.toLowerCase();
             var hay = (c.ref + " " + c.shipper + " " + c.consignee + " " + c.pol + " " + c.pod + " " + (c.mawb || "") + " " + (c.hawb || "")).toLowerCase();
@@ -1580,6 +1581,7 @@
           '<button class="btn" data-nav-go="newcase" type="button">＋ 開新單</button></div>' +
           '<div class="toolbar">' + segHtml("type", ["全部", "空運", "海運", "本地派送", "物流服務"], state.caseType) +
           segHtml("dir", ["全部", "出口", "進口"], state.caseDir) +
+          segHtml("status", ["全部", "處理中", "已下單", "已向供應商落單", "已完成", "已開票", "已收款", "結案"], state.caseStatus) +
           '<span class="spacer"></span>' +
           '<input class="search-input" id="case-search" type="search" placeholder="搜尋 Reference No." value="' + esc(state.caseQuery) + '" aria-label="搜尋個案" />' +
           "</div>" + caseTable(list, true) +
@@ -2594,7 +2596,7 @@
         else if (t.hasAttribute("data-open-case")) { ev.preventDefault(); openCase(t.getAttribute("data-open-case")); }
         else if (t.hasAttribute("data-seg")) {
           var kind = t.getAttribute("data-seg"), val = canon(t.getAttribute("data-val"));
-          if (kind === "type") state.caseType = val; else state.caseDir = val;
+          if (kind === "type") state.caseType = val; else if (kind === "dir") state.caseDir = val; else state.caseStatus = val;
           render();
         } else if (t.hasAttribute("data-newtype")) {
           state.newType = canon(t.getAttribute("data-newtype"));
