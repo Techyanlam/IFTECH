@@ -1709,7 +1709,9 @@
             var trows = tpl.map(function (r) {
               var gi = RATES.indexOf(r);
               return "<tr><td data-label='收費項目'>" + esc(r.name) + "</td>" +
-                "<td data-label='貨幣'>" + esc(r.curr) + "</td>" +
+                "<td data-label='貨幣'><select class='tpl-curr' data-idx='" + gi + "' style='width:96px'>" +
+                ["HKD", "USD", "CNY", "EUR"].map(function (cu) { return "<option value='" + cu + "'" + (cu === r.curr ? " selected" : "") + ">" + cu + "</option>"; }).join("") +
+                "</select></td>" +
                 "<td data-label='單價'><input type='number' step='any' min='0' class='tpl-price' data-idx='" + gi + "' value='" + esc(r.price) + "' style='width:110px' /></td>" +
                 "<td data-label='單位'>" + esc(r.unit) + "</td>" +
                 "<td data-label='數量'><input type='number' step='any' min='0' class='tpl-qty' data-idx='" + gi + "' placeholder='0' style='width:90px' /></td>" +
@@ -2305,12 +2307,16 @@
             if (!(qty > 0) || !r) { cell.textContent = "—"; return; }
             var price = p ? Number(p.value) : NaN;
             if (isNaN(price) || price < 0) price = r.price;
-            cell.textContent = fmt(price * qty * (FX_HKD[r.curr] || 1));
+            var cuEl = tform.querySelector(".tpl-curr[data-idx='" + idx + "']");
+            var curr = cuEl ? cuEl.value : r.curr;
+            cell.textContent = fmt(price * qty * (FX_HKD[curr] || 1));
           };
-          tform.addEventListener("input", function (ev) {
+          var onTplField = function (ev) {
             var el = ev.target;
-            if (el && el.getAttribute && el.getAttribute("data-idx") != null && (el.classList.contains("tpl-qty") || el.classList.contains("tpl-price"))) updRow(el.getAttribute("data-idx"));
-          });
+            if (el && el.getAttribute && el.getAttribute("data-idx") != null && (el.classList.contains("tpl-qty") || el.classList.contains("tpl-price") || el.classList.contains("tpl-curr"))) updRow(el.getAttribute("data-idx"));
+          };
+          tform.addEventListener("input", onTplField);
+          tform.addEventListener("change", onTplField);
           tform.addEventListener("submit", function (ev) {
             ev.preventDefault();
             if (state.templateBusy) return;
@@ -2330,7 +2336,9 @@
               var p = tform.querySelector(".tpl-price[data-idx='" + idx + "']");
               var price = p ? Number(p.value) : NaN;
               if (isNaN(price) || price < 0) price = r.price;
-              items.push({ name: r.name, cat: cat, curr: r.curr, price: price, unit: r.unit, qty: qty, standard: true });
+              var cuEl = tform.querySelector(".tpl-curr[data-idx='" + idx + "']");
+              var curr = cuEl ? cuEl.value : r.curr;
+              items.push({ name: r.name, cat: cat, curr: curr, price: price, unit: r.unit, qty: qty, standard: true });
             });
             if (!items.length) { failBox("請先喺範本填至少一行數量。"); return; }
             state.templateBusy = true;
