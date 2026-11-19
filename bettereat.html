@@ -59,6 +59,12 @@
   .reportSec { margin-bottom: 22px; }
   select:disabled { opacity: .45; }
   tr.tot td { border-top: 2px solid #0b5fa5; }
+  .xbtn.on { background: #0b5fa5; color: #fff; }
+  th.chk, td.chk { width: 34px; text-align: center; }
+  .catf .lbl { color: #4a6076; font-size: 13px; margin-right: 4px; }
+  .catf button { padding: 5px 12px; border: 1px solid #c3d3e2; background: #fff; color: #22303e; border-radius: 999px; font-size: 13px; cursor: pointer; }
+  .catf button.on { background: #0b5fa5; border-color: #0b5fa5; color: #fff; }
+  .catf button:disabled { opacity: .45; cursor: not-allowed; }
   @media (max-width: 860px) {
     .reportWrap { flex-direction: column; }
     .reportNav { width: 100%; position: static; flex-direction: row; overflow-x: auto; padding-bottom: 4px; }
@@ -234,6 +240,20 @@
       <label>搜尋 <input type="text" id="byItemSearch" placeholder="產品名／編號" style="padding:7px 10px;font-size:14px;border:1px solid #ccd9e4;border-radius:8px;background:#fff;"></label>
       <label>門店 <select id="byItemStoreSel"><option value="ALL">全部門店</option><option value="MJF">謝斐 (MJF)</option><option value="MAP">淘大 (MAP)</option><option value="MKH">Aeon (MKH)</option><option value="MMCP">將軍澳 (MMCP)</option></select></label>
     </div>
+    <div class="controls" style="margin-bottom:8px;">
+      <button class="xbtn" id="byItemSelOnlyBtn" onclick="byItemToggleSelOnly()">只顯示已選產品</button>
+      <button class="xbtn" onclick="byItemSelectAll()">全選</button>
+      <button class="xbtn" onclick="byItemClearSel()">清除選擇</button>
+      <button class="xbtn" onclick="exportByItemCSV()">⬇ 匯出目前檢視 CSV</button>
+      <span class="sub" id="byItemSelCount"></span>
+    </div>
+    <div class="catf" style="margin-bottom:10px;">
+      <span class="lbl">分類篩選：</span>
+      <button type="button" class="on">全部</button>
+      <button type="button" disabled title="待分類數據接入後啟用">報廢（待數據）</button>
+      <button type="button" disabled title="待分類數據接入後啟用">損耗（待數據）</button>
+      <button type="button" disabled title="待分類數據接入後啟用">試食（待數據）</button>
+    </div>
     <div id="byItemWrap"><div class="warnbox">讀取緊…</div></div>
       </div>
       <div class="reportSec" id="sec-daily">
@@ -321,6 +341,7 @@ var stockData = null; // Worker stock：庫存價值用
 var trendMetric = "amount"; // 趨勢圖：amount 銷售額 / sold 件數
 var curProduct = "ALL", curCategory = "ALL";
 var byItemSearch = "", byItemStore = "ALL";
+var byItemSelected = {}, byItemSelOnly = false;
 var loginShopChoice = "";
 var currentTab = "";
 var frameLoaded = {};
@@ -1115,17 +1136,51 @@ function aggByItem(rows){
   order.sort();
   return order.map(function(c){ return map[c]; });
 }
+function byItemVisibleItems(){
+  var all = aggByItem(scopedHistoryRows());
+  var q = String(byItemSearch || "").trim().toLowerCase();
+  return all.filter(function(it){
+    if (byItemSelOnly && !byItemSelected[it.code]) return false;
+    if (q && (it.code + " " + (it.name || "")).toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+}
+function byItemToggleSelOnly(){
+  byItemSelOnly = !byItemSelOnly;
+  var b = document.getElementById("byItemSelOnlyBtn");
+  if (b) { b.textContent = byItemSelOnly ? "顯示全部產品" : "只顯示已選產品"; b.className = "xbtn" + (byItemSelOnly ? " on" : ""); }
+  renderByItem();
+}
+function byItemSelectAll(){
+  aggByItem(scopedHistoryRows()).forEach(function(it){ byItemSelected[it.code] = true; });
+  renderByItem();
+}
+function byItemClearSel(){ byItemSelected = {}; renderByItem(); }
+function byItemToggle(code, on){ if (on) byItemSelected[code] = true; else delete byItemSelected[code]; renderByItem(); }
+function exportByItemCSV(){
+  var items = byItemVisibleItems();
+  var cols = (byItemStore === "ALL") ? ["MJF", "MAP", "MKH", "MMCP"] : [byItemStore];
+  var head = ["日期", "產品編號", "產品名稱"].concat(cols.map(function(c){ return STORE_LABELS_BI[c] + "已售"; })).concat(["總已售", "剩餘", "單價", "金額"]);
+  var rg = getRange();
+  var dlabel = rg.active ? ((rg.from || "") + "_" + (rg.to || "")) : (curDate || "");
+  var rows = items.map(function(it){
+    var price = priceOf(it.code);
+    return [dlabel, it.code, it.name]
+      .concat(cols.map(function(c){ var d = it.stores[c]; return d ? d.sold : ""; }))
+      .concat([it.sold, it.rem, price === null ? "" : price, it.amtUnknown ? "" : Math.round(it.amt * 100) / 100]);
+  });
+  downloadCSVGeneric("bettereat_by_item_" + dlabel + ".csv", head, rows);
+}
 var STORE_LABELS_BI = { MJF: "謝斐", MAP: "淘大", MKH: "Aeon", MMCP: "將軍澳" };
 function renderByItem(){
   var el = document.getElementById("byItemWrap"); if (!el) return;
   var all = aggByItem(scopedHistoryRows());
+  var selCount = Object.keys(byItemSelected).length;
+  var scEl = document.getElementById("byItemSelCount");
+  if (scEl) scEl.textContent = selCount ? "已選 " + selCount + " 款" : "";
   if (!all.length) { el.innerHTML = '<div class="trendbox"><div class="sub">呢段時間冇產品銷售紀錄。</div></div>'; return; }
-  var q = String(byItemSearch || "").trim().toLowerCase();
-  var items = all.filter(function(it){
-    if (!q) return true;
-    return (it.code + " " + (it.name || "")).toLowerCase().indexOf(q) >= 0;
-  });
-  if (!items.length) { el.innerHTML = '<div class="trendbox"><div class="sub">冇符合搜尋嘅產品。</div></div>'; return; }
+  var items = byItemVisibleItems();
+  if (!items.length) { el.innerHTML = '<div class="trendbox"><div class="sub">冇符合條件嘅產品。</div></div>'; return; }
   var cols = (byItemStore === "ALL") ? ["MJF", "MAP", "MKH", "MMCP"] : [byItemStore];
   var head = cols.map(function(c){ return '<th class="num">' + STORE_LABELS_BI[c] + " 已售</th>"; }).join("");
   var totSold = 0, totRem = 0, totAmt = 0;
@@ -1133,11 +1188,24 @@ function renderByItem(){
     totSold += it.sold; totRem += it.rem; if (!it.amtUnknown) totAmt += it.amt;
     var price = priceOf(it.code);
     var cells = cols.map(function(c){ var d = it.stores[c]; return '<td class="num">' + (d ? fmt(d.sold) : "—") + "</td>"; }).join("");
-    return "<tr><td>" + escHtml(it.name) + "</td><td>" + escHtml(it.code) + "</td>" + cells + '<td class="num"><b>' + fmt(it.sold) + '</b></td><td class="num">' + fmt(it.rem) + '</td><td class="num">' + (price === null ? "—" : fmtMoney(price)) + '</td><td class="num">' + (it.amtUnknown ? "—" : fmtMoney(it.amt)) + "</td></tr>";
+    return "<tr" + (byItemSelected[it.code] ? ' style="background:#eef5fb;"' : "") + '><td class="chk"><input type="checkbox" data-code="' + escHtml(it.code) + '"' + (byItemSelected[it.code] ? " checked" : "") + "</td><td>" + escHtml(it.name) + "</td><td>" + escHtml(it.code) + "</td>" + cells + '<td class="num"><b>' + fmt(it.sold) + '</b></td><td class="num">' + fmt(it.rem) + '</td><td class="num">' + (price === null ? "—" : fmtMoney(price)) + '</td><td class="num">' + (it.amtUnknown ? "—" : fmtMoney(it.amt)) + "</td></tr>";
   }).join("");
-  el.innerHTML = '<div class="trendbox"><div class="sub" style="margin-bottom:6px;">顯示 ' + items.length + " / " + all.length + ' 款</div><div style="overflow-x:auto;"><table><thead><tr><th>產品</th><th>編號</th>' + head + '<th class="num">總已售</th><th class="num">剩餘</th><th class="num">單價</th><th class="num">金額</th></tr></thead><tbody>' + body +
-    '<tr class="tot"><td colspan="' + (2 + cols.length) + '">合計</td><td class="num">' + fmt(totSold) + '</td><td class="num">' + fmt(totRem) + '</td><td></td><td class="num">' + fmtMoney(totAmt) + "</td></tr></tbody></table></div>" +
-    '<div class="sub">跟上面嘅日期／範圍＋門店／產品／類別篩選；本節可再搜尋產品或只睇一間門店。金額有實際金額（優惠後）就用佢，冇就用標準價 × 已售。完整版（逐店分配／剩餘＋揀選列印）喺頂部「按產品檢視」分頁。</div></div>';
+  el.innerHTML = '<div class="trendbox"><div class="sub" style="margin-bottom:6px;">顯示 ' + items.length + " / " + all.length + ' 款</div><div style="overflow-x:auto;"><table><thead><tr><th class="chk"><input type="checkbox" id="byItemCheckAll"></th><th>產品</th><th>編號</th>' + head + '<th class="num">總已售</th><th class="num">剩餘</th><th class="num">單價</th><th class="num">金額</th></tr></thead><tbody>' + body +
+    '<tr class="tot"><td colspan="' + (3 + cols.length) + '">合計</td><td class="num">' + fmt(totSold) + '</td><td class="num">' + fmt(totRem) + '</td><td></td><td class="num">' + fmtMoney(totAmt) + "</td></tr></tbody></table></div>" +
+    '<div class="sub">跟上面嘅日期／範圍＋門店／產品／類別篩選；本節可再搜尋產品、只睇一間門店，或剔選產品只顯示已選／匯出。金額有實際金額（優惠後）就用佢，冇就用標準價 × 已售。完整版（逐店分配／剩餘）喺頂部「按產品檢視」分頁。</div></div>';
+  var cbs = el.querySelectorAll ? el.querySelectorAll("input[data-code]") : [];
+  Array.prototype.forEach.call(cbs, function(cb){
+    cb.onchange = function(){ byItemToggle(cb.getAttribute("data-code"), cb.checked); };
+  });
+  var allCb = document.getElementById("byItemCheckAll");
+  if (allCb) {
+    allCb.checked = items.length > 0 && items.every(function(it){ return byItemSelected[it.code]; });
+    allCb.onclick = function(){
+      var on = allCb.checked;
+      items.forEach(function(it){ if (on) byItemSelected[it.code] = true; else delete byItemSelected[it.code]; });
+      renderByItem();
+    };
+  }
 }
 function postWorker(action){
   var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
