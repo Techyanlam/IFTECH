@@ -6,46 +6,46 @@
 <title>BETTEREAT 庫存管理</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f6f4ef; color: #2b2620; padding-bottom: 40px; }
+  body { font-family: -apple-system, "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f2f5f8; color: #22303e; padding-bottom: 40px; }
   .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 16px 32px; }
-  header.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; row-gap: 8px; padding: 14px 0; background: rgba(246,244,239,.96); border-bottom: 1px solid #e8e0d2; }
+  header.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; row-gap: 8px; padding: 14px 0; background: rgba(242,245,248,.96); border-bottom: 1px solid #dde7ef; }
   header.top .brand { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
-  header.top .brand span { color: #c98a2d; }
-  .who { font-size: 13px; color: #6d6152; font-weight: 700; white-space: nowrap; }
-  .meta { color: #8a7f70; font-size: 13px; margin: 14px 0; line-height: 1.6; }
-  h2.sec { font-size: 16px; margin: 22px 0 10px; padding-left: 10px; border-left: 4px solid #c98a2d; }
-  .note { background: #fdf8ef; border: 1px solid #e6d3ac; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #6d6152; margin-bottom: 14px; line-height: 1.7; }
-  .warn { background: #fdf3e3; border: 1px solid #e0a53c; border-radius: 10px; padding: 10px 14px; font-size: 14px; font-weight: 700; color: #8a5a10; margin-bottom: 14px; line-height: 1.7; }
+  header.top .brand span { color: #0b5fa5; }
+  .who { font-size: 13px; color: #4a6076; font-weight: 700; white-space: nowrap; }
+  .meta { color: #71879a; font-size: 13px; margin: 14px 0; line-height: 1.6; }
+  h2.sec { font-size: 16px; margin: 22px 0 10px; padding-left: 10px; border-left: 4px solid #0b5fa5; }
+  .note { background: #eef5fb; border: 1px solid #bcd6ea; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #4a6076; margin-bottom: 14px; line-height: 1.7; }
+  .warn { background: #eef5fb; border: 1px solid #0b5fa5; border-radius: 10px; padding: 10px 14px; font-size: 14px; font-weight: 700; color: #0a4f85; margin-bottom: 14px; line-height: 1.7; }
   .err { color: #b3402e; font-size: 14px; line-height: 1.7; min-height: 20px; margin: 8px 0; }
   .okmsg { color: #3f6b3e; font-size: 14px; font-weight: 700; line-height: 1.7; min-height: 20px; margin: 8px 0; }
   .tabbtns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
-  .shopbtn { padding: 10px 20px; font-size: 15px; border: 1px solid #d8cbb6; color: #6d6152; background: #fff; border-radius: 999px; cursor: pointer; }
-  .shopbtn.active { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border-color: #b97a1e; font-weight: 700; }
-  .xbtn { padding: 10px 16px; font-size: 14px; border: 1px solid #c98a2d; color: #a06a14; background: #fdf8ef; border-radius: 10px; cursor: pointer; }
-  .xbtn.primary { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border: none; font-weight: 700; }
+  .shopbtn { padding: 10px 20px; font-size: 15px; border: 1px solid #c3d3e2; color: #4a6076; background: #fff; border-radius: 999px; cursor: pointer; }
+  .shopbtn.active { color: #fff; background: linear-gradient(135deg, #1c74b2, #0b5fa5); border-color: #0b5fa5; font-weight: 700; }
+  .xbtn { padding: 10px 16px; font-size: 14px; border: 1px solid #0b5fa5; color: #0a4f85; background: #eef5fb; border-radius: 10px; cursor: pointer; }
+  .xbtn.primary { color: #fff; background: linear-gradient(135deg, #1c74b2, #0b5fa5); border: none; font-weight: 700; }
   .xbtn.danger { color: #b3402e; border-color: #b3402e; background: #fff; }
   .xbtn:disabled { opacity: .45; cursor: not-allowed; }
   .xbtn.small { padding: 6px 10px; font-size: 13px; }
-  .card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(60,45,20,.06); margin-bottom: 14px; }
+  .card { background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(20,50,80,.06); margin-bottom: 14px; }
   .card h3 { font-size: 15px; margin-bottom: 10px; }
   .fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .fields label { font-size: 13px; color: #6d6152; display: block; margin-bottom: 2px; }
-  .fields input, .fields select, .fields textarea { width: 100%; padding: 10px; font-size: 15px; border: 1px solid #d8cfc0; border-radius: 10px; background: #fff; }
+  .fields label { font-size: 13px; color: #4a6076; display: block; margin-bottom: 2px; }
+  .fields input, .fields select, .fields textarea { width: 100%; padding: 10px; font-size: 15px; border: 1px solid #ccd9e4; border-radius: 10px; background: #fff; }
   .fields textarea { min-height: 56px; resize: vertical; }
   .fields .full { grid-column: 1 / -1; }
   .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
-  .controls label { font-size: 13px; color: #6d6152; }
-  .controls input, .controls select { padding: 9px 10px; font-size: 14px; border: 1px solid #d8cfc0; border-radius: 10px; background: #fff; }
+  .controls label { font-size: 13px; color: #4a6076; }
+  .controls input, .controls select { padding: 9px 10px; font-size: 14px; border: 1px solid #ccd9e4; border-radius: 10px; background: #fff; }
   .rectable { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff; }
-  .rectable th, .rectable td { border: 1px solid #d8cbb6; padding: 7px 9px; text-align: left; vertical-align: top; }
-  .rectable th { background: #f3e7cf; color: #6d6152; white-space: nowrap; }
-  .rectable tr:nth-child(even) td { background: #fdf8ef; }
-  .rectable input[type="number"] { width: 76px; padding: 6px; font-size: 13px; border: 1px solid #d8cfc0; border-radius: 6px; background: #fff; }
-  .chklist { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 12px; max-height: 220px; overflow-y: auto; border: 1px solid #d8cfc0; border-radius: 10px; padding: 10px; background: #fff; font-size: 13px; line-height: 1.5; }
+  .rectable th, .rectable td { border: 1px solid #c3d3e2; padding: 7px 9px; text-align: left; vertical-align: top; }
+  .rectable th { background: #dbe7f1; color: #4a6076; white-space: nowrap; }
+  .rectable tr:nth-child(even) td { background: #eef5fb; }
+  .rectable input[type="number"] { width: 76px; padding: 6px; font-size: 13px; border: 1px solid #ccd9e4; border-radius: 6px; background: #fff; }
+  .chklist { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 12px; max-height: 220px; overflow-y: auto; border: 1px solid #ccd9e4; border-radius: 10px; padding: 10px; background: #fff; font-size: 13px; line-height: 1.5; }
   .chklist label { display: flex; gap: 6px; align-items: flex-start; cursor: pointer; }
   .loginbox { max-width: 420px; margin: 60px auto 0; background: #fff; border-radius: 16px; padding: 28px 24px; box-shadow: 0 4px 20px rgba(60,45,20,.10); text-align: center; }
   .loginbox h1 { font-size: 22px; margin: 0 0 4px; }
-  .loginbox .sub { color: #8a7f70; font-size: 14px; line-height: 1.7; }
+  .loginbox .sub { color: #71879a; font-size: 14px; line-height: 1.7; }
   @media (max-width: 640px) { .fields { grid-template-columns: 1fr; } .chklist { grid-template-columns: repeat(2, 1fr); } }
 </style>
 </head>
@@ -58,8 +58,8 @@
   <header class="top">
     <div class="brand">🍰 BETTEREAT <span>庫存管理</span></div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-      <label style="font-size:13px;color:#6d6152;" for="topStoreSel">門店：</label>
-      <select id="topStoreSel" onchange="onStoreChange()" style="padding:9px 10px;font-size:14px;border:1px solid #d8cfc0;border-radius:10px;background:#fff;"></select>
+      <label style="font-size:13px;color:#4a6076;" for="topStoreSel">門店：</label>
+      <select id="topStoreSel" onchange="onStoreChange()" style="padding:9px 10px;font-size:14px;border:1px solid #ccd9e4;border-radius:10px;background:#fff;"></select>
       <span class="who" id="loginWho"></span>
     </div>
   </header>
@@ -138,7 +138,7 @@
       <h3>開盤點計劃</h3>
       <div class="fields">
         <div><label>盤點日期</label><input type="date" id="stDate"></div>
-        <div><label>產品（可多選）</label><div style="font-size:13px;color:#8a7f70;">已選 <span id="stSelectedCount">0</span> 款</div></div>
+        <div><label>產品（可多選）</label><div style="font-size:13px;color:#71879a;">已選 <span id="stSelectedCount">0</span> 款</div></div>
         <div class="full"><div class="chklist" id="stProductList"></div></div>
       </div>
       <div style="margin-top:12px;"><button class="xbtn primary" id="stPlanBtn" onclick="planStocktake()">開盤點計劃</button></div>
@@ -420,7 +420,7 @@ function renderStock(rows){
     var qty = pick(r, "qty", "數量");
     html += "<tr><td>" + esc(store) + "</td><td>" + esc(prod) + "</td><td>" + esc(code) + "</td><td>" + esc(qty) + "</td></tr>";
   });
-  document.getElementById("stockBody").innerHTML = html || '<tr><td colspan="4" style="color:#8a7f70;">未有庫存記錄</td></tr>';
+  document.getElementById("stockBody").innerHTML = html || '<tr><td colspan="4" style="color:#71879a;">未有庫存記錄</td></tr>';
 }
 
 // ===== 2. 調整 =====
@@ -498,7 +498,7 @@ function renderAdjustList(records){
     }
     html += "<tr><td>" + esc(date) + "</td><td>" + esc(store) + "</td><td>" + esc(prod) + (code ? "（" + esc(code) + "）" : "") + "</td><td>" + esc(qty) + "</td><td>" + esc(reason) + "</td><td>" + esc(applicant) + "</td><td>" + esc(status) + "</td><td>" + esc(approver) + "</td><td>" + esc(approveDate) + "</td><td>" + esc(remarks) + "</td><td>" + ops + "</td></tr>";
   });
-  document.getElementById("adjBody").innerHTML = html || '<tr><td colspan="11" style="color:#8a7f70;">未有調整記錄</td></tr>';
+  document.getElementById("adjBody").innerHTML = html || '<tr><td colspan="11" style="color:#71879a;">未有調整記錄</td></tr>';
 }
 function approveAdjust(recordId, approve){
   var m = document.getElementById("adjListStatus");
@@ -593,7 +593,7 @@ function renderStocktakeList(records){
     var btn = done ? "" : '<button class="xbtn small primary" onclick="submitStocktake(\'' + esc(id) + '\')">提交</button>';
     html += "<tr><td>" + esc(date) + "</td><td>" + esc(store) + "</td><td>" + esc(prod) + (code ? "（" + esc(code) + "）" : "") + "</td><td>" + esc(sysQty) + "</td><td>" + input + "</td><td>" + esc(variance) + "</td><td>" + esc(status) + "</td><td>" + esc(posted) + "</td><td>" + esc(counter) + "</td><td>" + btn + "</td></tr>";
   });
-  document.getElementById("stBody").innerHTML = html || '<tr><td colspan="10" style="color:#8a7f70;">今日未有待盤點項目</td></tr>';
+  document.getElementById("stBody").innerHTML = html || '<tr><td colspan="10" style="color:#71879a;">今日未有待盤點項目</td></tr>';
 }
 function submitStocktake(recordId, actualQty){
   var m = document.getElementById("stListStatus");
@@ -665,7 +665,7 @@ function renderVariance(rows){
     totVar += v;
     html += "<tr><td>" + esc(pick(r, "store", "門店")) + "</td><td>" + esc(pick(r, "product", "產品")) + "</td><td>" + esc(pick(r, "productCode", "產品編號")) + "</td><td>" + esc(pick(r, "systemQty", "系統數量")) + "</td><td>" + esc(pick(r, "actualQty", "實盤數量")) + "</td><td>" + esc(pick(r, "variance", "差異")) + "</td><td>" + esc(pick(r, "count", "盤點次數")) + "</td></tr>";
   });
-  document.getElementById("varBody").innerHTML = html || '<tr><td colspan="7" style="color:#8a7f70;">呢個月未有盤點記錄</td></tr>';
+  document.getElementById("varBody").innerHTML = html || '<tr><td colspan="7" style="color:#71879a;">呢個月未有盤點記錄</td></tr>';
   var t = document.getElementById("varTotals");
   if (t) t.textContent = "共 " + rows.length + " 行 · 差異合計：" + totVar;
 }
@@ -738,7 +738,7 @@ function renderReceiveList(records){
       (done ? "" : '<button class="xbtn small primary" onclick="completeReceive(\'' + esc(id) + '\')">完成收貨</button>');
     html += "<tr><td>" + esc(no) + "</td><td>" + esc(date) + "</td><td>" + esc(store) + "</td><td>" + esc(prod) + "</td><td>" + esc(expected) + "</td><td>" + esc(aiQty) + "</td><td>" + input + "</td><td>" + esc(variance) + "</td><td>" + esc(status) + "</td><td>" + esc(batch) + "</td><td>" + esc(remarks) + "</td><td>" + ops + "</td></tr>";
   });
-  document.getElementById("recvBody").innerHTML = html || '<tr><td colspan="12" style="color:#8a7f70;">未有收貨記錄</td></tr>';
+  document.getElementById("recvBody").innerHTML = html || '<tr><td colspan="12" style="color:#71879a;">未有收貨記錄</td></tr>';
 }
 function updateReceive(recordId, qty){
   var m = document.getElementById("recvStatus");

@@ -4,100 +4,100 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BETTEREAT 訂購</title>
-<meta name="theme-color" content="#c98a2d">
+<meta name="theme-color" content="#0b5fa5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BETTEREAT 訂購">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f6f4ef; color: #2b2620; padding-bottom: 110px; }
+  body { font-family: -apple-system, "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f2f5f8; color: #22303e; padding-bottom: 110px; }
   .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 16px 32px; }
-  header.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; row-gap: 8px; padding: 14px 0; background: rgba(246,244,239,.96); border-bottom: 1px solid #e8e0d2; }
+  header.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; row-gap: 8px; padding: 14px 0; background: rgba(242,245,248,.96); border-bottom: 1px solid #dde7ef; }
   header.top .brand { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
-  header.top .brand span { color: #c98a2d; }
-  header.top .cartbtn { font-size: 13px; color: #a06a14; border: 1px solid #c98a2d; background: #fdf8ef; padding: 6px 10px; border-radius: 20px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+  header.top .brand span { color: #0b5fa5; }
+  header.top .cartbtn { font-size: 13px; color: #0a4f85; border: 1px solid #0b5fa5; background: #eef5fb; padding: 6px 10px; border-radius: 20px; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
   header.top .shopbtns { margin-bottom: 0; flex-wrap: nowrap; gap: 6px; }
   header.top .shopbtn { padding: 6px 10px; font-size: 13px; white-space: nowrap; flex-shrink: 0; }
   header.top .toolbar { flex-wrap: nowrap; gap: 6px; overflow-x: auto; }
-  .meta { color: #8a7f70; font-size: 13px; margin: 14px 0; line-height: 1.6; }
-  h2.sec { font-size: 16px; margin: 22px 0 10px; padding-left: 10px; border-left: 4px solid #c98a2d; }
+  .meta { color: #71879a; font-size: 13px; margin: 14px 0; line-height: 1.6; }
+  h2.sec { font-size: 16px; margin: 22px 0 10px; padding-left: 10px; border-left: 4px solid #0b5fa5; }
   .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
-  .controls input[type="text"] { flex: 1; min-width: 200px; padding: 9px 12px; font-size: 15px; border: 1px solid #d8cfc0; border-radius: 10px; background: #fff; }
-  .note { background: #fdf8ef; border: 1px solid #e6d3ac; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #6d6152; margin-bottom: 14px; line-height: 1.7; }
-  .catsum { background: #fdf8ef; border: 1px solid #e6d3ac; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #6d6152; margin-bottom: 14px; line-height: 1.9; }
-  .catsum a { color: #a06a14; text-decoration: none; font-weight: 700; }
+  .controls input[type="text"] { flex: 1; min-width: 200px; padding: 9px 12px; font-size: 15px; border: 1px solid #ccd9e4; border-radius: 10px; background: #fff; }
+  .note { background: #eef5fb; border: 1px solid #bcd6ea; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #4a6076; margin-bottom: 14px; line-height: 1.7; }
+  .catsum { background: #eef5fb; border: 1px solid #bcd6ea; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #4a6076; margin-bottom: 14px; line-height: 1.9; }
+  .catsum a { color: #0a4f85; text-decoration: none; font-weight: 700; }
   .catsum a:hover { text-decoration: underline; }
   .catgroup { scroll-margin-top: 130px; }
   .shopbtns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
-  .shopbtn { padding: 10px 20px; font-size: 15px; border: 1px solid #d8cbb6; color: #6d6152; background: #fff; border-radius: 999px; cursor: pointer; }
-  .shopbtn.active { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border-color: #b97a1e; font-weight: 700; }
+  .shopbtn { padding: 10px 20px; font-size: 15px; border: 1px solid #c3d3e2; color: #4a6076; background: #fff; border-radius: 999px; cursor: pointer; }
+  .shopbtn.active { color: #fff; background: linear-gradient(135deg, #1c74b2, #0b5fa5); border-color: #0b5fa5; font-weight: 700; }
   .rectable .prodcol { min-width: 160px; }
   .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
-  .cathead { position: sticky; top: 74px; z-index: 6; background: #f6f4ef; font-size: 16px; font-weight: 700; color: #6d6152; margin: 0; padding: 12px 0 6px 8px; border-left: 4px solid #c98a2d; }
+  .cathead { position: sticky; top: 74px; z-index: 6; background: #f2f5f8; font-size: 16px; font-weight: 700; color: #4a6076; margin: 0; padding: 12px 0 6px 8px; border-left: 4px solid #0b5fa5; }
   .catgroup:first-child .cathead { padding-top: 2px; }
-  .cathead span { font-weight: 400; font-size: 13px; color: #8a7f70; }
+  .cathead span { font-weight: 400; font-size: 13px; color: #71879a; }
   .main { display: flex; gap: 16px; align-items: flex-start; }
-  .side { width: 300px; flex: 0 0 300px; position: sticky; top: 74px; background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(60,45,20,.06); }
+  .side { width: 300px; flex: 0 0 300px; position: sticky; top: 74px; background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(20,50,80,.06); }
   .maincol { flex: 1; min-width: 0; }
-  .sideItem { border-bottom: 1px solid #efe8db; padding: 10px 0; }
+  .sideItem { border-bottom: 1px solid #e8eff5; padding: 10px 0; }
   .sideItem:last-child { border-bottom: none; }
   .sideName { font-size: 14px; font-weight: 700; line-height: 1.4; }
-  .sideName span { font-weight: 400; color: #8a7f70; font-size: 12px; }
+  .sideName span { font-weight: 400; color: #71879a; font-size: 12px; }
   .sideRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
-  .sidePrice { font-size: 13px; color: #a06a14; font-weight: 700; white-space: nowrap; }
+  .sidePrice { font-size: 13px; color: #0a4f85; font-weight: 700; white-space: nowrap; }
   .sideStep { display: flex; align-items: center; gap: 6px; }
-  .sideStep button { width: 30px; height: 30px; font-size: 18px; font-weight: 700; color: #a06a14; background: #fdf8ef; border: 1px solid #c98a2d; border-radius: 8px; cursor: pointer; }
+  .sideStep button { width: 30px; height: 30px; font-size: 18px; font-weight: 700; color: #0a4f85; background: #eef5fb; border: 1px solid #0b5fa5; border-radius: 8px; cursor: pointer; }
   .sideStep span { font-size: 15px; font-weight: 700; min-width: 22px; text-align: center; }
   .sideSub { font-size: 14px; font-weight: 700; white-space: nowrap; }
-  .sideTotal { font-size: 19px; font-weight: 700; margin: 12px 0; padding-top: 12px; border-top: 2px solid #c98a2d; }
+  .sideTotal { font-size: 19px; font-weight: 700; margin: 12px 0; padding-top: 12px; border-top: 2px solid #0b5fa5; }
   .sideBtns { display: flex; gap: 8px; }
   .sideBtns .xbtn { flex: 1; }
-  .sideEmpty { color: #8a7f70; font-size: 14px; line-height: 1.7; padding: 8px 0; }
-  .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(60,45,20,.06); cursor: pointer; border: 2px solid transparent; }
-  .card.incart { border-color: #c98a2d; }
-  .card .imgwrap { position: relative; width: 100%; padding-top: 100%; background: #faf7f1; overflow: hidden; }
+  .sideEmpty { color: #71879a; font-size: 14px; line-height: 1.7; padding: 8px 0; }
+  .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(20,50,80,.06); cursor: pointer; border: 2px solid transparent; }
+  .card.incart { border-color: #0b5fa5; }
+  .card .imgwrap { position: relative; width: 100%; padding-top: 100%; background: #eef3f8; overflow: hidden; }
   .card .imgwrap img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
   .card .imgwrap .ph { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 52px; }
   .card .body { padding: 10px 12px 12px; }
   .card .name { font-size: 15px; font-weight: 700; line-height: 1.4; min-height: 42px; }
-  .card .sub { font-size: 12px; color: #8a7f70; margin-top: 2px; }
-  .card .price { font-size: 14px; font-weight: 700; color: #a06a14; margin-top: 4px; }
+  .card .sub { font-size: 12px; color: #71879a; margin-top: 2px; }
+  .card .price { font-size: 14px; font-weight: 700; color: #0a4f85; margin-top: 4px; }
   .card .step { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
-  .card .step .add { flex: 1; padding: 9px; font-size: 15px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border: none; border-radius: 10px; cursor: pointer; }
-  .card .step .minus, .card .step .plus { width: 38px; height: 38px; font-size: 20px; font-weight: 700; color: #a06a14; background: #fdf8ef; border: 1px solid #c98a2d; border-radius: 10px; cursor: pointer; }
+  .card .step .add { flex: 1; padding: 9px; font-size: 15px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #1c74b2, #0b5fa5); border: none; border-radius: 10px; cursor: pointer; }
+  .card .step .minus, .card .step .plus { width: 38px; height: 38px; font-size: 20px; font-weight: 700; color: #0a4f85; background: #eef5fb; border: 1px solid #0b5fa5; border-radius: 10px; cursor: pointer; }
   .card .step .qty { font-size: 17px; font-weight: 700; min-width: 28px; text-align: center; }
-  .summary { background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 2px 10px rgba(60,45,20,.06); }
-  .summary textarea { width: 100%; min-height: 120px; padding: 10px; font-size: 14px; line-height: 1.7; border: 1px solid #d8cfc0; border-radius: 10px; background: #fdfbf7; resize: vertical; }
-  .checkout { background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 2px 10px rgba(60,45,20,.06); margin-top: 14px; }
+  .summary { background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 2px 10px rgba(20,50,80,.06); }
+  .summary textarea { width: 100%; min-height: 120px; padding: 10px; font-size: 14px; line-height: 1.7; border: 1px solid #ccd9e4; border-radius: 10px; background: #f8fafc; resize: vertical; }
+  .checkout { background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 2px 10px rgba(20,50,80,.06); margin-top: 14px; }
   .checkout .fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .checkout label { font-size: 13px; color: #6d6152; display: block; margin-bottom: 2px; }
-  .checkout input, .checkout select, .checkout textarea { width: 100%; padding: 10px; font-size: 15px; border: 1px solid #d8cfc0; border-radius: 10px; background: #fff; }
+  .checkout label { font-size: 13px; color: #4a6076; display: block; margin-bottom: 2px; }
+  .checkout input, .checkout select, .checkout textarea { width: 100%; padding: 10px; font-size: 15px; border: 1px solid #ccd9e4; border-radius: 10px; background: #fff; }
   .checkout textarea { min-height: 64px; resize: vertical; }
   .checkout .full { grid-column: 1 / -1; }
   .checkout .status { font-size: 14px; line-height: 1.7; min-height: 24px; margin-top: 10px; }
   .checkout .status.ok { color: #3f6b3e; font-weight: 700; }
   .checkout .status.err { color: #c0392b; }
-  .xbtn { padding: 10px 16px; font-size: 14px; border: 1px solid #c98a2d; color: #a06a14; background: #fdf8ef; border-radius: 10px; cursor: pointer; }
-  .xbtn.primary { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border: none; font-weight: 700; }
+  .xbtn { padding: 10px 16px; font-size: 14px; border: 1px solid #0b5fa5; color: #0a4f85; background: #eef5fb; border-radius: 10px; cursor: pointer; }
+  .xbtn.primary { color: #fff; background: linear-gradient(135deg, #1c74b2, #0b5fa5); border: none; font-weight: 700; }
   .xbtn.wa { color: #fff; background: #25d366; border: none; font-weight: 700; }
   .rectable { width:100%; border-collapse:collapse; font-size:13px; background:#fff; }
-  .rectable th, .rectable td { border:1px solid #d8cbb6; padding:7px 9px; text-align:left; vertical-align:top; }
-  .rectable th { background:#f3e7cf; color:#6d6152; white-space:nowrap; }
-  .rectable tr:nth-child(even) td { background:#fdf8ef; }
+  .rectable th, .rectable td { border:1px solid #c3d3e2; padding:7px 9px; text-align:left; vertical-align:top; }
+  .rectable th { background:#dbe7f1; color:#4a6076; white-space:nowrap; }
+  .rectable tr:nth-child(even) td { background:#eef5fb; }
   .rectable .del { color:#b3402e; background:none; border:none; cursor:pointer; padding:0; font-size:13px; }
   .xbtn:disabled { opacity: .45; cursor: not-allowed; }
-  .verify { background:#fff; border-radius:14px; padding:14px; box-shadow:0 2px 10px rgba(60,45,20,.06); margin-top:14px; }
+  .verify { background:#fff; border-radius:14px; padding:14px; box-shadow:0 2px 10px rgba(20,50,80,.06); margin-top:14px; }
   .verify .vtotal { font-size:18px; font-weight:700; margin:12px 0 4px; }
-  .verify input[type="number"], .verify input[type="text"] { padding:8px; font-size:14px; border:1px solid #d8cfc0; border-radius:8px; background:#fff; }
+  .verify input[type="number"], .verify input[type="text"] { padding:8px; font-size:14px; border:1px solid #ccd9e4; border-radius:8px; background:#fff; }
   .verify .vprice { width:86px; }
   .verify .vqty { width:64px; }
   .verify .vreason { width:150px; }
   .verify .vreasonDetail { width:150px; }
-  .verify select.vreason { padding:8px; font-size:14px; border:1px solid #d8cfc0; border-radius:8px; background:#fff; }
-  .rectable select.ereason { padding:6px; font-size:13px; border:1px solid #d8cfc0; border-radius:6px; background:#fff; }
+  .verify select.vreason { padding:8px; font-size:14px; border:1px solid #ccd9e4; border-radius:8px; background:#fff; }
+  .rectable select.ereason { padding:6px; font-size:13px; border:1px solid #ccd9e4; border-radius:6px; background:#fff; }
   .rectable .ereasonDetail { width:120px; }
-  .rectable input[type="number"], .rectable input[type="text"] { padding:6px; font-size:13px; border:1px solid #d8cfc0; border-radius:6px; background:#fff; }
+  .rectable input[type="number"], .rectable input[type="text"] { padding:6px; font-size:13px; border:1px solid #ccd9e4; border-radius:6px; background:#fff; }
   .rectable .eprice { width:76px; }
   .rectable .eqty { width:56px; }
   .rectable .ereason { width:120px; }
@@ -107,28 +107,28 @@
   .cartbar .btns { display: flex; gap: 8px; }
   .cartbar button { padding: 10px 16px; font-size: 14px; font-weight: 700; border-radius: 10px; border: none; cursor: pointer; }
   .cartbar .clear { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.4); }
-  .cartbar .copy { background: #fff; color: #2b2620; }
-  .cartbar .go { background: linear-gradient(135deg, #d99a35, #b97a1e); color: #fff; }
+  .cartbar .copy { background: #fff; color: #22303e; }
+  .cartbar .go { background: linear-gradient(135deg, #1c74b2, #0b5fa5); color: #fff; }
   .cartbar button:disabled { opacity: .45; cursor: not-allowed; }
-  .foot { color: #a2937f; font-size: 12px; margin-top: 16px; text-align: center; line-height: 1.8; }
+  .foot { color: #8fa3b5; font-size: 12px; margin-top: 16px; text-align: center; line-height: 1.8; }
   @media (max-width: 1180px) { .grid { grid-template-columns: repeat(7, 1fr); gap: 8px; } .card { border-radius: 10px; } .card .imgwrap { padding-top: 100%; } .card .imgwrap .ph { font-size: 32px; } .card .body { padding: 6px 7px 7px; } .card .name { font-size: 12px; min-height: 32px; line-height: 1.35; } .card .sub { font-size: 11px; } .card .price { font-size: 12px; margin-top: 2px; } .card .step { margin-top: 6px; } .card .step .add { padding: 5px; font-size: 13px; border-radius: 8px; } .card .step .minus, .card .step .plus { width: 26px; height: 26px; font-size: 16px; border-radius: 8px; } .card .step .qty { font-size: 14px; min-width: 20px; } .cathead { font-size: 14px; } }
   @media (max-width: 860px) { .grid { grid-template-columns: repeat(4, 1fr); } .side { width: 260px; flex-basis: 260px; top: 112px; } .cathead { top: 112px; } }
   @media (max-width: 640px) { .main { flex-direction: column; } .side { width: 100%; flex: none; position: static; } }
   @media (max-width: 560px) { .cartbar { flex-wrap: wrap; } .checkout .fields { grid-template-columns: 1fr; } }
   .loginbox { max-width: 420px; margin: 60px auto 0; background: #fff; border-radius: 16px; padding: 28px 24px; box-shadow: 0 4px 20px rgba(60,45,20,.10); text-align: center; }
   .loginbox h1 { font-size: 22px; margin: 0 0 4px; }
-  .loginbox .sub { color: #8a7f70; font-size: 14px; margin-bottom: 18px; }
+  .loginbox .sub { color: #71879a; font-size: 14px; margin-bottom: 18px; }
   .loginshop { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 14px; }
   .loginshop .shopbtn { font-size: 15px; padding: 10px 16px; }
-  .loginbox input[type="password"] { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #d8cfc0; border-radius: 10px; margin-bottom: 12px; background: #fff; }
+  .loginbox input[type="password"] { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccd9e4; border-radius: 10px; margin-bottom: 12px; background: #fff; }
   .loginerr { color: #b3402e; font-size: 14px; min-height: 20px; margin-bottom: 8px; }
-  .who { font-size: 13px; color: #6d6152; font-weight: 700; white-space: nowrap; }
+  .who { font-size: 13px; color: #4a6076; font-weight: 700; white-space: nowrap; }
   .pwmodal { position: fixed; inset: 0; z-index: 50; background: rgba(43,38,32,.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
   .pwbox { background: #fff; border-radius: 16px; padding: 24px; width: 100%; max-width: 380px; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
   .pwbox h3 { font-size: 18px; margin-bottom: 4px; }
-  .pwbox .sub { color: #8a7f70; font-size: 13px; margin-bottom: 6px; line-height: 1.6; }
-  .pwbox label { display: block; font-size: 13px; color: #6d6152; margin: 12px 0 4px; text-align: left; }
-  .pwbox input[type="password"], .pwbox select { width: 100%; padding: 11px; font-size: 16px; border: 1px solid #d8cfc0; border-radius: 10px; background: #fff; }
+  .pwbox .sub { color: #71879a; font-size: 13px; margin-bottom: 6px; line-height: 1.6; }
+  .pwbox label { display: block; font-size: 13px; color: #4a6076; margin: 12px 0 4px; text-align: left; }
+  .pwbox input[type="password"], .pwbox select { width: 100%; padding: 11px; font-size: 16px; border: 1px solid #ccd9e4; border-radius: 10px; background: #fff; }
   .pwbox .pwerr { color: #b3402e; font-size: 14px; min-height: 20px; margin: 10px 0 4px; }
   .pwbox .pwok { color: #3f6b3e; font-size: 14px; font-weight: 700; min-height: 20px; margin: 10px 0 4px; }
 </style>
@@ -188,7 +188,7 @@
 
       <div class="verify" id="verifySection" style="display:none;">
     <h2 class="sec" style="margin-top:0;">核實金額</h2>
-    <div id="verifyMeta" style="font-size:13px;color:#6d6152;line-height:1.7;margin-bottom:10px;"></div>
+    <div id="verifyMeta" style="font-size:13px;color:#4a6076;line-height:1.7;margin-bottom:10px;"></div>
     <div style="overflow-x:auto;">
       <table class="rectable">
         <thead><tr><th>產品</th><th>單價</th><th>數量</th><th>小計</th><th>改價原因</th></tr></thead>
@@ -196,8 +196,8 @@
       </table>
     </div>
     <div class="vtotal" id="verifyTotal"></div>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">改動原有單價或者數量就要揀原因（外觀不良／到期／其他，揀其他可以打埋補充）。本身冇標準售價嘅產品，請直接輸入單價。</div>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">「暫存訂單」只係留低記錄，唔會扣庫存；之後去「訂單記錄」嗰頁撳「確認」先至正式扣數。</div>
+    <div style="font-size:13px;color:#71879a;line-height:1.7;">改動原有單價或者數量就要揀原因（外觀不良／到期／其他，揀其他可以打埋補充）。本身冇標準售價嘅產品，請直接輸入單價。</div>
+    <div style="font-size:13px;color:#71879a;line-height:1.7;">「暫存訂單」只係留低記錄，唔會扣庫存；之後去「訂單記錄」嗰頁撳「確認」先至正式扣數。</div>
     <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;">
       <button class="xbtn primary" id="confirmSubmitBtn" onclick="confirmVerifiedSubmit('已確認')">確認提交</button>
       <button class="xbtn" id="saveDraftBtn" onclick="confirmVerifiedSubmit('待確認')">暫存訂單</button>
@@ -207,7 +207,7 @@
   <div class="foot">數據來源：BETTEREAT 飛書系統 · 餐牌以飛書產品主檔為準<br>產品相片陸續補上，現時未有相片嘅產品會顯示圖示。</div>
   <div style="display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;align-items:center;">
     <a class="xbtn primary" href="bettereat-order-records.html" target="_blank" rel="noopener" style="text-decoration:none;">📋 訂單記錄（新分頁開）</a>
-    <span style="font-size:13px;color:#8a7f70;">訂單記錄而家喺另一頁睇同改，撳掣會開新分頁。</span>
+    <span style="font-size:13px;color:#71879a;">訂單記錄而家喺另一頁睇同改，撳掣會開新分頁。</span>
   </div>
   <div class="status" id="submitStatus"></div>
     </div>
@@ -248,7 +248,7 @@
       <button class="xbtn primary" id="pwSaveBtn" style="flex:1;padding:12px;" onclick="submitChangePw()">儲存新密碼</button>
       <button class="xbtn" id="pwCancelBtn" style="padding:12px;" onclick="closeChangePw()">取消</button>
     </div>
-    <div style="font-size:12px;color:#8a7f70;margin-top:10px;line-height:1.6;">新密碼大約 1 分鐘後喺全部裝置生效；如果即刻用新密碼登入話唔啱，等一陣再試。</div>
+    <div style="font-size:12px;color:#71879a;margin-top:10px;line-height:1.6;">新密碼大約 1 分鐘後喺全部裝置生效；如果即刻用新密碼登入話唔啱，等一陣再試。</div>
   </div>
 </div>
 
@@ -356,7 +356,7 @@ function renderGrid(){
     });
     html += '</div></div>';
   });
-  document.getElementById("grid").innerHTML = html || '<div style="color:#8a7f70;padding:20px;">冇符合條件嘅產品</div>';
+  document.getElementById("grid").innerHTML = html || '<div style="color:#71879a;padding:20px;">冇符合條件嘅產品</div>';
 }
 function cartTotals(){
   var items = 0, kinds = 0;
@@ -398,7 +398,7 @@ function renderCartPanel(){
     var sub = pl.subtotal;
     html += '<div class="sideItem">'
       + '<div class="sideName">' + esc(it.name) + ' <span>' + esc(it.code) + '</span></div>'
-      + (pl.note ? '<div style="font-size:12px;color:#a06a14;">' + esc(pl.note) + '</div>' : '')
+      + (pl.note ? '<div style="font-size:12px;color:#0a4f85;">' + esc(pl.note) + '</div>' : '')
       + '<div class="sideRow"><span class="sidePrice">' + (hasPrice ? fmtMoney(pl.unitPrice) + (it.unit ? "/" + esc(it.unit) : "") : "未定價") + '</span>'
       + '<span class="sideStep"><button onclick="event.stopPropagation();removeItem(\'' + esc(it.code) + '\')">−</button><span>' + it.qty + '</span><button onclick="event.stopPropagation();addItem(\'' + esc(it.code) + '\')">＋</button></span>'
       + '<span class="sideSub">' + (sub == null ? "—" : fmtMoney(sub)) + '</span></div></div>';
@@ -406,9 +406,9 @@ function renderCartPanel(){
   // 贈品自動入購物車（2026-11-18 最平免費）：免費嗰啲係 $0 行，唔可以加減數量；
   // 改實付數量／價錢嗰陣，免費嗰款會自動跟住變（最平嗰件）。
   (promo.freeLines || []).forEach(function(g){
-    html += '<div class="sideItem" style="background:#f7f3e8;">'
+    html += '<div class="sideItem" style="background:#eef3f8;">'
       + '<div class="sideName">🎁 ' + esc(g.name) + ' <span>' + esc(g.code) + ' · 贈品</span></div>'
-      + '<div style="font-size:12px;color:#a06a14;">' + esc(g.ruleName) + '：送 ' + g.qty + ' 件 · $0</div>'
+      + '<div style="font-size:12px;color:#0a4f85;">' + esc(g.ruleName) + '：送 ' + g.qty + ' 件 · $0</div>'
       + '<div class="sideRow"><span class="sidePrice">$0</span><span class="sideStep"><span>×' + g.qty + '</span></span>'
       + '<span class="sideSub">$0</span></div></div>';
   });
@@ -1064,7 +1064,7 @@ function renderVerify(){
   var html = "";
   list.forEach(function(ln, i){
     var sub = (validPrice(parseFloat(ln.price)) && validQty(parseFloat(ln.qty))) ? fmtMoney(parseFloat(ln.price) * parseFloat(ln.qty)) : "—";
-    html += '<tr><td class="prodcol">' + esc(ln.name) + '（' + esc(ln.unit) + '）<div id="vnote' + i + '" style="font-size:12px;color:#a06a14;">' + esc(ln.promoNote || "") + '</div></td>' +
+    html += '<tr><td class="prodcol">' + esc(ln.name) + '（' + esc(ln.unit) + '）<div id="vnote' + i + '" style="font-size:12px;color:#0a4f85;">' + esc(ln.promoNote || "") + '</div></td>' +
       '<td><input class="vprice" type="number" step="any" min="0" value="' + esc(ln.price == null ? "" : ln.price) + '" oninput="verifyLines[' + i + '].price=this.value;verifyLines[' + i + '].manual=true;recomputeVerify()"></td>' +
       '<td><input class="vqty" type="number" step="1" min="1" value="' + esc(ln.qty) + '" oninput="verifyLines[' + i + '].qty=this.value;recomputeVerify()"></td>' +
       '<td id="vsub' + i + '">' + sub + '</td>' +

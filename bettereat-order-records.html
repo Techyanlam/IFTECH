@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>BETTEREAT 訂單記錄</title>
-<meta name="theme-color" content="#c98a2d">
+<meta name="theme-color" content="#0b5fa5">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="BETTEREAT 訂單記錄">
@@ -12,92 +12,92 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f6f4ef; color: #2b2620; padding-bottom: 110px; }
+  body { font-family: -apple-system, "PingFang HK", "Microsoft JhengHei", sans-serif; background: #f2f5f8; color: #22303e; padding-bottom: 110px; }
   .wrap { max-width: 1240px; margin: 0 auto; padding: 20px 16px 32px; }
-  header.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; row-gap: 8px; padding: 14px 0; background: rgba(246,244,239,.96); border-bottom: 1px solid #e8e0d2; }
+  header.top { position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; row-gap: 8px; padding: 14px 0; background: rgba(242,245,248,.96); border-bottom: 1px solid #dde7ef; }
   header.top .brand { font-size: 20px; font-weight: 700; letter-spacing: .5px; }
-  header.top .brand span { color: #c98a2d; }
-  header.top .cartbtn { font-size: 14px; color: #a06a14; border: 1px solid #c98a2d; background: #fdf8ef; padding: 6px 14px; border-radius: 20px; cursor: pointer; }
+  header.top .brand span { color: #0b5fa5; }
+  header.top .cartbtn { font-size: 14px; color: #0a4f85; border: 1px solid #0b5fa5; background: #eef5fb; padding: 6px 14px; border-radius: 20px; cursor: pointer; }
   header.top .shopbtns { margin-bottom: 0; }
   header.top .shopbtn { padding: 6px 14px; font-size: 14px; }
-  .meta { color: #8a7f70; font-size: 13px; margin: 14px 0; line-height: 1.6; }
-  h2.sec { font-size: 16px; margin: 22px 0 10px; padding-left: 10px; border-left: 4px solid #c98a2d; }
+  .meta { color: #71879a; font-size: 13px; margin: 14px 0; line-height: 1.6; }
+  h2.sec { font-size: 16px; margin: 22px 0 10px; padding-left: 10px; border-left: 4px solid #0b5fa5; }
   .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
-  .controls input[type="text"] { flex: 1; min-width: 200px; padding: 9px 12px; font-size: 15px; border: 1px solid #d8cfc0; border-radius: 10px; background: #fff; }
-  .note { background: #fdf8ef; border: 1px solid #e6d3ac; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #6d6152; margin-bottom: 14px; line-height: 1.7; }
+  .controls input[type="text"] { flex: 1; min-width: 200px; padding: 9px 12px; font-size: 15px; border: 1px solid #ccd9e4; border-radius: 10px; background: #fff; }
+  .note { background: #eef5fb; border: 1px solid #bcd6ea; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #4a6076; margin-bottom: 14px; line-height: 1.7; }
   .shopbtns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
-  .shopbtn { padding: 10px 20px; font-size: 15px; border: 1px solid #d8cbb6; color: #6d6152; background: #fff; border-radius: 999px; cursor: pointer; }
-  .shopbtn.active { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border-color: #b97a1e; font-weight: 700; }
+  .shopbtn { padding: 10px 20px; font-size: 15px; border: 1px solid #c3d3e2; color: #4a6076; background: #fff; border-radius: 999px; cursor: pointer; }
+  .shopbtn.active { color: #fff; background: linear-gradient(135deg, #1c74b2, #0b5fa5); border-color: #0b5fa5; font-weight: 700; }
   .rectable .prodcol { min-width: 160px; }
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
   .main { display: flex; gap: 16px; align-items: flex-start; }
-  .side { width: 300px; flex: 0 0 300px; position: sticky; top: 74px; background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(60,45,20,.06); }
+  .side { width: 300px; flex: 0 0 300px; position: sticky; top: 74px; background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(20,50,80,.06); }
   .maincol { flex: 1; min-width: 0; }
-  .sideItem { border-bottom: 1px solid #efe8db; padding: 10px 0; }
+  .sideItem { border-bottom: 1px solid #e8eff5; padding: 10px 0; }
   .sideItem:last-child { border-bottom: none; }
   .sideName { font-size: 14px; font-weight: 700; line-height: 1.4; }
-  .sideName span { font-weight: 400; color: #8a7f70; font-size: 12px; }
+  .sideName span { font-weight: 400; color: #71879a; font-size: 12px; }
   .sideRow { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; }
-  .sidePrice { font-size: 13px; color: #a06a14; font-weight: 700; white-space: nowrap; }
+  .sidePrice { font-size: 13px; color: #0a4f85; font-weight: 700; white-space: nowrap; }
   .sideStep { display: flex; align-items: center; gap: 6px; }
-  .sideStep button { width: 30px; height: 30px; font-size: 18px; font-weight: 700; color: #a06a14; background: #fdf8ef; border: 1px solid #c98a2d; border-radius: 8px; cursor: pointer; }
+  .sideStep button { width: 30px; height: 30px; font-size: 18px; font-weight: 700; color: #0a4f85; background: #eef5fb; border: 1px solid #0b5fa5; border-radius: 8px; cursor: pointer; }
   .sideStep span { font-size: 15px; font-weight: 700; min-width: 22px; text-align: center; }
   .sideSub { font-size: 14px; font-weight: 700; white-space: nowrap; }
-  .sideTotal { font-size: 19px; font-weight: 700; margin: 12px 0; padding-top: 12px; border-top: 2px solid #c98a2d; }
+  .sideTotal { font-size: 19px; font-weight: 700; margin: 12px 0; padding-top: 12px; border-top: 2px solid #0b5fa5; }
   .sideBtns { display: flex; gap: 8px; }
   .sideBtns .xbtn { flex: 1; }
-  .sideEmpty { color: #8a7f70; font-size: 14px; line-height: 1.7; padding: 8px 0; }
-  .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(60,45,20,.06); cursor: pointer; border: 2px solid transparent; }
-  .card.incart { border-color: #c98a2d; }
-  .card .imgwrap { position: relative; width: 100%; padding-top: 72%; background: #faf7f1; overflow: hidden; }
+  .sideEmpty { color: #71879a; font-size: 14px; line-height: 1.7; padding: 8px 0; }
+  .card { background: #fff; border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(20,50,80,.06); cursor: pointer; border: 2px solid transparent; }
+  .card.incart { border-color: #0b5fa5; }
+  .card .imgwrap { position: relative; width: 100%; padding-top: 72%; background: #eef3f8; overflow: hidden; }
   .card .imgwrap img { position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; }
   .card .imgwrap .ph { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 52px; }
   .card .body { padding: 10px 12px 12px; }
   .card .name { font-size: 15px; font-weight: 700; line-height: 1.4; min-height: 42px; }
-  .card .sub { font-size: 12px; color: #8a7f70; margin-top: 2px; }
-  .card .price { font-size: 14px; font-weight: 700; color: #a06a14; margin-top: 4px; }
+  .card .sub { font-size: 12px; color: #71879a; margin-top: 2px; }
+  .card .price { font-size: 14px; font-weight: 700; color: #0a4f85; margin-top: 4px; }
   .card .step { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
-  .card .step .add { flex: 1; padding: 9px; font-size: 15px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border: none; border-radius: 10px; cursor: pointer; }
-  .card .step .minus, .card .step .plus { width: 38px; height: 38px; font-size: 20px; font-weight: 700; color: #a06a14; background: #fdf8ef; border: 1px solid #c98a2d; border-radius: 10px; cursor: pointer; }
+  .card .step .add { flex: 1; padding: 9px; font-size: 15px; font-weight: 700; color: #fff; background: linear-gradient(135deg, #1c74b2, #0b5fa5); border: none; border-radius: 10px; cursor: pointer; }
+  .card .step .minus, .card .step .plus { width: 38px; height: 38px; font-size: 20px; font-weight: 700; color: #0a4f85; background: #eef5fb; border: 1px solid #0b5fa5; border-radius: 10px; cursor: pointer; }
   .card .step .qty { font-size: 17px; font-weight: 700; min-width: 28px; text-align: center; }
-  .summary { background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 2px 10px rgba(60,45,20,.06); }
-  .summary textarea { width: 100%; min-height: 120px; padding: 10px; font-size: 14px; line-height: 1.7; border: 1px solid #d8cfc0; border-radius: 10px; background: #fdfbf7; resize: vertical; }
-  .checkout { background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 2px 10px rgba(60,45,20,.06); margin-top: 14px; }
+  .summary { background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 2px 10px rgba(20,50,80,.06); }
+  .summary textarea { width: 100%; min-height: 120px; padding: 10px; font-size: 14px; line-height: 1.7; border: 1px solid #ccd9e4; border-radius: 10px; background: #f8fafc; resize: vertical; }
+  .checkout { background: #fff; border-radius: 14px; padding: 14px; box-shadow: 0 2px 10px rgba(20,50,80,.06); margin-top: 14px; }
   .checkout .fields { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .checkout label { font-size: 13px; color: #6d6152; display: block; margin-bottom: 2px; }
-  .checkout input, .checkout select, .checkout textarea { width: 100%; padding: 10px; font-size: 15px; border: 1px solid #d8cfc0; border-radius: 10px; background: #fff; }
+  .checkout label { font-size: 13px; color: #4a6076; display: block; margin-bottom: 2px; }
+  .checkout input, .checkout select, .checkout textarea { width: 100%; padding: 10px; font-size: 15px; border: 1px solid #ccd9e4; border-radius: 10px; background: #fff; }
   .checkout textarea { min-height: 64px; resize: vertical; }
   .checkout .full { grid-column: 1 / -1; }
   .checkout .status { font-size: 14px; line-height: 1.7; min-height: 24px; margin-top: 10px; }
   .checkout .status.ok { color: #3f6b3e; font-weight: 700; }
   .checkout .status.err { color: #c0392b; }
-  .xbtn { padding: 10px 16px; font-size: 14px; border: 1px solid #c98a2d; color: #a06a14; background: #fdf8ef; border-radius: 10px; cursor: pointer; }
-  .xbtn.primary { color: #fff; background: linear-gradient(135deg, #d99a35, #b97a1e); border: none; font-weight: 700; }
+  .xbtn { padding: 10px 16px; font-size: 14px; border: 1px solid #0b5fa5; color: #0a4f85; background: #eef5fb; border-radius: 10px; cursor: pointer; }
+  .xbtn.primary { color: #fff; background: linear-gradient(135deg, #1c74b2, #0b5fa5); border: none; font-weight: 700; }
   .xbtn.wa { color: #fff; background: #25d366; border: none; font-weight: 700; }
   .rectable { width:100%; border-collapse:collapse; font-size:13px; background:#fff; }
-  .rectable th, .rectable td { border:1px solid #d8cbb6; padding:7px 9px; text-align:left; vertical-align:top; }
-  .rectable th { background:#f3e7cf; color:#6d6152; white-space:nowrap; }
-  .rectable tr:nth-child(even) td { background:#fdf8ef; }
+  .rectable th, .rectable td { border:1px solid #c3d3e2; padding:7px 9px; text-align:left; vertical-align:top; }
+  .rectable th { background:#dbe7f1; color:#4a6076; white-space:nowrap; }
+  .rectable tr:nth-child(even) td { background:#eef5fb; }
   .rectable .del { color:#b3402e; background:none; border:none; cursor:pointer; padding:0; font-size:13px; }
   .statusbadge { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:700; white-space:nowrap; }
-  .statusbadge.st-pending { background:#fdf3d7; color:#8a6d1a; border:1px solid #e6c87a; }
+  .statusbadge.st-pending { background:#e3eef7; color:#0a4f85; border:1px solid #9db8d2; }
   .statusbadge.st-confirmed { background:#e6f2e6; color:#3f6b3e; border:1px solid #9cc79c; }
   .statusbadge.st-cancelled { background:#fbe9e7; color:#b3402e; border:1px solid #e0a49c; }
-  .pendingorder { background:#fff; border:1px solid #e6d3ac; border-radius:10px; padding:10px 12px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .pendingorder { background:#fff; border:1px solid #bcd6ea; border-radius:10px; padding:10px 12px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
   .pendingorder .pinfo { font-size:14px; line-height:1.6; }
   .pendingorder .pbtns { display:flex; gap:8px; }
   .xbtn:disabled { opacity: .45; cursor: not-allowed; }
-  .verify { background:#fff; border-radius:14px; padding:14px; box-shadow:0 2px 10px rgba(60,45,20,.06); margin-top:14px; }
+  .verify { background:#fff; border-radius:14px; padding:14px; box-shadow:0 2px 10px rgba(20,50,80,.06); margin-top:14px; }
   .verify .vtotal { font-size:18px; font-weight:700; margin:12px 0 4px; }
-  .verify input[type="number"], .verify input[type="text"] { padding:8px; font-size:14px; border:1px solid #d8cfc0; border-radius:8px; background:#fff; }
+  .verify input[type="number"], .verify input[type="text"] { padding:8px; font-size:14px; border:1px solid #ccd9e4; border-radius:8px; background:#fff; }
   .verify .vprice { width:86px; }
   .verify .vqty { width:64px; }
   .verify .vreason { width:150px; }
   .verify .vreasonDetail { width:150px; }
-  .verify select.vreason { padding:8px; font-size:14px; border:1px solid #d8cfc0; border-radius:8px; background:#fff; }
-  .rectable select.ereason { padding:6px; font-size:13px; border:1px solid #d8cfc0; border-radius:6px; background:#fff; }
+  .verify select.vreason { padding:8px; font-size:14px; border:1px solid #ccd9e4; border-radius:8px; background:#fff; }
+  .rectable select.ereason { padding:6px; font-size:13px; border:1px solid #ccd9e4; border-radius:6px; background:#fff; }
   .rectable .ereasonDetail { width:120px; }
-  .rectable input[type="number"], .rectable input[type="text"] { padding:6px; font-size:13px; border:1px solid #d8cfc0; border-radius:6px; background:#fff; }
+  .rectable input[type="number"], .rectable input[type="text"] { padding:6px; font-size:13px; border:1px solid #ccd9e4; border-radius:6px; background:#fff; }
   .rectable .eprice { width:76px; }
   .rectable .eqty { width:56px; }
   .rectable .ereason { width:120px; }
@@ -107,28 +107,28 @@
   .cartbar .btns { display: flex; gap: 8px; }
   .cartbar button { padding: 10px 16px; font-size: 14px; font-weight: 700; border-radius: 10px; border: none; cursor: pointer; }
   .cartbar .clear { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.4); }
-  .cartbar .copy { background: #fff; color: #2b2620; }
-  .cartbar .go { background: linear-gradient(135deg, #d99a35, #b97a1e); color: #fff; }
+  .cartbar .copy { background: #fff; color: #22303e; }
+  .cartbar .go { background: linear-gradient(135deg, #1c74b2, #0b5fa5); color: #fff; }
   .cartbar button:disabled { opacity: .45; cursor: not-allowed; }
-  .foot { color: #a2937f; font-size: 12px; margin-top: 16px; text-align: center; line-height: 1.8; }
+  .foot { color: #8fa3b5; font-size: 12px; margin-top: 16px; text-align: center; line-height: 1.8; }
   @media (max-width: 1180px) { .grid { grid-template-columns: repeat(3, 1fr); } }
   @media (max-width: 860px) { .grid { grid-template-columns: repeat(2, 1fr); } .side { width: 260px; flex-basis: 260px; top: 112px; } }
   @media (max-width: 640px) { .main { flex-direction: column; } .side { width: 100%; flex: none; position: static; } }
   @media (max-width: 560px) { .cartbar { flex-wrap: wrap; } .checkout .fields { grid-template-columns: 1fr; } }
   .loginbox { max-width: 420px; margin: 60px auto 0; background: #fff; border-radius: 16px; padding: 28px 24px; box-shadow: 0 4px 20px rgba(60,45,20,.10); text-align: center; }
   .loginbox h1 { font-size: 22px; margin: 0 0 4px; }
-  .loginbox .sub { color: #8a7f70; font-size: 14px; margin-bottom: 18px; }
+  .loginbox .sub { color: #71879a; font-size: 14px; margin-bottom: 18px; }
   .loginshop { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 14px; }
   .loginshop .shopbtn { font-size: 15px; padding: 10px 16px; }
-  .loginbox input[type="password"] { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #d8cfc0; border-radius: 10px; margin-bottom: 12px; background: #fff; }
+  .loginbox input[type="password"] { width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ccd9e4; border-radius: 10px; margin-bottom: 12px; background: #fff; }
   .loginerr { color: #b3402e; font-size: 14px; min-height: 20px; margin-bottom: 8px; }
-  .who { font-size: 13px; color: #6d6152; font-weight: 700; white-space: nowrap; }
+  .who { font-size: 13px; color: #4a6076; font-weight: 700; white-space: nowrap; }
   .pwmodal { position: fixed; inset: 0; z-index: 50; background: rgba(43,38,32,.55); display: flex; align-items: center; justify-content: center; padding: 16px; }
   .pwbox { background: #fff; border-radius: 16px; padding: 24px; width: 100%; max-width: 380px; box-shadow: 0 8px 30px rgba(0,0,0,.25); }
   .pwbox h3 { font-size: 18px; margin-bottom: 4px; }
-  .pwbox .sub { color: #8a7f70; font-size: 13px; margin-bottom: 6px; line-height: 1.6; }
-  .pwbox label { display: block; font-size: 13px; color: #6d6152; margin: 12px 0 4px; text-align: left; }
-  .pwbox input[type="password"], .pwbox select { width: 100%; padding: 11px; font-size: 16px; border: 1px solid #d8cfc0; border-radius: 10px; background: #fff; }
+  .pwbox .sub { color: #71879a; font-size: 13px; margin-bottom: 6px; line-height: 1.6; }
+  .pwbox label { display: block; font-size: 13px; color: #4a6076; margin: 12px 0 4px; text-align: left; }
+  .pwbox input[type="password"], .pwbox select { width: 100%; padding: 11px; font-size: 16px; border: 1px solid #ccd9e4; border-radius: 10px; background: #fff; }
   .pwbox .pwerr { color: #b3402e; font-size: 14px; min-height: 20px; margin: 10px 0 4px; }
   .pwbox .pwok { color: #3f6b3e; font-size: 14px; font-weight: 700; min-height: 20px; margin: 10px 0 4px; }
 </style>
@@ -147,25 +147,25 @@
 
   <h2 class="sec" id="recordsSection">訂單記錄</h2>
   <div class="status" id="recordsStatus"></div>
-  <div id="feishuSyncStatus" style="font-size:13px;color:#8a7f70;margin-top:6px;">載入飛書記錄緊…</div>
+  <div id="feishuSyncStatus" style="font-size:13px;color:#71879a;margin-top:6px;">載入飛書記錄緊…</div>
   <div id="pendingOrdersSection" style="display:none;">
     <h2 class="sec">待確認訂單</h2>
     <div id="pendingOrdersList"></div>
     <div class="status" id="pendingStatus"></div>
   </div>
   <div style="display:flex;gap:8px;margin-top:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center;">
-    <label style="font-size:14px;color:#6d6152;">睇邊間店嘅記錄：</label>
-    <select id="recordsShopFilter" onchange="setRecordsShop(this.value);renderRecords()" style="padding:8px 10px;border:1px solid #d8cbb6;border-radius:8px;background:#fff;font-size:14px;">
+    <label style="font-size:14px;color:#4a6076;">睇邊間店嘅記錄：</label>
+    <select id="recordsShopFilter" onchange="setRecordsShop(this.value);renderRecords()" style="padding:8px 10px;border:1px solid #c3d3e2;border-radius:8px;background:#fff;font-size:14px;">
       <option value="">全部店舖</option>
       <option value="謝斐 (MJF)">謝斐</option>
       <option value="淘大 (MAP)">淘大</option>
       <option value="Aeon (MKH)">Aeon</option>
       <option value="將軍澳 (MMCP)">將軍澳</option>
     </select>
-    <label style="font-size:14px;color:#6d6152;">記錄日期：</label>
-    <input type="date" id="recordsDateFilter" onchange="setRecordsDate(this.value);renderRecords()" style="padding:8px 10px;border:1px solid #d8cbb6;border-radius:8px;background:#fff;font-size:14px;">
-    <label style="font-size:14px;color:#6d6152;">狀態：</label>
-    <select id="recordsStatusFilter" onchange="setRecordsStatusFilter(this.value);renderRecords()" style="padding:8px 10px;border:1px solid #d8cbb6;border-radius:8px;background:#fff;font-size:14px;">
+    <label style="font-size:14px;color:#4a6076;">記錄日期：</label>
+    <input type="date" id="recordsDateFilter" onchange="setRecordsDate(this.value);renderRecords()" style="padding:8px 10px;border:1px solid #c3d3e2;border-radius:8px;background:#fff;font-size:14px;">
+    <label style="font-size:14px;color:#4a6076;">狀態：</label>
+    <select id="recordsStatusFilter" onchange="setRecordsStatusFilter(this.value);renderRecords()" style="padding:8px 10px;border:1px solid #c3d3e2;border-radius:8px;background:#fff;font-size:14px;">
       <option value="">全部狀態</option>
       <option value="待確認">待確認</option>
       <option value="已確認">已確認</option>
@@ -173,7 +173,7 @@
     </select>
     <button class="xbtn" onclick="clearRecordsDate()">清除日期</button>
     <button class="xbtn" id="exportBtn" onclick="exportRecords()">匯出 Excel</button>
-    <span id="recordsCount" style="font-size:13px;color:#8a7f70;"></span>
+    <span id="recordsCount" style="font-size:13px;color:#71879a;"></span>
   </div>
   <div style="overflow-x:auto;">
     <table class="rectable" id="recordsTable">
@@ -184,7 +184,7 @@
   <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center;">
     <button class="xbtn" id="resyncBtn" onclick="resyncUnsynced()" disabled>重新同步全部未同步</button>
     <button class="xbtn" id="clearRecordsBtn" onclick="clearRecords()">清空全部記錄</button>
-    <div style="font-size:13px;color:#8a7f70;line-height:1.7;">記錄而家係由飛書「銷售紀錄」表讀返嚟，任何一部機登入都睇到晒所有店嘅單，唔再淨係得呢部機先睇到。記錄係喺訂購頁確認提交嗰陣生成，一個產品一行，同一次提交嘅各行會共用同一個訂單編號，同時即刻傳送去飛書「銷售紀錄」表。喺呢頁可以撳「編輯」改單價、數量同原因，或者撳「刪除」刪走一行；改動會即刻同步去飛書「銷售紀錄」，如果同步失敗，記錄仍然會存喺呢部裝置，下次再改同一行會再試同步。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示。入頁嗰陣未同步嘅行會自動同步去飛書，唔使逐行撳；如果自動同步失敗，可以撳「重新同步」或者「重新同步全部未同步」再試。登入嗰陣揀邊間店，記錄就睇邊間店；管理員登入可以睇晒全部店。「清空」只會清呢部裝置嘅本地記錄，唔會刪除飛書嘅數據。</div>
+    <div style="font-size:13px;color:#71879a;line-height:1.7;">記錄而家係由飛書「銷售紀錄」表讀返嚟，任何一部機登入都睇到晒所有店嘅單，唔再淨係得呢部機先睇到。記錄係喺訂購頁確認提交嗰陣生成，一個產品一行，同一次提交嘅各行會共用同一個訂單編號，同時即刻傳送去飛書「銷售紀錄」表。喺呢頁可以撳「編輯」改單價、數量同原因，或者撳「刪除」刪走一行；改動會即刻同步去飛書「銷售紀錄」，如果同步失敗，記錄仍然會存喺呢部裝置，下次再改同一行會再試同步。上面可以揀睇邊間店嘅記錄，一間店嘅記錄獨立顯示。入頁嗰陣未同步嘅行會自動同步去飛書，唔使逐行撳；如果自動同步失敗，可以撳「重新同步」或者「重新同步全部未同步」再試。登入嗰陣揀邊間店，記錄就睇邊間店；管理員登入可以睇晒全部店。「清空」只會清呢部裝置嘅本地記錄，唔會刪除飛書嘅數據。</div>
   </div>
   <div class="foot">數據來源：BETTEREAT 飛書系統 · 餐牌以飛書產品主檔為準</div>
 </div>
@@ -416,7 +416,7 @@ function renderRecords(){
     if (shop && recordsDateFilter) emptyMsg = "呢間店呢個日期暫時未有記錄";
     else if (shop) emptyMsg = "呢間店暫時未有記錄";
     else if (recordsDateFilter) emptyMsg = "呢個日期暫時未有記錄";
-    html = '<tr><td colspan="12" style="color:#8a7f70;text-align:center;">' + emptyMsg + '</td></tr>';
+    html = '<tr><td colspan="12" style="color:#71879a;text-align:center;">' + emptyMsg + '</td></tr>';
   } else {
     pairs.forEach(function(p, di){
       var r = p.r;
