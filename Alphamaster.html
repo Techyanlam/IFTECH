@@ -143,6 +143,13 @@
         display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
       }
       .notice-bar strong { font-weight: 700; }
+      .notice-bar.live { background: var(--ok-soft); color: var(--ok); }
+      .notice-bar.loading { background: var(--info-soft); color: var(--info); }
+      .notice-dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; flex: 0 0 auto; }
+      .notice-refresh { margin-left: auto; flex: 0 0 auto; }
+      .notice-bar .lang-switch { margin-left: 0; }
+      .btn[disabled] { opacity: .55; cursor: wait; }
+      select[disabled] { opacity: .55; }
       .content { padding: 22px 22px 48px; max-width: 1240px; width: 100%; margin: 0 auto; }
       .view { display: none; }
       .view.active { display: block; }
@@ -507,9 +514,11 @@
       </aside>
 
       <div class="main">
-        <div class="notice-bar">
+        <div class="notice-bar" id="notice-bar">
+          <span class="notice-dot" id="notice-dot" aria-hidden="true"></span>
           <strong id="notice-title">Reference Version</strong>
           <span id="notice-text">Data as of 16 Nov 2026 (verified Feishu Base snapshot). Actions on this site do not write to Feishu. The production version will connect to Feishu Base as its database via a backend.</span>
+          <button class="btn ghost small notice-refresh" type="button" data-notice-refresh id="notice-refresh">Reconnect</button>
           <span class="lang-switch" role="group" aria-label="Language / 語言">
             <button type="button" data-set-lang="zh">中文</button>
             <button type="button" data-set-lang="en" class="active">EN</button>
@@ -633,16 +642,67 @@
         {"case":"AML2609082","quote":"未生成","invoice":"已生成","note":""},
         {"case":"AML2608109","quote":"未生成","invoice":"已生成","note":"物流服務發票需另設範本"}
       ];
+
+      /* 快照副本：Worker 未設定／未能連接時跌返嚟用（2026-11-16 核實） */
+      var SNAPSHOT_DATA = JSON.parse(JSON.stringify({ cases: CASES, charges: CHARGES, totals: TOTALS, invoices: INVOICES, docs: DOCS, intakes: INTAKES, docgen: DOCGEN }));
+      function restoreSnapshot() {
+        var s = JSON.parse(JSON.stringify(SNAPSHOT_DATA));
+        CASES = s.cases; CHARGES = s.charges; TOTALS = s.totals; INVOICES = s.invoices; DOCS = s.docs; INTAKES = s.intakes; DOCGEN = s.docgen;
+      }
 </script>
 
     <script>
       "use strict";
       var content = document.getElementById("content");
-      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "" };
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null };
 
       /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
       var ZH_EN = [
+        ["數據即時來自飛書 Base；於本網站進行的操作（開案、轉換狀態、落單開案）會直接寫入飛書。", "Data is live from Feishu Base. Actions on this site (creating cases, changing status, opening cases from intake) write directly to Feishu."],
+        ["正在向後端 Worker 查核飛書連接；連接成功後會自動轉為即時數據，其間先顯示資料快照。", "Checking the Feishu connection with the backend Worker. Live data will load automatically once connected; the snapshot is shown in the meantime."],
+        ["後端 Worker 尚未設定飛書密鑰或暫時未能連接，現顯示 2026 年 11 月 16 日核實的資料快照；於本網站進行的操作不會寫入飛書。", "The backend Worker does not have the Feishu credentials set yet, or is temporarily unreachable. The verified snapshot of 16 Nov 2026 is shown; actions on this site do not write to Feishu."],
+        ["個案狀態一經轉換，會即時寫入飛書 Base，並觸發飛書自動化：客人發票於個案轉為「已開票」時生成、報價單於轉為「已向供應商落單」時生成；HAWB／HBL／MAWB 飛書暫無自動化，需人手處理。", "Changing a case status saves it to Feishu Base at once and triggers Feishu automations: a customer invoice is generated when the status becomes Invoiced, and a quotation when it becomes Ordered to Supplier. HAWB / HBL / MAWB have no Feishu automation yet and are handled manually."],
+        ["文件生成由飛書自動化負責，觸發狀態於飛書內設定，本頁只作說明，不能在此更改。", "Document generation is handled by Feishu automations. Trigger statuses are configured inside Feishu; this page is explanatory only and cannot change them."],
+        ["認讀欄位來自飛書落單記錄；開案以飛書記錄為準。如需修正欄位，請於飛書 Base 直接修改該行後再開案。", "The recognised fields come from the Feishu intake record, and case creation follows that record. To correct a field, edit the row in Feishu Base first, then create the case."],
+        ["欄位顯示「無」代表落單紙上沒有該項資料，開案時作空白處理；狀態轉為「開案」後，飛書自動化會即時建立個案並連結。", "A field showing None means the order form does not contain that item; it is left blank when the case is created. Once the status becomes Case Created, the Feishu automation creates and links the case at once."],
+        ["配對規則：供應商發票上的 HAWB／HBL 號 = 客人提單號 = 個案的提單號，三者相同先算配對成功。如果個案的 HAWB／HBL 一欄空白（例如 2020-CX086），系統會改用 MAWB／MBL 號配對。數據即時來自飛書 Base 發票表。", "Matching rule: the HAWB / HBL No. on the supplier invoice = the customer's bill of lading No. = the case's bill of lading No. All three must match. If a case's HAWB / HBL field is blank (e.g. 2020-CX086), the system matches by MAWB / MBL No. instead. Data is live from the Feishu Base invoice table."],
+        ["文件生成需時，飛書自動化完成後文件會出現在發票／文件列表；如未即時顯示，請稍後重新整理。", "Document generation takes a moment. Once the Feishu automation finishes, the document will appear in the invoice / document lists; refresh shortly if it is not shown yet."],
+        ["Reference No. 將於提交時由系統按飛書即時數據編配（AML＋業務字母＋年月＋流水號）。", "The Reference No. is assigned by the system from live Feishu data when you submit (AML + business letter + year-month + serial)."],
         ["資料截至 2026 年 11 月 16 日（飛書 Base 核實快照）；於本網站進行的操作不會寫入飛書。正式版將經後端接駁飛書 Base 作為資料庫。", "Data as of 16 Nov 2026 (verified Feishu Base snapshot). Actions on this site do not write to Feishu. The production version will connect to Feishu Base as its database via a backend."],
+        ["已接駁飛書（即時數據）", "Live Data — Connected to Feishu"],
+        ["參考版（快照）", "Reference Version (Snapshot)"],
+        ["正在連接飛書", "Connecting to Feishu"],
+        ["正在建立落單記錄並上載相片…", "Creating the intake record and uploading the photo…"],
+        ["已建立落單記錄，等待飛書 AI 認讀欄位（約需數十秒）…", "Intake record created. Waiting for the Feishu AI to read the fields (usually tens of seconds)…"],
+        ["開案中：正在將落單狀態轉為「開案」，飛書自動化會即時建立個案…", "Opening the case: setting the intake status to Case Created — the Feishu automation will create the case…"],
+        ["已轉為「開案」，飛書自動化正在建立個案；個案連結需時出現，可稍後重新整理此頁查看。", "Status set to Case Created. The Feishu automation is creating the case; the case link takes a moment — refresh this page shortly to see it."],
+        ["正在建立個案並寫入飛書…", "Creating the case and saving to Feishu…"],
+        ["個案已建立並寫入飛書：", "Case created and saved to Feishu: "],
+        ["建立失敗，未有寫入飛書：", "Creation failed — nothing was written to Feishu: "],
+        ["寫入飛書失敗：", "Failed to write to Feishu: "],
+        ["操作失敗：", "Operation failed: "],
+        ["狀態已寫入飛書", "Status saved to Feishu"],
+        ["飛書自動化已生成：", "Feishu automation has generated: "],
+        ["飛書自動化（已啟用）", "Feishu Automation (enabled)"],
+        ["飛書暫無自動化", "No Feishu automation yet"],
+        ["於飛書 Base 的自動化設定", "Feishu Base automation settings"],
+        ["重新連接", "Reconnect"],
+        ["重新整理", "Refresh"],
+        ["已於飛書開案，新個案：", "Case opened in Feishu. New case: "],
+        ["正在寫入飛書…", "Saving to Feishu…"],
+        ["已核對", "Checked"],
+        ["等候認讀結果時連線失敗，請重新整理後於認讀記錄查看。", "The connection failed while waiting for recognition results. Please refresh and check the intake records."],
+        ["建立落單記錄失敗", "Failed to create the intake record"],
+        ["上載相片失敗", "Photo upload failed"],
+        ["開案失敗", "Failed to create the case"],
+        ["每種文件於個案轉為哪個狀態時自動生成，見", "Which status triggers each document is set out in"],
+        [" 說明。", "."],
+        ["客人發票及報價單的自動生成在飛書 Base 的自動化設定：個案狀態轉為觸發狀態時，飛書即經 DocuGenius 生成文件，生成標記會顯示於個案詳情。HAWB／HBL／MAWB 飛書暫無自動化，需人手生成。如需更改觸發狀態，請於飛書 Base 內修改自動化。", "Customer invoice and quotation auto-generation lives in the Feishu Base automation settings: when a case status reaches the trigger status, Feishu generates the document via DocuGenius, and the generation marker appears in Case Details. HAWB / HBL / MAWB have no Feishu automation yet and are generated manually. To change a trigger status, edit the automation inside Feishu Base."],
+        ["認讀於飛書進行（Kimi 圖片理解）：上載後系統會建立落單記錄並上載相片，認出欄位後於此頁顯示，核對後撳「開案」即經飛書自動化開案。", "Recognition runs in Feishu (Kimi image understanding): uploading creates an intake record and attaches the photo; once the fields are read they appear here for checking, and Create Case then opens the case via the Feishu automation."],
+        ["建立個案", "Create Case"],
+        [" 張客人發票", " customer invoices"],
+        ["已記錄供應商發票", "Supplier invoices recorded"],
+        [" 張", ""],
         ["此預覽按飛書 Base 的個案資料即時排版，方便核對內容；正式 PDF 由 DocuGenius 按範本生成，版面以範本為準。", "This preview is laid out live from the case data in Feishu Base for checking. The official PDF is generated by DocuGenius from the template; the template layout prevails."],
         ["個案狀態一經轉換，飛書會按「文件生成設定」中選定的觸發狀態自動生成相應文件（例如轉為「已開票」時生成客人發票）。哪個狀態觸發哪份文件，由您在設定頁決定，可隨時更改。", "When a case status changes, Feishu automatically generates the corresponding documents based on the trigger statuses chosen in Doc Generation Settings (e.g. a customer invoice when the status becomes Invoiced). Which status triggers which document is up to you on the Settings page and can be changed at any time."],
         ["預設值跟隨目前飛書自動化的做法：客人發票於「已開票」生成、報價單於「已向供應商落單」生成、HAWB／HBL 於「已完成」生成、MAWB 設為手動。選「手動」的文件不會自動生成，只可於個案內人手生成。", "Defaults follow the current Feishu automation: customer invoices are generated at Invoiced, quotations at Ordered to Supplier, HAWB / HBL at Completed, and MAWB is set to Manual. Documents set to Manual are never generated automatically and can only be created manually within a case."],
@@ -1000,13 +1060,22 @@
         return out;
       }
       var NAV_LABELS = { dashboard: ["總覽", "Dashboard"], cases: ["個案一覽", "Cases"], newcase: ["開新單", "New Case"], intake: ["落單認讀", "Order Intake"], invoices: ["發票及報價單", "Invoices & Quotations"], suppliercheck: ["外判發票核對", "Supplier Invoice Check"], docs: ["文件", "Documents"], docsettings: ["文件生成設定", "Doc Generation Settings"], charges: ["收費項目", "Charge Items"] };
+      function noticeInfo() {
+        if (state.dataMode === "live") return { title: "已接駁飛書（即時數據）", text: "數據即時來自飛書 Base；於本網站進行的操作（開案、轉換狀態、落單開案）會直接寫入飛書。" + (state.workerVersion ? "（Worker " + state.workerVersion + "）" : ""), btn: "重新整理" };
+        if (state.dataMode === "loading") return { title: "正在連接飛書", text: "正在向後端 Worker 查核飛書連接；連接成功後會自動轉為即時數據，其間先顯示資料快照。", btn: "重新連接" };
+        return { title: "參考版（快照）", text: "後端 Worker 尚未設定飛書密鑰或暫時未能連接，現顯示 2026 年 11 月 16 日核實的資料快照；於本網站進行的操作不會寫入飛書。", btn: "重新連接" };
+      }
       function applyStaticLang() {
         var en = state.lang === "en";
         document.documentElement.lang = en ? "en" : "zh-Hant";
         document.title = en ? "ALPHA MASTER Logistics System" : "ALPHA MASTER 物流系統";
         var bs = document.getElementById("brand-sub"); if (bs) bs.textContent = en ? "LOGISTICS LIMITED · Logistics System" : "LOGISTICS LIMITED · 物流系統";
-        var nt = document.getElementById("notice-title"); if (nt) nt.textContent = en ? "Reference Version" : "參考版";
-        var nx = document.getElementById("notice-text"); if (nx) nx.textContent = trText("資料截至 2026 年 11 月 16 日（飛書 Base 核實快照）；於本網站進行的操作不會寫入飛書。正式版將經後端接駁飛書 Base 作為資料庫。");
+        var ni = noticeInfo();
+        var nbar = document.getElementById("notice-bar");
+        if (nbar) { nbar.classList.toggle("live", state.dataMode === "live"); nbar.classList.toggle("loading", state.dataMode === "loading"); }
+        var nt = document.getElementById("notice-title"); if (nt) nt.textContent = trText(ni.title);
+        var nx = document.getElementById("notice-text"); if (nx) nx.textContent = trText(ni.text);
+        var nr = document.getElementById("notice-refresh"); if (nr) nr.textContent = trText(ni.btn);
         var dl = document.getElementById("sidebar-db-label"); if (dl) dl.textContent = en ? "Database: Feishu Base" : "資料庫：飛書 Base";
         var ob = document.getElementById("sidebar-open-base"); if (ob) ob.textContent = en ? "Open Base in Feishu" : "在飛書開啟 Base";
         var pb = document.getElementById("preview-badge"); if (pb) pb.textContent = en ? "Preview · Not an official document" : "預覽 · 非正式文件";
@@ -1064,7 +1133,16 @@
       function hasLeak(ref) {
         var hasSupInv = INVOICES.some(function (i) { return i.case === ref && i.cat === "供應商發票"; });
         var hasCusInv = INVOICES.some(function (i) { return i.case === ref && i.cat === "客人發票"; });
-        return hasSupInv && !hasCusInv;
+        if (hasSupInv && !hasCusInv) return true;
+        var c = CASES.filter(function (x) { return x.ref === ref; })[0];
+        return !!(c && c.leakText && !hasCusInv);
+      }
+      function updateBadges() {
+        var leak = CASES.filter(function (c) { return hasLeak(c.ref); }).length;
+        var lb = document.getElementById("nav-leak-badge"); if (lb) { lb.textContent = leak; lb.style.display = leak ? "" : "none"; }
+        var sb = document.getElementById("nav-supplier-badge"); if (sb) { sb.textContent = leak; sb.style.display = leak ? "" : "none"; }
+        var pend = INTAKES.filter(function (i) { return i.status === "待核對" && !state.openedIntakes[i.ref]; }).length;
+        var ib = document.getElementById("nav-intake-badge"); if (ib) { ib.textContent = pend; ib.style.display = pend ? "" : "none"; }
       }
       function typeChip(t) {
         var cls = t === "空運" ? "chip-air" : t === "海運" ? "chip-sea" : t === "本地派送" ? "chip-local" : "chip-logi";
@@ -1084,6 +1162,126 @@
         return esc(c.pol || "—") + " → " + esc(c.pod || "—");
       }
       function findCase(ref) { return CASES.filter(function (c) { return c.ref === ref; })[0]; }
+
+      /* ---------- 飛書即時接駁（Worker API；失敗跌返快照） ---------- */
+      var API_BASE = "https://alpha-master-api.yan-lam.workers.dev";
+      function apiFetch(path, opts) {
+        var ctrl = ("AbortController" in window) ? new AbortController() : null;
+        var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 20000) : null;
+        var init = opts || {};
+        if (ctrl) init.signal = ctrl.signal;
+        return fetch(API_BASE + path, init).then(function (res) {
+          if (timer) clearTimeout(timer);
+          return res.json().catch(function () { return {}; }).then(function (body) { return { status: res.status, body: body || {} }; });
+        }).catch(function (e) { if (timer) clearTimeout(timer); throw e; });
+      }
+      function apiJson(path, method, payload) {
+        return apiFetch(path, { method: method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload || {}) });
+      }
+      function apiErrorText(r, fallback) {
+        var b = (r && r.body) || {};
+        return b.message || b.error || fallback || ("HTTP " + (r ? r.status : "?"));
+      }
+      function normCase(rc) {
+        return {
+          recordId: rc.recordId || "", ref: rc.ref || "", type: rc.type || "", dir: rc.dir || "", status: rc.status || "",
+          shipper: rc.shipper || "", consignee: rc.consignee || "", notify: rc.notify || "",
+          pol: rc.pol || "", pod: rc.pod || "", finalDest: rc.final || rc.finalDest || "",
+          flight: rc.flight || "", etd: rc.etd || "", eta: rc.eta || "",
+          pcs: rc.pcs == null ? null : rc.pcs, pcsNote: "",
+          gross: rc.gross == null ? null : rc.gross, chargeable: rc.chargeable == null ? null : rc.chargeable,
+          cbmLabel: rc.type === "海運" ? "CBM" : rc.type === "空運" ? "計費重量 (KG)" : "",
+          mawb: rc.mawb || "", hawb: rc.hawb || "", booking: rc.booking || "",
+          desc: rc.desc || "", container: rc.container || "",
+          quoteDate: rc.quoteDate || "", validUntil: rc.validUntil || "", extra: "",
+          receiveStatus: rc.receiveStatus || "", payStatus: rc.payStatus || "",
+          leakText: rc.leak || "", invoiceDoc: rc.invoiceDoc || "", quotationDoc: rc.quotationDoc || "",
+          revTotal: typeof rc.totalCustomer === "number" ? rc.totalCustomer : null,
+          costTotal: typeof rc.totalCost === "number" ? rc.totalCost : null
+        };
+      }
+      function normBooking(b) {
+        return {
+          recordId: b.recordId || "", title: b.title || "", ref: b.ref || "", status: b.status || "", date: b.date || "",
+          type: b.type || "", dir: b.dir || "", shipper: b.shipper || "", consignee: b.consignee || "", notify: b.notify || "",
+          pol: b.pol || "", pod: b.pod || "", flight: b.flight || "", etd: b.etd || "", eta: b.eta || "",
+          pcs: b.pcs == null ? "" : String(b.pcs), gross: b.gross == null ? "" : String(b.gross), chargeable: b.chargeable == null ? "" : String(b.chargeable),
+          mawb: b.mawb || "", hawb: b.hawb || "", desc: b.desc || "", caseRef: b.case || "", hasFile: !!b.hasFile
+        };
+      }
+      function rebuildTotals() {
+        var t = {};
+        CASES.forEach(function (c) {
+          var rev = c.revTotal, cost = c.costTotal;
+          if (rev == null) rev = CHARGES.filter(function (ch) { return ch.case === c.ref && ch.cat === "向客收費"; }).reduce(function (s, ch) { return s + (Number(ch.amount) || 0); }, 0);
+          if (cost == null) cost = CHARGES.filter(function (ch) { return ch.case === c.ref && ch.cat === "供應商成本"; }).reduce(function (s, ch) { return s + (Number(ch.amount) || 0); }, 0);
+          t[c.ref] = { rev: rev, cost: cost };
+        });
+        TOTALS = t;
+      }
+      function deriveDocGen() {
+        var out = [];
+        CASES.forEach(function (c) {
+          var hasInv = INVOICES.some(function (i) { return i.case === c.ref && i.cat === "客人發票"; });
+          if (!c.invoiceDoc && !c.quotationDoc && !hasInv) return;
+          var notes = [];
+          if (c.quotationDoc) notes.push("報價單：" + c.quotationDoc);
+          if (c.invoiceDoc) notes.push("客人發票：" + c.invoiceDoc);
+          out.push({ "case": c.ref, quote: c.quotationDoc ? "已生成" : "未生成", invoice: (c.invoiceDoc || hasInv) ? "已生成" : "未生成", note: notes.join("；") });
+        });
+        return out;
+      }
+      function applyLiveData(bodies) {
+        CASES = (bodies.cases.cases || []).map(normCase);
+        CHARGES = (bodies.charges.charges || []).map(function (ch) {
+          return { recordId: ch.recordId || "", "case": ch.case || "", name: ch.name || "", cat: ch.cat || "", curr: ch.curr || "", price: ch.price == null ? 0 : ch.price, unit: ch.unit || "", qty: ch.qty == null ? 0 : ch.qty, amount: ch.amount == null ? 0 : ch.amount };
+        });
+        INVOICES = (bodies.invoices.invoices || []).map(function (i) {
+          return { recordId: i.recordId || "", no: i.no || "", "case": i.case || "", cat: i.cat || "", date: i.date || "", total: i.total == null ? 0 : i.total, curr: i.curr || "", pay: i.pay || "" };
+        });
+        DOCS = (bodies.documents.documents || []).map(function (d) {
+          return { name: d.name || d.fileName || "", "case": d.case || "", cat: d.cat || "", date: d.date || "", note: d.note || "" };
+        });
+        INTAKES = (bodies.bookings.bookings || []).map(normBooking);
+        state.openedIntakes = {};
+        rebuildTotals();
+        DOCGEN = deriveDocGen();
+      }
+      function fetchAllLive() {
+        return Promise.all([apiFetch("/api/cases"), apiFetch("/api/charges"), apiFetch("/api/invoices"), apiFetch("/api/documents"), apiFetch("/api/bookings")]).then(function (rs) {
+          var keys = ["cases", "charges", "invoices", "documents", "bookings"];
+          for (var i = 0; i < rs.length; i++) {
+            if (rs[i].status !== 200 || !rs[i].body || rs[i].body.ok !== true) throw new Error(apiErrorText(rs[i], "live data load failed"));
+          }
+          var bodies = {};
+          keys.forEach(function (k, i) { bodies[k] = rs[i].body; });
+          return bodies;
+        });
+      }
+      function enterSnapshot() {
+        restoreSnapshot();
+        state.dataMode = "snapshot";
+        render();
+      }
+      function connectLive() {
+        state.dataMode = "loading";
+        applyStaticLang();
+        return apiFetch("/api/health").then(function (r) {
+          if (!r.body || r.body.ok !== true) throw new Error("health check failed");
+          state.workerVersion = r.body.version || "";
+          if (!r.body.configured) { enterSnapshot(); return false; }
+          return fetchAllLive().then(function (bodies) {
+            applyLiveData(bodies);
+            state.dataMode = "live";
+            render();
+            return true;
+          });
+        }).catch(function () { enterSnapshot(); return false; });
+      }
+      function refreshLive() {
+        if (state.dataMode !== "live") { connectLive(); return; }
+        fetchAllLive().then(function (bodies) { applyLiveData(bodies); render(); }).catch(function () { enterSnapshot(); });
+      }
 
       /* ---------- 文件縮圖與預覽 ---------- */
       function docKindOf(cat) {
@@ -1223,6 +1421,7 @@
         CASES.forEach(function (c) { byType[c.type] = (byType[c.type] || 0) + 1; });
         var typeNote = Object.keys(byType).map(function (k) { return k + " " + byType[k]; }).join(" · ");
         var custInvTotal = INVOICES.filter(function (i) { return i.cat === "客人發票"; }).reduce(function (s, i) { return s + i.total; }, 0);
+        var supInvCount = INVOICES.filter(function (i) { return i.cat === "供應商發票"; }).length;
         var leaks = CASES.filter(function (c) { return hasLeak(c.ref); });
         var pendingIntake = INTAKES.filter(function (i) { return i.status === "待核對"; }).length;
         var recent = CASES.slice(0, 6);
@@ -1235,8 +1434,8 @@
           '<button class="btn" data-nav-go="newcase" type="button">＋ 開新單</button></div>' +
           '<div class="kpi-grid">' +
           '<div class="kpi"><div class="k-label">個案總數</div><div class="k-value">' + CASES.length + '</div><div class="k-note">' + esc(typeNote) + "</div></div>" +
-          '<div class="kpi money"><div class="k-label">已開票總額（客人發票）</div><div class="k-value">HKD ' + fmt(custInvTotal) + '</div><div class="k-note">共 ' + INVOICES.filter(function (i) { return i.cat === "客人發票"; }).length + " 張，全部未收</div></div>" +
-          '<div class="kpi money"><div class="k-label">供應商成本總額</div><div class="k-value">HKD ' + fmt(totalCost) + '</div><div class="k-note">已記錄供應商發票 1 張</div></div>' +
+          '<div class="kpi money"><div class="k-label">已開票總額（客人發票）</div><div class="k-value">HKD ' + fmt(custInvTotal) + '</div><div class="k-note">共 ' + INVOICES.filter(function (i) { return i.cat === "客人發票"; }).length + " 張客人發票</div></div>" +
+          '<div class="kpi money"><div class="k-label">供應商成本總額</div><div class="k-value">HKD ' + fmt(totalCost) + '</div><div class="k-note">已記錄供應商發票 ' + supInvCount + " 張</div></div>" +
           '<div class="kpi money"><div class="k-label">利潤總額</div><div class="k-value">HKD ' + fmt(totalRev - totalCost) + '</div><div class="k-note">向客收費 − 供應商成本</div></div>' +
           '<div class="kpi danger"><div class="k-label">漏開票提示</div><div class="k-value">' + leaks.length + ' 宗</div><div class="k-note">已收供應商發票、未向客人開票</div></div>' +
           '<div class="kpi"><div class="k-label">待核對落單</div><div class="k-value">' + pendingIntake + ' 份</div><div class="k-note">客人落單認讀待處理</div></div>' +
@@ -1301,17 +1500,31 @@
         var notice = "";
         if (state.statusNotice && state.statusNotice.ref === ref) {
           var nn = state.statusNotice;
-          notice = '<div class="gen-notice"><strong>狀態已轉為「' + esc(nn.to) + '」。</strong> ' +
-            (nn.docs.length
-              ? "按目前「文件生成設定」，將自動生成：" + nn.docs.map(function (d) { return "<strong>" + esc(d) + "</strong>"; }).join("、") + "。"
-              : "按目前「文件生成設定」，此狀態不會觸發任何文件自動生成。") +
-            '觸發狀態可於 <a href="#" data-nav-go="docsettings">文件生成設定</a> 更改。參考版只顯示觸發結果，不會真正生成 PDF。</div>';
+          if (nn.error) {
+            notice = '<div class="alert-box" style="margin-top:14px"><span aria-hidden="true">⚠</span><span>寫入飛書失敗：' + esc(nn.error) + "</span></div>";
+          } else if (nn.live) {
+            var genBits = [];
+            if (nn.quotationDoc) genBits.push("報價單 " + nn.quotationDoc);
+            if (nn.invoiceDoc) genBits.push("客人發票 " + nn.invoiceDoc);
+            notice = '<div class="gen-notice"><strong>狀態已寫入飛書，現為「' + esc(nn.to) + '」。</strong> ' +
+              (genBits.length ? "飛書自動化已生成：" + genBits.map(function (d) { return "<strong>" + esc(d) + "</strong>"; }).join("、") + "。" : "文件生成需時，飛書自動化完成後文件會出現在發票／文件列表；如未即時顯示，請稍後重新整理。") + "</div>";
+          } else {
+            notice = '<div class="gen-notice"><strong>狀態已轉為「' + esc(nn.to) + '」。</strong> ' +
+              (nn.docs.length
+                ? "按目前「文件生成設定」，將自動生成：" + nn.docs.map(function (d) { return "<strong>" + esc(d) + "</strong>"; }).join("、") + "。"
+                : "按目前「文件生成設定」，此狀態不會觸發任何文件自動生成。") +
+              '觸發狀態可於 <a href="#" data-nav-go="docsettings">文件生成設定</a> 更改。參考版只顯示觸發結果，不會真正生成 PDF。</div>';
+          }
         }
+        var statusHelp = state.dataMode === "live"
+          ? "個案狀態一經轉換，會即時寫入飛書 Base，並觸發飛書自動化：客人發票於個案轉為「已開票」時生成、報價單於轉為「已向供應商落單」時生成；HAWB／HBL／MAWB 飛書暫無自動化，需人手處理。"
+          : "個案狀態一經轉換，飛書會按「文件生成設定」中選定的觸發狀態自動生成相應文件（例如轉為「已開票」時生成客人發票）。哪個狀態觸發哪份文件，由您在設定頁決定，可隨時更改。";
         h += '<div class="card"><h2 class="section-title">個案狀態與文件生成</h2>' +
           '<div class="status-bar"><span>目前狀態：' + statusBadge(c) + "</span>" +
           '<label for="detail-status" style="font-weight:700; font-size:13.5px; color:var(--ink-2)">轉換狀態</label>' +
-          '<select id="detail-status" class="status-select" data-detail-status="' + esc(ref) + '">' + statusOpts + "</select></div>" +
-          '<p class="small muted" style="margin:10px 0 0">個案狀態一經轉換，飛書會按「文件生成設定」中選定的觸發狀態自動生成相應文件（例如轉為「已開票」時生成客人發票）。哪個狀態觸發哪份文件，由您在設定頁決定，可隨時更改。</p>' +
+          '<select id="detail-status" class="status-select" data-detail-status="' + esc(ref) + '"' + (state.statusBusy ? " disabled" : "") + ">" + statusOpts + "</select>" +
+          (state.statusBusy ? '<span class="small muted">正在寫入飛書…</span>' : "") + "</div>" +
+          '<p class="small muted" style="margin:10px 0 0">' + statusHelp + "</p>" +
           notice + "</div>";
 
         h += '<div class="card"><h2 class="section-title">船期及貨物資料</h2><div class="detail-grid">' +
@@ -1422,13 +1635,17 @@
           return '<button type="button" class="type-card' + (state.newType === tc[0] ? " active" : "") + '" data-newtype="' + tc[0] + '"><span class="t-name">' + tc[0] + '</span><span class="t-desc">' + tc[1] + "</span></button>";
         }).join("");
 
+        var live = state.dataMode === "live";
+        var refBox = live
+          ? '<div class="ref-preview"><span>Reference No. 將於提交時由系統按飛書即時數據編配（AML＋業務字母＋年月＋流水號）。</span></div>'
+          : '<div class="ref-preview"><span>新個案 Reference No. 預覽（統一編號：Job No. ＝ Invoice No. ＝ ' + (t === "海運" ? "HBL" : t === "空運" ? "HAWB" : "派送單") + ' No.）：</span><span class="big-ref mono" id="ref-preview">' + refPreview(t) + "</span></div>";
         return '<div class="page-head"><div><h1>開新單</h1><div class="sub">先選業務類型，表格會按空運／海運／本地派送的落單格式顯示</div></div></div>' +
           '<div class="type-picker">' + typeCards + "</div>" +
           (t === "本地派送" ? '<div class="note-box" style="margin-bottom:16px">本地派送沒有落單表格，客人以電郵通知；此頁面供人手開案之用（電郵格式樣本待客人提供）。</div>' +
-            '<div class="note-box" style="margin-bottom:16px">注意：本地派送為參考版新增的開案入口，目前飛書 Base 個案主表並無此業務的實際個案。</div>' : "") +
+            (live ? "" : '<div class="note-box" style="margin-bottom:16px">注意：本地派送為參考版新增的開案入口，目前飛書 Base 個案主表並無此業務的實際個案。</div>') : "") +
           '<form id="newcase-form" class="card"><div class="form-grid">' + fields + "</div>" +
-          '<div class="ref-preview"><span>新個案 Reference No. 預覽（統一編號：Job No. ＝ Invoice No. ＝ ' + (t === "海運" ? "HBL" : t === "空運" ? "HAWB" : "派送單") + ' No.）：</span><span class="big-ref mono" id="ref-preview">' + refPreview(t) + "</span></div>" +
-          '<div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap"><button class="btn" type="submit">建立個案（預覽）</button>' +
+          refBox +
+          '<div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap"><button class="btn" type="submit"' + (state.newCaseBusy ? " disabled" : "") + ">" + (state.newCaseBusy ? "正在建立個案並寫入飛書…" : live ? "建立個案" : "建立個案（預覽）") + "</button>" +
           '<button class="btn ghost" type="reset">清除</button></div>' +
           '<div id="newcase-result"></div></form>';
       }
@@ -1451,43 +1668,88 @@
         { k: "hawb", label: "HAWB / HBL No.", v: "AMLA2606040" },
         { k: "desc", label: "貨品描述", v: "無" }
       ];
+      function liveAiFields(b) {
+        var none = "無";
+        var g = function (v) { return v == null || v === "" ? none : String(v); };
+        return [
+          { k: "shipper", label: "Shipper", v: g(b.shipper) },
+          { k: "consignee", label: "Consignee", v: g(b.consignee) },
+          { k: "notify", label: "Notify Party", v: g(b.notify) },
+          { k: "pol", label: "POL（裝貨地）", v: g(b.pol) },
+          { k: "pod", label: "POD（卸貨地）", v: g(b.pod) },
+          { k: "flight", label: "Flight / Vessel + Voyage", v: g(b.flight) },
+          { k: "etd", label: "ETD", v: g(b.etd) },
+          { k: "eta", label: "ETA", v: g(b.eta) },
+          { k: "pcs", label: "件數 PCS", v: g(b.pcs) },
+          { k: "gross", label: "Gross Weight (KG)", v: g(b.gross) },
+          { k: "chargeable", label: "Chargeable Weight / CBM", v: g(b.chargeable) },
+          { k: "mawb", label: "MAWB / MBL No.", v: g(b.mawb) },
+          { k: "hawb", label: "HAWB / HBL No.", v: g(b.hawb) },
+          { k: "desc", label: "貨品描述", v: g(b.desc) }
+        ];
+      }
       function aiSectionHtml() {
         var ai = state.intakeAi;
         var stage = ai.stage;
         var labels = ["上載落單相", "AI 認讀", "核對欄位", "開案"];
-        var nowIdx = stage === "idle" ? 0 : stage === "recognized" ? 2 : 3;
+        var nowIdx = stage === "idle" ? 0 : stage === "recognized" ? 2 : (stage === "uploading" || stage === "polling") ? 1 : 3;
         var stepsHtml = '<div class="steps">' + labels.map(function (lb, i) {
           var cls = (stage === "opened" || i < nowIdx) ? "step done" : (i === nowIdx ? "step now" : "step");
           return '<span class="' + cls + '"><span class="n">' + (i + 1) + "</span>" + esc(lb) + "</span>";
         }).join("") + "</div>";
         var body;
+        if (stage === "uploading" || stage === "polling" || stage === "error") {
+          body = (ai.preview ? '<img class="ai-preview" src="' + ai.preview + '" alt="已上載的落單相" style="margin-bottom:14px" />' : "") +
+            (stage === "error"
+              ? '<div class="alert-box"><span aria-hidden="true">⚠</span><span>操作失敗：' + esc(ai.message || "") + '</span></div><div style="margin-top:14px"><button class="btn ghost small" type="button" data-ai-reset>重新上載</button></div>'
+              : '<div class="note-box">' + esc(ai.message || "") + '</div><div style="margin-top:14px"><button class="btn ghost small" type="button" data-ai-reset>重新上載</button></div>');
+          return '<div class="card" style="margin-bottom:20px"><h2 class="section-title">AI 認讀落單</h2>' + stepsHtml + body + "</div>";
+        }
         if (stage === "idle") {
           body = '<div class="upload-zone">' +
             '<p style="margin:0 0 6px"><strong>上載客人落單相</strong></p>' +
             '<p class="small muted" style="margin:0 auto 14px; max-width:520px">支援相片或截圖（JPG／PNG）。Excel 檔 AI 無法直接認讀，請先轉為圖片。認讀使用飛書的 Kimi 圖片理解，認出欄位後由此頁核對。</p>' +
             '<label class="btn" for="ai-file" style="cursor:pointer">選擇落單相</label>' +
             '<input id="ai-file" type="file" accept="image/*" style="display:none" />' +
-            '<div class="small muted" style="margin:12px 0 8px">或</div>' +
-            '<button class="btn ghost" type="button" data-ai-demo>使用示範落單紙認讀（AMLA2606040）</button>' +
+            (state.dataMode === "live" ? "" : '<div class="small muted" style="margin:12px 0 8px">或</div>' +
+            '<button class="btn ghost" type="button" data-ai-demo>使用示範落單紙認讀（AMLA2606040）</button>') +
             "</div>";
         } else {
-          var fields = AI_FIELDS.map(function (f) {
-            return '<div class="field"><label for="ai-' + f.k + '">' + esc(f.label) + '</label><input id="ai-' + f.k + '" type="text" value="' + esc(f.v) + '" />' + (f.hint ? '<div class="hint">' + esc(f.hint) + "</div>" : "") + "</div>";
+          var srcFields = ai.liveBooking ? liveAiFields(ai.liveBooking) : AI_FIELDS;
+          var fields = srcFields.map(function (f) {
+            return '<div class="field"><label for="ai-' + f.k + '">' + esc(f.label) + '</label><input id="ai-' + f.k + '" type="text" value="' + esc(f.v) + '"' + (ai.liveBooking ? " readonly" : "") + " />" + (f.hint ? '<div class="hint">' + esc(f.hint) + "</div>" : "") + "</div>";
           }).join("");
+          var typeLine = ai.liveBooking
+            ? '<p class="small" style="margin:0 0 12px"><strong>業務類型：</strong>' + esc(ai.liveBooking.type || "—") + (ai.liveBooking.dir ? " · " + esc(ai.liveBooking.dir) : "") + (ai.liveBooking.ref ? ' · 認讀編號 <span class="mono">' + esc(ai.liveBooking.ref) + "</span>" : "") + "</p>"
+            : '<p class="small" style="margin:0 0 12px"><strong>業務類型：</strong>空運 · 出口（由落單紙格式認出）</p>';
+          var checkNote = ai.liveBooking
+            ? '<p class="small muted" style="margin:12px 0 0">認讀欄位來自飛書落單記錄；開案以飛書記錄為準。如需修正欄位，請於飛書 Base 直接修改該行後再開案。</p>'
+            : '<p class="small muted" style="margin:12px 0 0">欄位顯示「無」代表落單紙上沒有該項資料，開案時作空白處理；核對時可直接修改任何欄位。</p>';
+          var openedBox;
+          if (stage === "opened" && ai.liveBooking) {
+            openedBox = '<div class="success-box"><h3>已開案</h3><p style="margin:0">' +
+              (ai.openedRef
+                ? '已於飛書開案，新個案：<a class="ref-link mono" href="#" data-open-case="' + esc(ai.openedRef) + '">' + esc(ai.openedRef) + "</a>，並與本落單連結。"
+                : "已轉為「開案」，飛書自動化正在建立個案；個案連結需時出現，可稍後重新整理此頁查看。") + "</p></div>";
+          } else if (stage === "opened") {
+            openedBox = '<div class="success-box"><h3>已開案</h3><p style="margin:0">已按核對後的欄位建立新個案 <a class="ref-link mono" href="#" data-open-case="' + esc(ai.openedRef) + '">' + esc(ai.openedRef) + '</a>，並與本落單連結（認讀記錄第 1 行已同步標示為已開案）。參考版不會寫入飛書；正式版會經飛書自動化即時開案。</p></div>';
+          } else {
+            openedBox = '<div style="margin-top:16px"><button class="btn" type="button" data-ai-open' + (state.intakeBusy ? " disabled" : "") + ">" + (state.intakeBusy ? "開案中：正在將落單狀態轉為「開案」，飛書自動化會即時建立個案…" : "確認核對並開案") + "</button></div>";
+          }
           body = '<div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px">' +
             '<span class="badge badge-ok">AI 認讀完成</span><span class="small">來源：' + esc(ai.fileName || "落單相") + "</span>" +
             '<span style="flex:1"></span>' +
             '<button class="btn ghost small" type="button" data-ai-reset>重新上載</button></div>' +
             (ai.preview ? '<img class="ai-preview" src="' + ai.preview + '" alt="已上載的落單相" style="margin-bottom:14px" />' : "") +
-            '<p class="small" style="margin:0 0 12px"><strong>業務類型：</strong>空運 · 出口（由落單紙格式認出）</p>' +
+            typeLine +
             '<div class="form-grid">' + fields + "</div>" +
-            '<p class="small muted" style="margin:12px 0 0">欄位顯示「無」代表落單紙上沒有該項資料，開案時作空白處理；核對時可直接修改任何欄位。</p>' +
-            (stage === "opened"
-              ? '<div class="success-box"><h3>已開案</h3><p style="margin:0">已按核對後的欄位建立新個案 <a class="ref-link mono" href="#" data-open-case="' + esc(ai.openedRef) + '">' + esc(ai.openedRef) + '</a>，並與本落單連結（認讀記錄第 1 行已同步標示為已開案）。參考版不會寫入飛書；正式版會經飛書自動化即時開案。</p></div>'
-              : '<div style="margin-top:16px"><button class="btn" type="button" data-ai-open>確認核對並開案</button></div>');
+            checkNote + openedBox;
         }
+        var footNote = state.dataMode === "live"
+          ? "認讀於飛書進行（Kimi 圖片理解）：上載後系統會建立落單記錄並上載相片，認出欄位後於此頁顯示，核對後撳「開案」即經飛書自動化開案。"
+          : "參考版的認讀為畫面模擬：上載任何相片，均以示範落單紙（AMLA2606040）的認讀結果示範流程；正式版才接駁真正的 AI 認讀。";
         return '<div class="card" style="margin-bottom:20px"><h2 class="section-title">AI 認讀落單</h2>' + stepsHtml + body +
-          '<p class="small muted" style="margin:14px 0 0">參考版的認讀為畫面模擬：上載任何相片，均以示範落單紙（AMLA2606040）的認讀結果示範流程；正式版才接駁真正的 AI 認讀。</p></div>';
+          '<p class="small muted" style="margin:14px 0 0">' + footNote + "</p></div>";
       }
       function viewIntake() {
         var rows = INTAKES.map(function (it, idx) {
@@ -1497,7 +1759,7 @@
             var cr = opened ? opened : it.caseRef;
             action = '<span class="badge badge-ok">已開案</span>' + (cr ? '<div style="margin-top:5px"><a class="ref-link mono small" href="#" data-open-case="' + esc(cr) + '">' + esc(cr) + "</a></div>" : "");
           } else {
-            action = '<span class="badge badge-warn">待核對</span><div style="margin-top:6px"><button class="btn small" type="button" data-open-intake="' + idx + '">核對並開案</button></div>';
+            action = (it.status === "已核對" ? '<span class="badge badge-info">已核對</span>' : '<span class="badge badge-warn">待核對</span>') + '<div style="margin-top:6px"><button class="btn small" type="button" data-open-intake="' + idx + '"' + (state.intakeBusy ? " disabled" : "") + ">核對並開案</button></div>";
           }
           return "<tr><td data-label='落單標題'><strong>" + esc(it.title) + "</strong><div class='muted small'>收到日期：" + fmtDate(it.date) + "</div></td>" +
             "<td data-label='認讀編號' class='mono'>" + esc(it.ref) + "</td>" +
@@ -1506,12 +1768,15 @@
             "<td data-label='航線'><span class='route'>" + esc(it.pol) + " → " + esc(it.pod) + "</span><div class='muted small'>ETD " + fmtDate(it.etd) + " · " + esc(it.pcs) + " 件 · " + esc(it.gross) + " KG</div></td>" +
             "<td data-label='狀態'>" + action + "</td></tr>";
         }).join("");
+        var intakeNote = state.dataMode === "live"
+          ? "欄位顯示「無」代表落單紙上沒有該項資料，開案時作空白處理；狀態轉為「開案」後，飛書自動化會即時建立個案並連結。"
+          : "欄位顯示「無」代表落單紙上沒有該項資料，開案時作空白處理；落單紙本身並無 Reference No.、航班、ETD、貨品描述等欄位，該等資料或需人手補上。第 3、4 行已於飛書觸發自動開案（個案 AML202611003／AML202611004），屬測試單或真實訂單仍待確認。";
         return '<div class="page-head"><div><h1>落單認讀</h1><div class="sub">先上載客人落單相，AI 認讀欄位；核對無誤即可開案，系統自動建立個案並連結</div></div></div>' +
           aiSectionHtml() +
           '<h2 class="section-title">認讀記錄</h2>' +
           '<div class="table-wrap"><table class="data"><thead><tr><th>落單標題</th><th>認讀編號</th><th>業務</th><th>Shipper / Consignee</th><th>航線</th><th>狀態</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
-          '<div class="note-box" style="margin-top:14px">欄位顯示「無」代表落單紙上沒有該項資料，開案時作空白處理；落單紙本身並無 Reference No.、航班、ETD、貨品描述等欄位，該等資料或需人手補上。第 3、4 行已於飛書觸發自動開案（個案 AML202611003／AML202611004），屬測試單或真實訂單仍待確認。</div>' +
-          '<div id="intake-result"></div>';
+          '<div class="note-box" style="margin-top:14px">' + intakeNote + "</div>" +
+          '<div id="intake-result">' + (state.intakeResult || "") + "</div>";
       }
 
       /* ---------- 發票及報價單 ---------- */
@@ -1536,7 +1801,7 @@
           '<div class="note-box" style="margin-top:14px">客人發票 BILL TO 目前顯示「COMPANY NAME」（樣本遮蓋了真實名稱），正式出單前須填上客戶真實名稱。發票上款：ALPHA MASTER LOGISTICS LIMITED，荃灣白田壩街 5-21 號嘉力工業中心 A 座 9 樓 17 室，Tel (852) 3500 7163。下款收款銀行：HSBC Hong Kong，戶口 819-860339-838（USD/HKD），SWIFT HSBCHKHHHKH。</div>' +
           '<h2 class="section-title">文件生成狀態（DocuGenius）</h2>' +
           '<div class="table-wrap"><table class="data"><thead><tr><th>個案</th><th>報價單</th><th>客人發票</th><th>備註</th></tr></thead><tbody>' + genRows + "</tbody></table></div>" +
-          '<div class="note-box" style="margin-top:14px">發票範本：五份樣本（空運出口／海運出口／空運入口／海運入口／物流）的上款與下款完全相同，一個範本可涵蓋四份空運／海運發票，物流服務需另設範本。發票 Sheet 範本尚待建立（收費表循環寫法待定）。每種文件於個案轉為哪個狀態時自動生成，可於 <a href="#" data-nav-go="docsettings">文件生成設定</a> 選定。</div>';
+          '<div class="note-box" style="margin-top:14px">發票範本：五份樣本（空運出口／海運出口／空運入口／海運入口／物流）的上款與下款完全相同，一個範本可涵蓋四份空運／海運發票，物流服務需另設範本。發票 Sheet 範本尚待建立（收費表循環寫法待定）。' + (state.dataMode === "live" ? '每種文件於個案轉為哪個狀態時自動生成，見 <a href="#" data-nav-go="docsettings">文件生成設定</a> 說明。' : '每種文件於個案轉為哪個狀態時自動生成，可於 <a href="#" data-nav-go="docsettings">文件生成設定</a> 選定。') + "</div>";
       }
 
       /* ---------- 文件 ---------- */
@@ -1562,7 +1827,25 @@
       }
 
       /* ---------- 文件生成設定 ---------- */
+      function viewDocSettingsLive() {
+        var rows = [
+          ["客人發票", "全部個案", "已開票", true],
+          ["報價單", "全部個案", "已向供應商落單", true],
+          ["空運提單 HAWB", "空運個案", "—", false],
+          ["海運提單 HBL", "海運個案", "—", false],
+          ["空運主提單 MAWB", "空運個案", "—", false]
+        ].map(function (r) {
+          return "<tr><td data-label='文件'><strong>" + esc(r[0]) + "</strong></td>" +
+            "<td data-label='適用個案'>" + esc(r[1]) + "</td>" +
+            "<td data-label='觸發狀態'>" + (r[3] ? '<span class="badge badge-info">' + esc(r[2]) + "</span>" : '<span class="muted">—</span>') + "</td>" +
+            "<td data-label='效果'>" + (r[3] ? '<span class="badge badge-ok">飛書自動化（已啟用）</span>' : '<span class="badge badge-grey">飛書暫無自動化</span>') + "</td></tr>";
+        }).join("");
+        return '<div class="page-head"><div><h1>文件生成設定</h1><div class="sub">文件生成由飛書自動化負責，觸發狀態於飛書內設定，本頁只作說明，不能在此更改。</div></div></div>' +
+          '<div class="table-wrap"><table class="data"><thead><tr><th>文件</th><th>適用個案</th><th>觸發狀態</th><th>效果</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+          '<div class="note-box" style="margin-top:14px">客人發票及報價單的自動生成在飛書 Base 的自動化設定：個案狀態轉為觸發狀態時，飛書即經 DocuGenius 生成文件，生成標記會顯示於個案詳情。HAWB／HBL／MAWB 飛書暫無自動化，需人手生成。如需更改觸發狀態，請於飛書 Base 內修改自動化。</div>';
+      }
       function viewDocSettings() {
+        if (state.dataMode === "live") return viewDocSettingsLive();
         var triggerOpts = STATUS_OPTIONS.concat(["手動"]);
         var rows = DOC_TYPES.map(function (d) {
           var cur = state.docTriggers[d.key];
@@ -1725,7 +2008,9 @@
           (leakCount ? '<div class="alert-box" style="margin-bottom:12px"><span aria-hidden="true">⚠</span><span>目前有 ' + leakCount + ' 宗個案已收供應商發票但未向客人開票，請優先跟進。</span></div>' : "") +
           '<div class="table-wrap"><table class="data"><thead><tr><th>供應商發票</th><th>個案 / 提單號</th><th style="text-align:right">供應商金額</th><th>客人發票</th><th style="text-align:right">向客金額 (HKD)</th><th style="text-align:right">利潤 (HKD)</th><th>核對結果</th></tr></thead><tbody>' +
           (supRows || '<tr><td colspan="7"><div class="empty-state">暫無供應商發票記錄。</div></td></tr>') + "</tbody></table></div>" +
-          '<div class="note-box" style="margin-top:14px">配對規則：供應商發票上的 HAWB／HBL 號 = 客人提單號 = 個案的提單號，三者相同先算配對成功。如果個案的 HAWB／HBL 一欄空白（例如 2020-CX086），系統會改用 MAWB／MBL 號配對。參考版數據截至 2026-11-16：目前只有 1 張真供應商發票（2020-CX086，HKD 32,890），正正係「收咗外判 invoice、未出客人單」的情況；正式版會直接讀寫飛書 Base 的發票表。</div>';
+          '<div class="note-box" style="margin-top:14px">' + (state.dataMode === "live"
+            ? "配對規則：供應商發票上的 HAWB／HBL 號 = 客人提單號 = 個案的提單號，三者相同先算配對成功。如果個案的 HAWB／HBL 一欄空白（例如 2020-CX086），系統會改用 MAWB／MBL 號配對。數據即時來自飛書 Base 發票表。"
+            : "配對規則：供應商發票上的 HAWB／HBL 號 = 客人提單號 = 個案的提單號，三者相同先算配對成功。如果個案的 HAWB／HBL 一欄空白（例如 2020-CX086），系統會改用 MAWB／MBL 號配對。參考版數據截至 2026-11-16：目前只有 1 張真供應商發票（2020-CX086，HKD 32,890），正正係「收咗外判 invoice、未出客人單」的情況；正式版會直接讀寫飛書 Base 的發票表。") + "</div>";
       }
 
       /* ---------- 收費項目 ---------- */
@@ -1759,6 +2044,7 @@
         else if (state.view === "charges") html = viewCharges();
         content.innerHTML = trText(html);
         applyStaticLang();
+        updateBadges();
         document.querySelectorAll(".nav-btn").forEach(function (b) {
           b.classList.toggle("active", b.getAttribute("data-nav") === state.view || (state.view === "detail" && b.getAttribute("data-nav") === "cases"));
         });
@@ -1799,12 +2085,57 @@
           form.addEventListener("submit", function (ev) {
             ev.preventDefault();
             var t = state.newType;
-            var ref = refPreview(t);
             var get = function (id) { var el = document.getElementById("nf-" + id); return el ? el.value.trim() : ""; };
             var shipper = get("shipper"), consignee = get("consignee");
+            var result = document.getElementById("newcase-result");
+            if (state.dataMode === "live") {
+              if (state.newCaseBusy) return;
+              var num = function (id) { var v = get(id); if (v === "") return undefined; var n = Number(v); return isNaN(n) ? undefined : n; };
+              var payload;
+              if (t === "本地派送") {
+                var parts = [];
+                if (get("address")) parts.push("送貨地址：" + get("address"));
+                if (get("contact")) parts.push("聯絡人：" + get("contact"));
+                if (get("phone")) parts.push("電話：" + get("phone"));
+                if (get("desc")) parts.push(get("desc"));
+                payload = { type: t, shipper: shipper, consignee: consignee, etd: get("etd") || undefined, pcs: num("pcs"), gross: num("gross"), desc: parts.join("；") || undefined };
+              } else {
+                payload = { type: t, dir: get("dir") || "出口", shipper: shipper, consignee: consignee, notify: get("notify") || undefined, pol: get("pol") || undefined, pod: get("pod") || undefined, final: get("finalDest") || undefined, flight: get("flight") || undefined, etd: get("etd") || undefined, eta: get("eta") || undefined, pcs: num("pcs"), gross: num("gross"), chargeable: num("chargeable"), mawb: get("mawb") || undefined, hawb: get("hawb") || undefined, container: get("container") || undefined, desc: get("desc") || undefined };
+              }
+              state.newCaseBusy = true;
+              var submitBtn = form.querySelector('button[type="submit"]');
+              if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = trText("正在建立個案並寫入飛書…"); }
+              if (result) result.innerHTML = "";
+              apiJson("/api/cases", "POST", payload).then(function (r) {
+                state.newCaseBusy = false;
+                if ((r.status !== 200 && r.status !== 201) || !r.body || !r.body.ok || !r.body.case) {
+                  if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = trText("建立個案"); }
+                  var res2 = document.getElementById("newcase-result");
+                  if (res2) { res2.innerHTML = trText('<div class="alert-box"><span aria-hidden="true">⚠</span><span>建立失敗，未有寫入飛書：' + esc(apiErrorText(r, "未知錯誤")) + "</span></div>"); res2.scrollIntoView({ behavior: "smooth", block: "nearest" }); }
+                  return;
+                }
+                var nc = normCase(r.body.case);
+                CASES.unshift(nc);
+                TOTALS[nc.ref] = { rev: 0, cost: 0 };
+                render();
+                var res3 = document.getElementById("newcase-result");
+                if (res3) {
+                  res3.innerHTML = trText('<div class="success-box"><h3>個案已建立並寫入飛書：<span class="mono">' + esc(nc.ref) + "</span></h3>" +
+                    "<div>" + typeChip(nc.type) + " · Shipper：" + esc(nc.shipper || "—") + " · Consignee：" + esc(nc.consignee || "—") + "</div>" +
+                    '<p class="small" style="margin:8px 0 0"><a href="#" data-open-case="' + esc(nc.ref) + '">查看個案詳情</a></p></div>');
+                  res3.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                }
+              }).catch(function (e) {
+                state.newCaseBusy = false;
+                if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = trText("建立個案"); }
+                var res4 = document.getElementById("newcase-result");
+                if (res4) { res4.innerHTML = trText('<div class="alert-box"><span aria-hidden="true">⚠</span><span>建立失敗，未有寫入飛書：' + esc(e && e.message ? e.message : "連線失敗") + "</span></div>"); }
+              });
+              return;
+            }
+            var ref = refPreview(t);
             var route = t === "本地派送" ? get("address") : ((get("pol") || "—") + " → " + (get("pod") || "—"));
             var dateLine = get("etd") ? fmtDate(get("etd")) : "—";
-            var result = document.getElementById("newcase-result");
             result.innerHTML = trText('<div class="success-box"><h3>個案預覽已建立：<span class="mono">' + esc(ref) + "</span></h3>" +
               "<div>" + typeChip(t) + " · Shipper：" + esc(shipper || "—") + " · Consignee：" + esc(consignee || "—") + "</div>" +
               "<div>" + (t === "本地派送" ? "送貨地址：" + esc(route) + " · 送貨日期：" : "航線：" + esc(route) + " · " + (t === "海運" ? "ETD：" : "日期：")) + esc(dateLine) + "</div>" +
@@ -1814,11 +2145,114 @@
         }
       }
 
+      /* ---------- 即時落單流程（建行 → 上載 → 輪詢認讀 → 開案） ---------- */
+      function stopAiPolling() {
+        if (state.intakeAi && state.intakeAi.pollTimer) { clearTimeout(state.intakeAi.pollTimer); state.intakeAi.pollTimer = null; }
+      }
+      function bookingHasFields(b) {
+        return !!((b.shipper && b.shipper !== "無") || (b.consignee && b.consignee !== "無") || (b.pol && b.pol !== "無") || (b.pod && b.pod !== "無"));
+      }
+      function pollLiveBooking(bid, tries) {
+        stopAiPolling();
+        state.intakeAi.pollTimer = setTimeout(function () {
+          apiFetch("/api/bookings").then(function (r) {
+            if (state.intakeAi.bookingId !== bid || state.intakeAi.stage !== "polling") return;
+            var list = (r.body && r.body.bookings) || [];
+            var found = null;
+            list.forEach(function (x) { if (x.recordId === bid) found = x; });
+            if (found && bookingHasFields(found)) {
+              state.intakeAi.liveBooking = normBooking(found);
+              state.intakeAi.stage = "recognized";
+              INTAKES = list.map(normBooking);
+              render();
+              return;
+            }
+            if (tries >= 22) {
+              if (found) { state.intakeAi.liveBooking = normBooking(found); INTAKES = list.map(normBooking); }
+              state.intakeAi.stage = "recognized";
+              render();
+              return;
+            }
+            pollLiveBooking(bid, tries + 1);
+          }).catch(function () {
+            if (state.intakeAi.bookingId !== bid || state.intakeAi.stage !== "polling") return;
+            if (tries < 22) pollLiveBooking(bid, tries + 1);
+            else { state.intakeAi.stage = "error"; state.intakeAi.message = "等候認讀結果時連線失敗，請重新整理後於認讀記錄查看。"; render(); }
+          });
+        }, 4000);
+      }
+      function startLiveIntake(file) {
+        stopAiPolling();
+        var preview = "";
+        try { preview = URL.createObjectURL(file); } catch (e) { preview = ""; }
+        state.intakeAi = { stage: "uploading", fileName: file.name, preview: preview, openedRef: null, liveBooking: null, bookingId: "", message: "正在建立落單記錄並上載相片…" };
+        render();
+        var now = new Date();
+        var ds = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+        apiJson("/api/bookings", "POST", { title: file.name, date: ds, status: "待核對" }).then(function (r) {
+          if (!r.body || !r.body.ok || !r.body.recordId) throw new Error(apiErrorText(r, "建立落單記錄失敗"));
+          var bid = r.body.recordId;
+          state.intakeAi.bookingId = bid;
+          var fd = new FormData();
+          fd.append("file", file);
+          return apiFetch("/api/bookings/" + encodeURIComponent(bid) + "/upload", { method: "POST", body: fd }).then(function (ur) {
+            if (!ur.body || !ur.body.ok) throw new Error(apiErrorText(ur, "上載相片失敗"));
+            state.intakeAi.stage = "polling";
+            state.intakeAi.message = "已建立落單記錄，等待飛書 AI 認讀欄位（約需數十秒）…";
+            render();
+            pollLiveBooking(bid, 0);
+          });
+        }).catch(function (e) {
+          state.intakeAi.stage = "error";
+          state.intakeAi.message = e && e.message ? e.message : "連線失敗";
+          render();
+        });
+      }
+      function patchBookingOpen(booking, fromAi) {
+        if (!booking || !booking.recordId || state.intakeBusy) return;
+        state.intakeBusy = true;
+        render();
+        apiJson("/api/bookings/" + encodeURIComponent(booking.recordId), "PATCH", { status: "開案" }).then(function (r) {
+          if (!r.body || !r.body.ok) throw new Error(apiErrorText(r, "開案失敗"));
+          var tries = 0;
+          var step = function () {
+            tries++;
+            fetchAllLive().then(function (bodies) {
+              applyLiveData(bodies);
+              var nb = null;
+              INTAKES.forEach(function (x) { if (x.recordId === booking.recordId) nb = x; });
+              var linked = nb && nb.caseRef ? nb.caseRef : "";
+              if (linked || tries >= 4) {
+                state.intakeBusy = false;
+                if (fromAi) {
+                  state.intakeAi.stage = "opened";
+                  state.intakeAi.openedRef = linked || null;
+                  if (nb) state.intakeAi.liveBooking = nb;
+                } else {
+                  state.intakeResult = linked
+                    ? '<div class="success-box"><h3>已開案</h3><p style="margin:0">已於飛書開案，新個案：<a class="ref-link mono" href="#" data-open-case="' + esc(linked) + '">' + esc(linked) + "</a>，並與認讀編號 " + esc(nb ? nb.ref : "") + " 連結。</p></div>"
+                    : '<div class="success-box"><h3>已開案</h3><p style="margin:0">已轉為「開案」，飛書自動化正在建立個案；個案連結需時出現，可稍後重新整理此頁查看。</p></div>';
+                }
+                render();
+                return;
+              }
+              setTimeout(step, 3000);
+            }).catch(function () { state.intakeBusy = false; render(); });
+          };
+          setTimeout(step, 2500);
+        }).catch(function (e) {
+          state.intakeBusy = false;
+          state.intakeResult = '<div class="alert-box"><span aria-hidden="true">⚠</span><span>操作失敗：' + esc(e && e.message ? e.message : "連線失敗") + "</span></div>";
+          render();
+        });
+      }
+
       document.addEventListener("click", function (ev) {
         if (ev.target && ev.target.id === "preview-overlay") { closePreview(); return; }
-        var t = ev.target.closest("[data-nav],[data-nav-go],[data-open-case],[data-seg],[data-newtype],[data-open-intake],[data-ai-demo],[data-ai-reset],[data-ai-open],[data-reset-triggers],[data-preview-doc],[data-preview-invoice],[data-close-preview],[data-check-bill],[data-clear-supplier]");
+        var t = ev.target.closest("[data-nav],[data-nav-go],[data-open-case],[data-seg],[data-newtype],[data-open-intake],[data-ai-demo],[data-ai-reset],[data-ai-open],[data-reset-triggers],[data-preview-doc],[data-preview-invoice],[data-close-preview],[data-check-bill],[data-clear-supplier],[data-notice-refresh]");
         if (!t) return;
-        if (t.hasAttribute("data-close-preview")) { closePreview(); }
+        if (t.hasAttribute("data-notice-refresh")) { refreshLive(); }
+        else if (t.hasAttribute("data-close-preview")) { closePreview(); }
         else if (t.hasAttribute("data-check-bill")) {
           var bill = t.getAttribute("data-check-bill") || "";
           state.supplierQuery = bill;
@@ -1853,9 +2287,11 @@
           state.intakeAi = { stage: "recognized", fileName: "示範落單紙 — AMLA2606040 客人落單紙", preview: "", openedRef: null };
           render();
         } else if (t.hasAttribute("data-ai-reset")) {
+          stopAiPolling();
           state.intakeAi = { stage: "idle", fileName: "", preview: "", openedRef: null };
           render();
         } else if (t.hasAttribute("data-ai-open")) {
+          if (state.dataMode === "live" && state.intakeAi.liveBooking) { patchBookingOpen(state.intakeAi.liveBooking, true); return; }
           var aiRef = "AMLA2611" + String(100 + CASES.length + Object.keys(state.openedIntakes).length + 1).slice(1);
           state.openedIntakes["AML202611002"] = aiRef;
           state.intakeAi.stage = "opened";
@@ -1870,6 +2306,7 @@
         } else if (t.hasAttribute("data-open-intake")) {
           var idx = Number(t.getAttribute("data-open-intake"));
           var it = INTAKES[idx];
+          if (state.dataMode === "live") { if (it) patchBookingOpen(it, false); return; }
           var letter = it.type === "空運" ? "A" : it.type === "海運" ? "S" : "L";
           var newRef = "AML" + letter + "2611" + String(100 + CASES.length + Object.keys(state.openedIntakes).length + 1).slice(1);
           state.openedIntakes[it.ref] = newRef;
@@ -1901,6 +2338,32 @@
           var c2 = findCase(el.getAttribute("data-detail-status"));
           if (!c2) return;
           var newStatus = canon(el.value);
+          if (state.dataMode === "live") {
+            if (!c2.recordId || state.statusBusy) { render(); return; }
+            state.statusBusy = true;
+            state.statusNotice = null;
+            render();
+            apiJson("/api/cases/" + encodeURIComponent(c2.recordId), "PATCH", { status: newStatus }).then(function (r) {
+              state.statusBusy = false;
+              if (!r.body || !r.body.ok || !r.body.case) {
+                state.statusNotice = { ref: c2.ref, error: apiErrorText(r, "未知錯誤") };
+                render();
+                return;
+              }
+              var updated = normCase(r.body.case);
+              var idx = CASES.indexOf(c2);
+              if (idx >= 0) CASES[idx] = updated;
+              DOCGEN = deriveDocGen();
+              state.statusNotice = { ref: updated.ref, live: true, to: updated.status || "處理中", invoiceDoc: updated.invoiceDoc || "", quotationDoc: updated.quotationDoc || "" };
+              state.detailRef = updated.ref;
+              render();
+            }).catch(function (e) {
+              state.statusBusy = false;
+              state.statusNotice = { ref: c2.ref, error: e && e.message ? e.message : "連線失敗" };
+              render();
+            });
+            return;
+          }
           c2.status = newStatus;
           state.statusNotice = { ref: c2.ref, to: newStatus || "處理中", docs: docsForStatus(newStatus, c2.type).map(function (d) { return d.name; }) };
           render();
@@ -1908,12 +2371,14 @@
           state.docTriggers[el.getAttribute("data-trigger-doc")] = canon(el.value);
           render();
         } else if (el.id === "ai-file" && el.files && el.files.length) {
+          if (state.dataMode === "live") { startLiveIntake(el.files[0]); return; }
           state.intakeAi = { stage: "recognized", fileName: el.files[0].name, preview: URL.createObjectURL(el.files[0]), openedRef: null };
           render();
         }
       });
 
       render();
+      connectLive();
     </script>
   </body>
 </html>
