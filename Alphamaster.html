@@ -673,7 +673,7 @@
         ["參考版（快照）", "Reference Version (Snapshot)"],
         ["正在連接飛書", "Connecting to Feishu"],
         ["正在建立落單記錄並上載相片…", "Creating the intake record and uploading the photo…"],
-        ["已建立落單記錄，等待飛書 AI 認讀欄位（約需數十秒）…", "Intake record created. Waiting for the Feishu AI to read the fields (usually tens of seconds)…"],
+        ["已建立落單記錄，等待飛書 AI 認讀欄位（約需一至兩分鐘）…", "Intake record created. Waiting for the Feishu AI to read the fields (usually one to two minutes)…"],
         ["開案中：正在將落單狀態轉為「開案」，飛書自動化會即時建立個案…", "Opening the case: setting the intake status to Case Created — the Feishu automation will create the case…"],
         ["已轉為「開案」，飛書自動化正在建立個案；個案連結需時出現，可稍後重新整理此頁查看。", "Status set to Case Created. The Feishu automation is creating the case; the case link takes a moment — refresh this page shortly to see it."],
         ["正在建立個案並寫入飛書…", "Creating the case and saving to Feishu…"],
@@ -1123,7 +1123,8 @@
         });
       }
       /* 原樣顯示（不經語言轉換）：非 ASCII 字元寫成數字字元參照，令 trText 的字典替換
-         無法命中，瀏覽器解析後還原為原文。用於由檔名衍生的落單標題。 */
+         無法命中，瀏覽器解析後還原為原文。用於一切檔案名稱：落單標題、文件檔名、
+         上載來源檔名 — 一律照原檔名顯示，不作任何翻譯。 */
       function escRaw(s) {
         return Array.from(String(s == null ? "" : s)).map(function (ch) {
           var code = ch.codePointAt(0);
@@ -1162,8 +1163,9 @@
         var ib = document.getElementById("nav-intake-badge"); if (ib) { ib.textContent = pend; ib.style.display = pend ? "" : "none"; }
       }
       function typeChip(t) {
-        var cls = t === "空運" ? "chip-air" : t === "海運" ? "chip-sea" : t === "本地派送" ? "chip-local" : "chip-logi";
-        return '<span class="chip ' + cls + '">' + esc(t) + "</span>";
+        var lbl = splitTypeDir(t, "").type;
+        var cls = lbl === "空運" ? "chip-air" : lbl === "海運" ? "chip-sea" : lbl === "本地派送" ? "chip-local" : "chip-logi";
+        return '<span class="chip ' + cls + '">' + esc(lbl) + "</span>";
       }
       function statusBadge(c) {
         if (hasLeak(c.ref)) return '<span class="badge badge-danger">漏開票</span>';
@@ -1199,15 +1201,39 @@
         var b = (r && r.body) || {};
         return b.message || b.error || fallback || ("HTTP " + (r ? r.status : "?"));
       }
+      /* 業務類型/方向正規化：不論 Worker 回傳分開（空運+出口）、合併（空運出口）
+         或英文（Air / AirExport / Logistics ServiceImport），一律拆成獨立的
+         類型與方向，令畫面永遠以真空格分開顯示（Air Export），不會黐埋。 */
+      function splitTypeDir(type, dir) {
+        var t = String(type == null ? "" : type).replace(/\s+/g, " ").trim();
+        var d = String(dir == null ? "" : dir).replace(/\s+/g, " ").trim();
+        var enDir = { "Export": "出口", "Import": "進口" };
+        var enType = { "Air": "空運", "Sea": "海運", "Local Delivery": "本地派送", "Logistics Service": "物流服務" };
+        if (!d && t) {
+          var sufs = ["出口", "進口", "Export", "Import"];
+          for (var i = 0; i < sufs.length; i++) {
+            var suf = sufs[i];
+            if (t.length > suf.length && t.slice(t.length - suf.length) === suf) {
+              var head = t.slice(0, t.length - suf.length).replace(/[\s·]+$/, "");
+              if (head) { d = enDir[suf] || suf; t = head; }
+              break;
+            }
+          }
+        }
+        if (enType[t]) t = enType[t];
+        if (enDir[d]) d = enDir[d];
+        return { type: t, dir: d };
+      }
       function normCase(rc) {
+        var td = splitTypeDir(rc.type, rc.dir);
         return {
-          recordId: rc.recordId || "", ref: rc.ref || "", type: rc.type || "", dir: rc.dir || "", status: rc.status || "",
+          recordId: rc.recordId || "", ref: rc.ref || "", type: td.type, dir: td.dir, status: rc.status || "",
           shipper: rc.shipper || "", consignee: rc.consignee || "", notify: rc.notify || "",
           pol: rc.pol || "", pod: rc.pod || "", finalDest: rc.final || rc.finalDest || "",
           flight: rc.flight || "", etd: rc.etd || "", eta: rc.eta || "",
           pcs: rc.pcs == null ? null : rc.pcs, pcsNote: "",
           gross: rc.gross == null ? null : rc.gross, chargeable: rc.chargeable == null ? null : rc.chargeable,
-          cbmLabel: rc.type === "海運" ? "CBM" : rc.type === "空運" ? "計費重量 (KG)" : "",
+          cbmLabel: td.type === "海運" ? "CBM" : td.type === "空運" ? "計費重量 (KG)" : "",
           mawb: rc.mawb || "", hawb: rc.hawb || "", booking: rc.booking || "",
           desc: rc.desc || "", container: rc.container || "",
           quoteDate: rc.quoteDate || "", validUntil: rc.validUntil || "", extra: "",
@@ -1221,9 +1247,10 @@
         var fn = b.fileName || b.file || b.attachmentName || "";
         if (typeof fn !== "string") fn = (fn && fn.name) || "";
         var derivedTitle = b.title || (fn ? fn.replace(/\.[^.\/]+$/, "") : "");
+        var td = splitTypeDir(b.type, b.dir);
         return {
           recordId: b.recordId || "", title: derivedTitle, fileName: fn, ref: b.ref || "", status: b.status || "", date: b.date || "",
-          type: b.type || "", dir: b.dir || "", shipper: b.shipper || "", consignee: b.consignee || "", notify: b.notify || "",
+          type: td.type, dir: td.dir, shipper: b.shipper || "", consignee: b.consignee || "", notify: b.notify || "",
           pol: b.pol || "", pod: b.pod || "", flight: b.flight || "", etd: b.etd || "", eta: b.eta || "",
           pcs: b.pcs == null ? "" : String(b.pcs), gross: b.gross == null ? "" : String(b.gross), chargeable: b.chargeable == null ? "" : String(b.chargeable),
           mawb: b.mawb || "", hawb: b.hawb || "", desc: b.desc || "", caseRef: b.case || "", hasFile: !!b.hasFile
@@ -1318,7 +1345,7 @@
       }
       function docThumbHtml(d, idx) {
         var k = docKindOf(d.cat);
-        return '<button type="button" class="doc-thumb ' + k.cls + '" data-preview-doc="' + idx + '" aria-label="預覽 ' + esc(d.name) + '" title="撳入預覽">' +
+        return '<button type="button" class="doc-thumb ' + k.cls + '" data-preview-doc="' + idx + '" aria-label="預覽 ' + escRaw(d.name) + '" title="撳入預覽">' +
           '<div class="dt-title">' + esc(k.short) + '</div><div class="dt-sub">' + esc(d.case) + "</div>" + thumbLinesHtml() + "</button>";
       }
       function invoiceThumbHtml(inv, idx) {
@@ -1353,7 +1380,7 @@
           extra = '<table class="pp-table"><thead><tr><th>HAWB</th><th>PCS</th><th class="num">Weight (KG)</th><th>Description</th></tr></thead><tbody><tr><td class="mono">' + esc(c.hawb || c.ref) + "</td><td>" + esc(c.pcs == null ? "—" : c.pcs) + '</td><td class="num">' + fmtNum(c.gross) + "</td><td>" + esc((c.desc || "").split("\n")[0] || "—") + "</td></tr></tbody></table>";
         }
         if (c.extra) extra += '<div class="pp-note">' + esc(c.extra) + "</div>";
-        var foot = '<div class="pp-foot"><span>ALPHA MASTER LOGISTICS LIMITED · ' + esc(d.name) + '</span><span>Page 1 of 1</span></div>';
+        var foot = '<div class="pp-foot"><span>ALPHA MASTER LOGISTICS LIMITED · ' + escRaw(d.name) + '</span><span>Page 1 of 1</span></div>';
         return head + route + grid + extra + foot;
       }
       function previewPaperForInvoice(inv) {
@@ -1379,10 +1406,10 @@
           : '<div class="pp-foot"><span>供應商發票 — 金額待付</span><span class="pp-stamp">' + esc(inv.pay) + "</span></div>";
         return head + grid + table + bank;
       }
-      function openPreview(title, sub, paperHtml) {
+      function openPreview(titleHtml, subHtml, paperHtml) {
         var ov = document.getElementById("preview-overlay");
-        document.getElementById("preview-title").textContent = trText(title);
-        document.getElementById("preview-sub").textContent = trText(sub || "");
+        document.getElementById("preview-title").innerHTML = trText(titleHtml);
+        document.getElementById("preview-sub").innerHTML = trText(subHtml || "");
         document.getElementById("preview-body").innerHTML = '<div class="preview-paper">' + trText(paperHtml) + "</div>";
         ov.classList.add("open");
         ov.scrollTop = 0;
@@ -1405,7 +1432,7 @@
         return '<tr class="clickable" data-open-case="' + esc(c.ref) + '">' +
           '<td data-label="Reference No."><a class="ref-link mono" href="#" data-open-case="' + esc(c.ref) + '">' + esc(c.ref) + "</a>" +
           (c.pending ? '<div><span class="badge badge-warn" style="margin-top:4px">' + esc(c.pending) + "</span></div>" : "") + "</td>" +
-          '<td data-label="業務">' + typeChip(c.type) + (c.dir ? ' <span class="small" style="white-space:nowrap">' + esc(c.dir) + "</span>" : "") + "</td>" +
+          '<td data-label="業務">' + typeChip(c.type) + (splitTypeDir(c.type, c.dir).dir ? ' <span class="small" style="white-space:nowrap">' + esc(splitTypeDir(c.type, c.dir).dir) + "</span>" : "") + "</td>" +
           '<td data-label="狀態">' + statusBadge(c) + "</td>" +
           '<td data-label="Shipper / Consignee"><div>' + esc(c.shipper || "—") + '</div><div class="muted small">→ ' + esc(c.consignee || "—") + "</div></td>" +
           '<td data-label="航線"><span class="route">' + routeOf(c) + "</span></td>" +
@@ -1505,7 +1532,8 @@
         var gen = DOCGEN.filter(function (g) { return g.case === ref; })[0];
 
         var titleStatus = hasLeak(c.ref) ? "漏開票" : (c.status || "處理中");
-        var titleParts = [c.type, c.dir].filter(function (x) { return !!x; });
+        var tdParts = splitTypeDir(c.type, c.dir);
+        var titleParts = [tdParts.type, tdParts.dir].filter(function (x) { return !!x; });
         var detailTitle = titleParts.join(" ") + (titleParts.length ? " · " : "") + titleStatus;
         var h = '<a class="back-link" href="#" data-nav-go="cases">← 返回個案一覽</a>' +
           '<div class="page-head"><div><h1 class="mono" style="letter-spacing:.02em">' + esc(c.ref) + "</h1>" +
@@ -1595,7 +1623,7 @@
         h += '<h2 class="section-title">文件</h2>';
         if (docs.length) {
           h += '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / 檔案名稱</th><th>類別</th><th>上載日期</th></tr></thead><tbody>' +
-            docs.map(function (d) { var gi = DOCS.indexOf(d); return "<tr><td data-label='預覽 / 檔案名稱'><div class='doc-cell'>" + docThumbHtml(d, gi) + "<div class='doc-meta'><div class='mono small'>" + esc(d.name) + "</div><button type='button' class='preview-link' data-preview-doc='" + gi + "'>預覽文件</button></div></div></td><td data-label='類別'>" + esc(d.cat) + "</td><td data-label='上載日期'>" + fmtDate(d.date) + "</td></tr>"; }).join("") +
+            docs.map(function (d) { var gi = DOCS.indexOf(d); return "<tr><td data-label='預覽 / 檔案名稱'><div class='doc-cell'>" + docThumbHtml(d, gi) + "<div class='doc-meta'><div class='mono small'>" + escRaw(d.name) + "</div><button type='button' class='preview-link' data-preview-doc='" + gi + "'>預覽文件</button></div></div></td><td data-label='類別'>" + esc(d.cat) + "</td><td data-label='上載日期'>" + fmtDate(d.date) + "</td></tr>"; }).join("") +
             "</tbody></table></div>";
         } else {
           h += '<div class="note-box">本案暫無文件記錄。</div>';
@@ -1760,7 +1788,7 @@
             openedBox = '<div style="margin-top:16px"><button class="btn" type="button" data-ai-open' + (state.intakeBusy ? " disabled" : "") + ">" + (state.intakeBusy ? "開案中：正在將落單狀態轉為「開案」，飛書自動化會即時建立個案…" : "確認核對並開案") + "</button></div>";
           }
           body = '<div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-bottom:14px">' +
-            '<span class="badge badge-ok">AI 認讀完成</span><span class="small">來源：' + esc(ai.fileName || "落單相") + "</span>" +
+            '<span class="badge badge-ok">AI 認讀完成</span><span class="small">來源：' + (ai.fileNameRaw ? escRaw(ai.fileName) : esc(ai.fileName || "落單相")) + "</span>" +
             '<span style="flex:1"></span>' +
             '<button class="btn ghost small" type="button" data-ai-reset>重新上載</button></div>' +
             (ai.preview ? '<img class="ai-preview" src="' + ai.preview + '" alt="已上載的落單相" style="margin-bottom:14px" />' : "") +
@@ -1791,7 +1819,7 @@
           }
           return "<tr><td data-label='落單標題'><strong>" + escRaw(titleTxt) + "</strong><div class='muted small'>收到日期：" + fmtDate(it.date) + "</div></td>" +
             "<td data-label='認讀編號' class='mono'>" + esc(it.ref) + "</td>" +
-            "<td data-label='業務'>" + typeChip(it.type) + " <span class='small'>" + esc(it.dir) + "</span></td>" +
+            "<td data-label='業務'>" + typeChip(it.type) + (splitTypeDir(it.type, it.dir).dir ? " <span class='small'>" + esc(splitTypeDir(it.type, it.dir).dir) + "</span>" : "") + "</td>" +
             "<td data-label='Shipper / Consignee'><div>" + esc(it.shipper) + "</div><div class='muted small'>→ " + esc(it.consignee) + "</div></td>" +
             "<td data-label='航線'><span class='route'>" + esc(routeTxt) + "</span><div class='muted small'>ETD " + etdTxt + " · " + esc(it.pcs) + " 件 · " + esc(it.gross) + " KG</div></td>" +
             "<td data-label='狀態'>" + action + "</td></tr>";
@@ -1835,7 +1863,7 @@
       function viewDocs() {
         var rows = DOCS.map(function (d, idx) {
           var c = findCase(d.case);
-          return "<tr><td data-label='預覽 / 檔案'><div class='doc-cell'>" + docThumbHtml(d, idx) + "<div class='doc-meta'><div class='mono small'><strong>" + esc(d.name) + "</strong></div><button type='button' class='preview-link' data-preview-doc='" + idx + "'>預覽文件</button></div></div></td>" +
+          return "<tr><td data-label='預覽 / 檔案'><div class='doc-cell'>" + docThumbHtml(d, idx) + "<div class='doc-meta'><div class='mono small'><strong>" + escRaw(d.name) + "</strong></div><button type='button' class='preview-link' data-preview-doc='" + idx + "'>預覽文件</button></div></div></td>" +
             "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(d.case) + "'>" + esc(d.case) + "</a>" + (c ? "<div class='muted small'>" + esc(c.pol) + " → " + esc(c.pod) + " · " + esc(c.flight) + "</div>" : "") + "</td>" +
             "<td data-label='類別'><span class='badge badge-info'>" + esc(d.cat) + "</span></td>" +
             "<td data-label='上載日期'>" + fmtDate(d.date) + "</td></tr>";
@@ -1973,7 +2001,7 @@
           '<div style="min-width:0"><a class="ref-link mono" href="#" data-open-case="' + esc(c.ref) + '" style="font-size:17px">' + esc(c.ref) + "</a>" +
           '<div class="small muted" style="margin-top:3px">' + esc(billNosOf(c)) + " · " + esc(c.pol || "—") + " → " + esc(c.pod || "—") + (c.flight ? " · " + esc(c.flight) : "") + (c.etd ? " · ETD " + fmtDate(c.etd) : "") + "</div>" +
           '<div class="small" style="margin-top:2px">' + esc(c.shipper || "—") + ' <span class="muted">→</span> ' + esc(c.consignee || "—") + "</div></div>" +
-          '<span style="flex:1"></span>' + typeChip(c.type) + (c.dir ? ' <span class="badge badge-grey">' + esc(c.dir) + "</span>" : "") + " " + statusBadge(c) + "</div>" +
+          '<span style="flex:1"></span>' + typeChip(c.type) + (splitTypeDir(c.type, c.dir).dir ? ' <span class="badge badge-grey">' + esc(splitTypeDir(c.type, c.dir).dir) + "</span>" : "") + " " + statusBadge(c) + "</div>" +
           '<p class="small muted" style="margin:10px 0 0">配對依據：您輸入的「' + esc(query) + '」與此個案的 ' + (c.type === "海運" ? "HBL/MBL" : "HAWB/MAWB") + ' 號相同（外判供應商發票與客人文件共用同一提單號）。' + (c.ref === "2020-CX086" ? "此案 HAWB 一欄空白，今次以 MAWB 160-22268676 配對。" : "") + "</p>" +
           '<div class="check-compare">' +
           '<div class="check-col ' + (chk.sup.length || t.cost > 0 ? "present" : "") + '"><div class="cc-title">供應商發票（外判公司收回） ' + (chk.sup.length || t.cost > 0 ? '<span class="badge badge-ok">已收到</span>' : '<span class="badge badge-grey">未有記錄</span>') + "</div>" + supHtml + "</div>" +
@@ -2179,7 +2207,10 @@
       function bookingHasFields(b) {
         return !!((b.shipper && b.shipper !== "無") || (b.consignee && b.consignee !== "無") || (b.pol && b.pol !== "無") || (b.pod && b.pod !== "無"));
       }
-      function pollLiveBooking(bid, tries) {
+      function bookingSignature(b) {
+        return [b.type, b.dir, b.shipper, b.consignee, b.notify, b.pol, b.pod, b.flight, b.etd, b.eta, b.pcs, b.gross, b.chargeable, b.mawb, b.hawb, b.desc].map(function (v) { return v == null ? "" : String(v); }).join("|");
+      }
+      function pollLiveBooking(bid, tries, lastSig, stableCount) {
         stopAiPolling();
         state.intakeAi.pollTimer = setTimeout(function () {
           apiFetch("/api/bookings").then(function (r) {
@@ -2187,23 +2218,38 @@
             var list = (r.body && r.body.bookings) || [];
             var found = null;
             list.forEach(function (x) { if (x.recordId === bid) found = x; });
-            if (found && bookingHasFields(found)) {
-              state.intakeAi.liveBooking = normBooking(found);
+            if (found) {
+              /* 飛書 AI 逐欄寫入：只認到一兩個欄位唔代表認讀完成。
+                 要等欄位連續兩次讀取完全不變（即 AI 已寫完）先當完成，
+                 最長等約 3 分鐘；到時限就用當時讀到的欄位。 */
+              var sig = bookingSignature(found);
+              var stable = sig === lastSig ? (stableCount || 0) + 1 : 0;
+              if (bookingHasFields(found) && ((stable >= 2 && tries >= 2) || tries >= 44)) {
+                state.intakeAi.liveBooking = normBooking(found);
+                state.intakeAi.stage = "recognized";
+                INTAKES = list.map(normBooking);
+                render();
+                return;
+              }
+              if (tries >= 44) {
+                state.intakeAi.liveBooking = normBooking(found);
+                INTAKES = list.map(normBooking);
+                state.intakeAi.stage = "recognized";
+                render();
+                return;
+              }
+              pollLiveBooking(bid, tries + 1, sig, stable);
+              return;
+            }
+            if (tries >= 44) {
               state.intakeAi.stage = "recognized";
-              INTAKES = list.map(normBooking);
               render();
               return;
             }
-            if (tries >= 22) {
-              if (found) { state.intakeAi.liveBooking = normBooking(found); INTAKES = list.map(normBooking); }
-              state.intakeAi.stage = "recognized";
-              render();
-              return;
-            }
-            pollLiveBooking(bid, tries + 1);
+            pollLiveBooking(bid, tries + 1, lastSig, 0);
           }).catch(function () {
             if (state.intakeAi.bookingId !== bid || state.intakeAi.stage !== "polling") return;
-            if (tries < 22) pollLiveBooking(bid, tries + 1);
+            if (tries < 44) pollLiveBooking(bid, tries + 1, lastSig, stableCount || 0);
             else { state.intakeAi.stage = "error"; state.intakeAi.message = "等候認讀結果時連線失敗，請重新整理後於認讀記錄查看。"; render(); }
           });
         }, 4000);
@@ -2212,7 +2258,7 @@
         stopAiPolling();
         var preview = "";
         try { preview = URL.createObjectURL(file); } catch (e) { preview = ""; }
-        state.intakeAi = { stage: "uploading", fileName: file.name, preview: preview, openedRef: null, liveBooking: null, bookingId: "", message: "正在建立落單記錄並上載相片…" };
+        state.intakeAi = { stage: "uploading", fileName: file.name, fileNameRaw: true, preview: preview, openedRef: null, liveBooking: null, bookingId: "", message: "正在建立落單記錄並上載相片…" };
         render();
         var now = new Date();
         var ds = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
@@ -2225,7 +2271,7 @@
           return apiFetch("/api/bookings/" + encodeURIComponent(bid) + "/upload", { method: "POST", body: fd }).then(function (ur) {
             if (!ur.body || !ur.body.ok) throw new Error(apiErrorText(ur, "上載相片失敗"));
             state.intakeAi.stage = "polling";
-            state.intakeAi.message = "已建立落單記錄，等待飛書 AI 認讀欄位（約需數十秒）…";
+            state.intakeAi.message = "已建立落單記錄，等待飛書 AI 認讀欄位（約需一至兩分鐘）…";
             render();
             pollLiveBooking(bid, 0);
           });
@@ -2295,10 +2341,10 @@
         }
         else if (t.hasAttribute("data-preview-doc")) {
           var pd = DOCS[Number(t.getAttribute("data-preview-doc"))];
-          if (pd) openPreview(pd.cat + " — " + pd.name, "個案 " + pd.case + " · 上載 " + fmtDate(pd.date), previewPaperForDoc(pd));
+          if (pd) openPreview(esc(pd.cat) + " — " + escRaw(pd.name), esc("個案 " + pd.case + " · 上載 " + fmtDate(pd.date)), previewPaperForDoc(pd));
         } else if (t.hasAttribute("data-preview-invoice")) {
           var pi = INVOICES[Number(t.getAttribute("data-preview-invoice"))];
-          if (pi) openPreview(pi.cat + " — " + pi.no, "個案 " + pi.case + " · " + fmtDate(pi.date) + " · " + pi.curr + " " + fmt(pi.total), previewPaperForInvoice(pi));
+          if (pi) openPreview(esc(pi.cat) + " — " + esc(pi.no), esc("個案 " + pi.case + " · " + fmtDate(pi.date) + " · " + pi.curr + " " + fmt(pi.total)), previewPaperForInvoice(pi));
         }
         else if (t.hasAttribute("data-nav")) { go(t.getAttribute("data-nav")); }
         else if (t.hasAttribute("data-nav-go")) { ev.preventDefault(); go(t.getAttribute("data-nav-go")); }
@@ -2399,7 +2445,7 @@
           render();
         } else if (el.id === "ai-file" && el.files && el.files.length) {
           if (state.dataMode === "live") { startLiveIntake(el.files[0]); return; }
-          state.intakeAi = { stage: "recognized", fileName: el.files[0].name, preview: URL.createObjectURL(el.files[0]), openedRef: null };
+          state.intakeAi = { stage: "recognized", fileName: el.files[0].name, fileNameRaw: true, preview: URL.createObjectURL(el.files[0]), openedRef: null };
           render();
         }
       });
