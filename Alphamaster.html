@@ -1122,6 +1122,20 @@
           return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
         });
       }
+      /* 原樣顯示（不經語言轉換）：非 ASCII 字元寫成數字字元參照，令 trText 的字典替換
+         無法命中，瀏覽器解析後還原為原文。用於由檔名衍生的落單標題。 */
+      function escRaw(s) {
+        return Array.from(String(s == null ? "" : s)).map(function (ch) {
+          var code = ch.codePointAt(0);
+          if (ch === "&") return "&amp;";
+          if (ch === "<") return "&lt;";
+          if (ch === ">") return "&gt;";
+          if (ch === '"') return "&quot;";
+          if (ch === "'") return "&#39;";
+          if (code > 126) return "&#" + code + ";";
+          return ch;
+        }).join("");
+      }
       function fmt(n) {
         if (n == null || n === "" || isNaN(n)) return "—";
         return Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1490,9 +1504,12 @@
         var docs = DOCS.filter(function (d) { return d.case === ref; });
         var gen = DOCGEN.filter(function (g) { return g.case === ref; })[0];
 
+        var titleStatus = hasLeak(c.ref) ? "漏開票" : (c.status || "處理中");
+        var titleParts = [c.type, c.dir].filter(function (x) { return !!x; });
+        var detailTitle = titleParts.join(" ") + (titleParts.length ? " · " : "") + titleStatus;
         var h = '<a class="back-link" href="#" data-nav-go="cases">← 返回個案一覽</a>' +
           '<div class="page-head"><div><h1 class="mono" style="letter-spacing:.02em">' + esc(c.ref) + "</h1>" +
-          '<div class="sub">' + typeChip(c.type) + (c.dir ? ' <span class="badge badge-grey">' + esc(c.dir) + "</span>" : "") + " · " + statusBadge(c) +
+          '<div class="sub">' + esc(detailTitle) +
           (c.pending ? ' <span class="badge badge-warn">' + esc(c.pending) + "</span>" : "") + "</div></div></div>";
 
         if (hasLeak(ref)) {
@@ -1772,7 +1789,7 @@
           } else {
             action = (it.status === "已核對" ? '<span class="badge badge-info">已核對</span>' : '<span class="badge badge-warn">待核對</span>') + '<div style="margin-top:6px"><button class="btn small" type="button" data-open-intake="' + idx + '"' + (state.intakeBusy ? " disabled" : "") + ">核對並開案</button></div>";
           }
-          return "<tr><td data-label='落單標題'><strong>" + esc(titleTxt) + "</strong><div class='muted small'>收到日期：" + fmtDate(it.date) + "</div></td>" +
+          return "<tr><td data-label='落單標題'><strong>" + escRaw(titleTxt) + "</strong><div class='muted small'>收到日期：" + fmtDate(it.date) + "</div></td>" +
             "<td data-label='認讀編號' class='mono'>" + esc(it.ref) + "</td>" +
             "<td data-label='業務'>" + typeChip(it.type) + " <span class='small'>" + esc(it.dir) + "</span></td>" +
             "<td data-label='Shipper / Consignee'><div>" + esc(it.shipper) + "</div><div class='muted small'>→ " + esc(it.consignee) + "</div></td>" +
@@ -2326,7 +2343,7 @@
           render();
           var box = document.getElementById("intake-result");
           if (box) {
-            box.innerHTML = trText('<div class="success-box"><h3>已開案（畫面流程示範）</h3><p style="margin:0">落單「' + esc(it.title) + '」已建立新個案 <strong class="mono">' + esc(newRef) + "</strong>，並與認讀編號 " + esc(it.ref) + " 連結。參考版不會寫入飛書；正式版會經飛書自動化即時開案。</p></div>");
+            box.innerHTML = trText('<div class="success-box"><h3>已開案（畫面流程示範）</h3><p style="margin:0">落單「' + escRaw(it.title) + '」已建立新個案 <strong class="mono">' + esc(newRef) + "</strong>，並與認讀編號 " + esc(it.ref) + " 連結。參考版不會寫入飛書；正式版會經飛書自動化即時開案。</p></div>");
             box.scrollIntoView({ behavior: "smooth", block: "nearest" });
           }
         }
