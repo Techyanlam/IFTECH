@@ -169,6 +169,7 @@
         <button class="navbtn" id="navBtn-best" onclick="setReportSection('best')">暢銷／滯銷</button>
         <button class="navbtn" id="navBtn-promo" onclick="setReportSection('promo')">優惠成本</button>
         <button class="navbtn" id="navBtn-stock" onclick="setReportSection('stock')">庫存總覽</button>
+        <button class="navbtn" id="navBtn-byitem" onclick="setReportSection('byitem')">按產品檢視</button>
         <button class="navbtn" id="navBtn-daily" onclick="setReportSection('daily')">每日清單</button>
         <button class="navbtn" id="navBtn-dailyReport" onclick="setReportSection('dailyReport')">每日報表</button>
       </div>
@@ -218,6 +219,10 @@
     <div class="sub">現金／支付方式、月度損益：Eats365 收銀數據未接入，人工同其他開支亦未有數，呢兩項暫時做唔到。</div>
       </div>
 
+      <div class="reportSec" id="sec-byitem">
+    <h2 class="sec">按產品檢視</h2>
+    <div id="byItemWrap"><div class="warnbox">讀取緊…</div></div>
+      </div>
       <div class="reportSec" id="sec-daily">
     <h2 class="sec">每日已銷售清單</h2>
     <div class="controls">
@@ -1073,6 +1078,42 @@ function exportStockCSV(){
   rows.push(["合計", "", "", a.units, "", a.retail.toFixed(2), "", a.cost.toFixed(2)]);
   downloadCSVGeneric("bettereat-stock.csv", ["門店", "產品", "編號", "帳面庫存", "單價", "零售值", "成本單價", "成本值"], rows);
 }
+function aggByItem(rows){
+  var map = {}, order = [];
+  (rows || []).forEach(function(r){
+    var code = r.product_code;
+    if (!code) return; // 冇產品編號嘅行（滿減）唔入按產品表，金額已攤分入各產品行
+    if (!map[code]) { map[code] = { code: code, name: r.product_name, stores: {}, sold: 0, rem: 0, amt: 0, amtUnknown: false }; order.push(code); }
+    var it = map[code];
+    var sc = storeCode(r.store);
+    if (!it.stores[sc]) it.stores[sc] = { sold: 0 };
+    var sold = r.sold_pcs || 0;
+    it.stores[sc].sold += sold;
+    it.sold += sold;
+    it.rem += r.remaining_pcs || 0;
+    var price = priceOf(code);
+    if (typeof r.amount === "number" && isFinite(r.amount)) it.amt += r.amount;
+    else if (price !== null) it.amt += price * sold;
+    else it.amtUnknown = true;
+  });
+  order.sort();
+  return order.map(function(c){ return map[c]; });
+}
+function renderByItem(){
+  var el = document.getElementById("byItemWrap"); if (!el) return;
+  var items = aggByItem(scopedHistoryRows());
+  if (!items.length) { el.innerHTML = '<div class="trendbox"><div class="sub">呢段時間冇產品銷售紀錄。</div></div>'; return; }
+  var totSold = 0, totRem = 0, totAmt = 0;
+  var body = items.map(function(it){
+    totSold += it.sold; totRem += it.rem; if (!it.amtUnknown) totAmt += it.amt;
+    var price = priceOf(it.code);
+    function sc(code){ var d = it.stores[code]; return d ? fmt(d.sold) : "—"; }
+    return "<tr><td>" + escHtml(it.name) + "</td><td>" + escHtml(it.code) + '</td><td class="num">' + sc("MJF") + '</td><td class="num">' + sc("MAP") + '</td><td class="num">' + sc("MKH") + '</td><td class="num">' + sc("MMCP") + '</td><td class="num"><b>' + fmt(it.sold) + '</b></td><td class="num">' + fmt(it.rem) + '</td><td class="num">' + (price === null ? "—" : fmtMoney(price)) + '</td><td class="num">' + (it.amtUnknown ? "—" : fmtMoney(it.amt)) + "</td></tr>";
+  }).join("");
+  el.innerHTML = '<div class="trendbox"><div style="overflow-x:auto;"><table><thead><tr><th>產品</th><th>編號</th><th class="num">謝斐 已售</th><th class="num">淘大 已售</th><th class="num">Aeon 已售</th><th class="num">將軍澳 已售</th><th class="num">總已售</th><th class="num">剩餘</th><th class="num">單價</th><th class="num">金額</th></tr></thead><tbody>' + body +
+    '<tr class="tot"><td colspan="6">合計</td><td class="num">' + fmt(totSold) + '</td><td class="num">' + fmt(totRem) + '</td><td></td><td class="num">' + fmtMoney(totAmt) + "</td></tr></tbody></table></div>" +
+    '<div class="sub">跟上面嘅日期／範圍＋門店／產品／類別篩選；金額有實際金額（優惠後）就用佢，冇就用標準價 × 已售。完整版（逐店分配／剩餘＋揀選列印）喺頂部「按產品檢視」分頁。</div></div>';
+}
 function postWorker(action){
   var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
   var timer = null;
@@ -1095,7 +1136,7 @@ function fetchWorkerExtra(){
   });
 }
 function renderReportExtra(){
-  renderTrend(); renderBranch(); renderCatMix(); renderBest(); renderPromo(); renderStock(); renderDailyReport();
+  renderTrend(); renderBranch(); renderCatMix(); renderBest(); renderPromo(); renderStock(); renderByItem(); renderDailyReport();
 }
 function downloadCSVGeneric(name, head, rows){
   var lines = [head.map(csvCell).join(",")];
@@ -1170,7 +1211,7 @@ document.getElementById("expAll").onclick = function(){
 };
 
 // ===== 報表左邊分類（2026-11-19）：撳左邊切換顯示邊一節，預設銷售趨勢；選擇會記住 =====
-var REPORT_SECTIONS = ["all", "trend", "branch", "cat", "best", "promo", "stock", "daily", "dailyReport"];
+var REPORT_SECTIONS = ["all", "trend", "branch", "cat", "best", "promo", "stock", "byitem", "daily", "dailyReport"];
 function setReportSection(key){
   if (REPORT_SECTIONS.indexOf(key) < 0) key = "trend";
   REPORT_SECTIONS.forEach(function(k){
