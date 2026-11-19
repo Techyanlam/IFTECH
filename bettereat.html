@@ -162,6 +162,7 @@
     <div class="reportWrap">
       <div class="reportNav" id="reportNav">
         <div class="navlabel">報表分類</div>
+        <button class="navbtn" id="navBtn-upload" onclick="setReportSection('upload')">廚房出貨紙上傳</button>
         <button class="navbtn" id="navBtn-all" onclick="setReportSection('all')">全部</button>
         <button class="navbtn" id="navBtn-trend" onclick="setReportSection('trend')">銷售趨勢</button>
         <button class="navbtn" id="navBtn-branch" onclick="setReportSection('branch')">門店比較</button>
@@ -174,6 +175,14 @@
         <button class="navbtn" id="navBtn-dailyReport" onclick="setReportSection('dailyReport')">每日報表</button>
       </div>
       <div class="reportMain">
+      <div class="reportSec" id="sec-upload">
+    <h2 class="sec">廚房出貨紙上傳</h2>
+    <div class="trendbox">
+      <div>📋 廚房出貨紙影相上載，提交後入飛書 A 表「紙單相片」格，俾秘書跟進。</div>
+      <div class="sub">紙要攤平 · 鏡頭正上方 · 成頁入鏡，一頁提交一次。</div>
+      <div style="margin-top:10px;"><a class="xbtn" id="btnFormA2" href="#" target="_blank" rel="noopener" style="text-decoration:none;">開啟上載表單 →</a></div>
+    </div>
+      </div>
       <div class="reportSec" id="sec-trend">
     <h2 class="sec">銷售趨勢</h2>
     <div class="trendbox">
@@ -221,6 +230,10 @@
 
       <div class="reportSec" id="sec-byitem">
     <h2 class="sec">按產品檢視</h2>
+    <div class="controls" style="margin-bottom:10px;">
+      <label>搜尋 <input type="text" id="byItemSearch" placeholder="產品名／編號" style="padding:7px 10px;font-size:14px;border:1px solid #ccd9e4;border-radius:8px;background:#fff;"></label>
+      <label>門店 <select id="byItemStoreSel"><option value="ALL">全部門店</option><option value="MJF">謝斐 (MJF)</option><option value="MAP">淘大 (MAP)</option><option value="MKH">Aeon (MKH)</option><option value="MMCP">將軍澳 (MMCP)</option></select></label>
+    </div>
     <div id="byItemWrap"><div class="warnbox">讀取緊…</div></div>
       </div>
       <div class="reportSec" id="sec-daily">
@@ -307,6 +320,7 @@ var salesList = null; // Worker list：網上訂單銷售紀錄（優惠成本�
 var stockData = null; // Worker stock：庫存價值用
 var trendMetric = "amount"; // 趨勢圖：amount 銷售額 / sold 件數
 var curProduct = "ALL", curCategory = "ALL";
+var byItemSearch = "", byItemStore = "ALL";
 var loginShopChoice = "";
 var currentTab = "";
 var frameLoaded = {};
@@ -451,6 +465,8 @@ function fmt(n){ return (Math.round(n * 10) / 10).toLocaleString("en-US"); }
 function setupActions(){
   var a = document.getElementById("btnFormA");
   if (FORM_A_URL) { a.href = FORM_A_URL; } else { a.classList.add("pending"); }
+  var a2 = document.getElementById("btnFormA2");
+  if (a2 && FORM_A_URL) a2.href = FORM_A_URL;
 }
 function loadData(){
   fetchWorkerExtra(); // 優惠成本＋庫存價值：另外讀 Worker，失敗唔拖垮主數據
@@ -1099,20 +1115,29 @@ function aggByItem(rows){
   order.sort();
   return order.map(function(c){ return map[c]; });
 }
+var STORE_LABELS_BI = { MJF: "謝斐", MAP: "淘大", MKH: "Aeon", MMCP: "將軍澳" };
 function renderByItem(){
   var el = document.getElementById("byItemWrap"); if (!el) return;
-  var items = aggByItem(scopedHistoryRows());
-  if (!items.length) { el.innerHTML = '<div class="trendbox"><div class="sub">呢段時間冇產品銷售紀錄。</div></div>'; return; }
+  var all = aggByItem(scopedHistoryRows());
+  if (!all.length) { el.innerHTML = '<div class="trendbox"><div class="sub">呢段時間冇產品銷售紀錄。</div></div>'; return; }
+  var q = String(byItemSearch || "").trim().toLowerCase();
+  var items = all.filter(function(it){
+    if (!q) return true;
+    return (it.code + " " + (it.name || "")).toLowerCase().indexOf(q) >= 0;
+  });
+  if (!items.length) { el.innerHTML = '<div class="trendbox"><div class="sub">冇符合搜尋嘅產品。</div></div>'; return; }
+  var cols = (byItemStore === "ALL") ? ["MJF", "MAP", "MKH", "MMCP"] : [byItemStore];
+  var head = cols.map(function(c){ return '<th class="num">' + STORE_LABELS_BI[c] + " 已售</th>"; }).join("");
   var totSold = 0, totRem = 0, totAmt = 0;
   var body = items.map(function(it){
     totSold += it.sold; totRem += it.rem; if (!it.amtUnknown) totAmt += it.amt;
     var price = priceOf(it.code);
-    function sc(code){ var d = it.stores[code]; return d ? fmt(d.sold) : "—"; }
-    return "<tr><td>" + escHtml(it.name) + "</td><td>" + escHtml(it.code) + '</td><td class="num">' + sc("MJF") + '</td><td class="num">' + sc("MAP") + '</td><td class="num">' + sc("MKH") + '</td><td class="num">' + sc("MMCP") + '</td><td class="num"><b>' + fmt(it.sold) + '</b></td><td class="num">' + fmt(it.rem) + '</td><td class="num">' + (price === null ? "—" : fmtMoney(price)) + '</td><td class="num">' + (it.amtUnknown ? "—" : fmtMoney(it.amt)) + "</td></tr>";
+    var cells = cols.map(function(c){ var d = it.stores[c]; return '<td class="num">' + (d ? fmt(d.sold) : "—") + "</td>"; }).join("");
+    return "<tr><td>" + escHtml(it.name) + "</td><td>" + escHtml(it.code) + "</td>" + cells + '<td class="num"><b>' + fmt(it.sold) + '</b></td><td class="num">' + fmt(it.rem) + '</td><td class="num">' + (price === null ? "—" : fmtMoney(price)) + '</td><td class="num">' + (it.amtUnknown ? "—" : fmtMoney(it.amt)) + "</td></tr>";
   }).join("");
-  el.innerHTML = '<div class="trendbox"><div style="overflow-x:auto;"><table><thead><tr><th>產品</th><th>編號</th><th class="num">謝斐 已售</th><th class="num">淘大 已售</th><th class="num">Aeon 已售</th><th class="num">將軍澳 已售</th><th class="num">總已售</th><th class="num">剩餘</th><th class="num">單價</th><th class="num">金額</th></tr></thead><tbody>' + body +
-    '<tr class="tot"><td colspan="6">合計</td><td class="num">' + fmt(totSold) + '</td><td class="num">' + fmt(totRem) + '</td><td></td><td class="num">' + fmtMoney(totAmt) + "</td></tr></tbody></table></div>" +
-    '<div class="sub">跟上面嘅日期／範圍＋門店／產品／類別篩選；金額有實際金額（優惠後）就用佢，冇就用標準價 × 已售。完整版（逐店分配／剩餘＋揀選列印）喺頂部「按產品檢視」分頁。</div></div>';
+  el.innerHTML = '<div class="trendbox"><div class="sub" style="margin-bottom:6px;">顯示 ' + items.length + " / " + all.length + ' 款</div><div style="overflow-x:auto;"><table><thead><tr><th>產品</th><th>編號</th>' + head + '<th class="num">總已售</th><th class="num">剩餘</th><th class="num">單價</th><th class="num">金額</th></tr></thead><tbody>' + body +
+    '<tr class="tot"><td colspan="' + (2 + cols.length) + '">合計</td><td class="num">' + fmt(totSold) + '</td><td class="num">' + fmt(totRem) + '</td><td></td><td class="num">' + fmtMoney(totAmt) + "</td></tr></tbody></table></div>" +
+    '<div class="sub">跟上面嘅日期／範圍＋門店／產品／類別篩選；本節可再搜尋產品或只睇一間門店。金額有實際金額（優惠後）就用佢，冇就用標準價 × 已售。完整版（逐店分配／剩餘＋揀選列印）喺頂部「按產品檢視」分頁。</div></div>';
 }
 function postWorker(action){
   var ctrl = (typeof AbortController !== "undefined") ? new AbortController() : null;
@@ -1188,6 +1213,10 @@ document.getElementById("prodSel").addEventListener("change", function(){
 document.getElementById("catSel").addEventListener("change", function(){
   curCategory = this.value; applyDate();
 });
+var biSearchEl = document.getElementById("byItemSearch");
+if (biSearchEl) biSearchEl.addEventListener("input", function(){ byItemSearch = this.value; renderByItem(); });
+var biStoreEl = document.getElementById("byItemStoreSel");
+if (biStoreEl) biStoreEl.addEventListener("change", function(){ byItemStore = this.value; renderByItem(); });
 document.getElementById("dateFrom").addEventListener("change", function(){ applyDate(); });
 document.getElementById("dateTo").addEventListener("change", function(){ applyDate(); });
 document.getElementById("expDay").onclick = function(){
@@ -1211,7 +1240,7 @@ document.getElementById("expAll").onclick = function(){
 };
 
 // ===== 報表左邊分類（2026-11-19）：撳左邊切換顯示邊一節，預設銷售趨勢；選擇會記住 =====
-var REPORT_SECTIONS = ["all", "trend", "branch", "cat", "best", "promo", "stock", "byitem", "daily", "dailyReport"];
+var REPORT_SECTIONS = ["all", "upload", "trend", "branch", "cat", "best", "promo", "stock", "byitem", "daily", "dailyReport"];
 function setReportSection(key){
   if (REPORT_SECTIONS.indexOf(key) < 0) key = "trend";
   REPORT_SECTIONS.forEach(function(k){
