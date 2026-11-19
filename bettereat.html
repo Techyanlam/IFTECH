@@ -238,6 +238,7 @@
     <h2 class="sec">按產品檢視（一行一款，齊睇四間門店）</h2>
     <div class="cards" id="byItemStats" style="margin-bottom:10px;"></div>
     <div class="controls" style="margin-bottom:10px;">
+      <label>日期 <select id="byItemDateSel"><option value="">跟報表日期</option></select></label>
       <label>搜尋 <input type="text" id="byItemSearch" placeholder="產品名／編號" style="padding:7px 10px;font-size:14px;border:1px solid #ccd9e4;border-radius:8px;background:#fff;"></label>
       <label>門店 <select id="byItemStoreSel"><option value="ALL">全部門店</option><option value="MJF">謝斐 (MJF)</option><option value="MAP">淘大 (MAP)</option><option value="MKH">Aeon (MKH)</option><option value="MMCP">將軍澳 (MMCP)</option></select></label>
     </div>
@@ -342,7 +343,7 @@ var salesList = null; // Worker list：網上訂單銷售紀錄（優惠成本�
 var stockData = null; // Worker stock：庫存價值用
 var trendMetric = "amount"; // 趨勢圖：amount 銷售額 / sold 件數
 var curProduct = "ALL", curCategory = "ALL";
-var byItemSearch = "", byItemStore = "ALL";
+var byItemSearch = "", byItemStore = "ALL", byItemDate = "";
 var byItemSelected = {}, byItemSelOnly = false;
 var loginShopChoice = "";
 var currentTab = "";
@@ -503,6 +504,12 @@ function loadData(){
     sel.innerHTML = dates.map(function(d){ return '<option value="' + d + '">' + d + "</option>"; }).join("");
     if (!curDate || !payload.history[curDate]) curDate = j.date;
     sel.value = curDate;
+    var bs = document.getElementById("byItemDateSel");
+    if (bs) {
+      bs.innerHTML = '<option value="">跟報表日期</option>' + dates.map(function(d){ return '<option value="' + d + '">' + d + "</option>"; }).join("");
+      if (byItemDate && !payload.history[byItemDate]) byItemDate = "";
+      bs.value = byItemDate;
+    }
     document.getElementById("metaLine").textContent =
       "最新日期：" + j.date + " ｜ 更新時間：" + j.generated_at + " ｜ 來源：" + j.source +
       " ｜ 已存歷史：" + dates.length + " 日";
@@ -1143,8 +1150,18 @@ function aggByItem(rows){
   order.sort();
   return order.map(function(c){ return map[c]; });
 }
+function byItemRows(){
+  if (!byItemDate || !payload || !payload.history) return scopedHistoryRows();
+  var out = [];
+  (payload.history[byItemDate] || []).forEach(function(r){
+    if (!passProdCat(r)) return;
+    if (curStore !== "ALL" && storeCode(r.store) !== curStore) return;
+    var o = {}; for (var k in r) o[k] = r[k]; o._d = byItemDate; out.push(o);
+  });
+  return out;
+}
 function byItemVisibleItems(){
-  var all = aggByItem(scopedHistoryRows());
+  var all = aggByItem(byItemRows());
   var q = String(byItemSearch || "").trim().toLowerCase();
   return all.filter(function(it){
     if (byItemSelOnly && !byItemSelected[it.code]) return false;
@@ -1159,7 +1176,7 @@ function byItemToggleSelOnly(){
   renderByItem();
 }
 function byItemSelectAll(){
-  aggByItem(scopedHistoryRows()).forEach(function(it){ byItemSelected[it.code] = true; });
+  aggByItem(byItemRows()).forEach(function(it){ byItemSelected[it.code] = true; });
   renderByItem();
 }
 function byItemClearSel(){ byItemSelected = {}; renderByItem(); }
@@ -1171,7 +1188,7 @@ function exportByItemCSV(){
   cols.forEach(function(c){ head.push(STORE_LABELS_BI[c] + "分配", STORE_LABELS_BI[c] + "已售", STORE_LABELS_BI[c] + "剩餘", STORE_LABELS_BI[c] + "報廢"); });
   head.push("合計分配", "合計已售", "合計剩餘", "單價", "金額");
   var rg = getRange();
-  var dlabel = rg.active ? ((rg.from || "") + "_" + (rg.to || "")) : (curDate || "");
+  var dlabel = byItemDate ? byItemDate : (rg.active ? ((rg.from || "") + "_" + (rg.to || "")) : (curDate || ""));
   var rows = items.map(function(it){
     var price = priceOf(it.code);
     var row = [dlabel, it.code, it.name, it.unit || "", it.alloc];
@@ -1187,7 +1204,7 @@ function exportByItemCSV(){
 var STORE_LABELS_BI = { MJF: "謝斐", MAP: "淘大", MKH: "Aeon", MMCP: "將軍澳" };
 function renderByItem(){
   var el = document.getElementById("byItemWrap"); if (!el) return;
-  var all = aggByItem(scopedHistoryRows());
+  var all = aggByItem(byItemRows());
   var selCount = Object.keys(byItemSelected).length;
   var scEl = document.getElementById("byItemSelCount");
   if (scEl) scEl.textContent = selCount ? "已選 " + selCount + " 款" : "";
@@ -1321,6 +1338,8 @@ var biSearchEl = document.getElementById("byItemSearch");
 if (biSearchEl) biSearchEl.addEventListener("input", function(){ byItemSearch = this.value; renderByItem(); });
 var biStoreEl = document.getElementById("byItemStoreSel");
 if (biStoreEl) biStoreEl.addEventListener("change", function(){ byItemStore = this.value; renderByItem(); });
+var biDateEl = document.getElementById("byItemDateSel");
+if (biDateEl) biDateEl.addEventListener("change", function(){ byItemDate = this.value; renderByItem(); });
 document.getElementById("dateFrom").addEventListener("change", function(){ applyDate(); });
 document.getElementById("dateTo").addEventListener("change", function(){ applyDate(); });
 document.getElementById("expDay").onclick = function(){
