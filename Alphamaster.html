@@ -736,7 +736,7 @@
         ["判出去俾其他公司做的貨，收到對方 invoice 返嚟嗰陣，用同一 HAWB/HBL 號核對有冇出過單俾客人", "For cargo outsourced to another company, use the same HAWB / HBL No. to check whether a customer invoice was issued when their invoice comes back"],
         ["先上載客人落單相，AI 認讀欄位；核對無誤即可開案，系統自動建立個案並連結", "Upload the customer's order photo first — the AI reads the fields. Once checked, create the case; the system builds and links it automatically"],
         ["選定每種文件於個案轉為哪個狀態時自動生成；設定即時套用於個案詳情頁的狀態轉換", "Choose which case status triggers each document. Settings apply immediately to status changes on the case detail page"],
-        ["每宗個案的文件集中存放，與飛書 Base 文件表對應；撳縮圖或「預覽文件」即睇大 Preview", "All documents for each case are stored together, matching the Feishu Base documents table. Tap a thumbnail or Preview Document for a larger preview"],
+        ["每宗個案的文件集中存放，與飛書 Base 文件表對應；撳縮圖或「預覽文件」即睇大 Preview，撳「查看原檔」即開飛書原檔", "All documents for each case are stored together, matching the Feishu Base documents table. Tap a thumbnail or Preview Document for a larger preview, or View Original to open the original file from Feishu"],
         ["Invoice No. 與 Job No. 共用同一統一編號；撳縮圖或「預覽發票」即睇大 Preview", "Invoice No. and Job No. share the same unified number. Tap a thumbnail or Preview Invoice for a larger preview"],
         ["先選業務類型，表格會按空運/海運/本地派送的落單格式顯示", "Choose the business type first — the form follows the air / sea / local delivery order format"],
         ["一宗案一行記錄，全程跟進至結案；按列即可查看詳情", "One row per case, followed through to closure. Click a row to view details"],
@@ -899,6 +899,12 @@
         ["預覽文件", "Preview Document"],
         ["預覽 · 非正式文件", "Preview · Not an official document"],
         ["文件預覽", "Document Preview"],
+        ["查看原檔", "View Original"],
+        ["攞緊連結…", "Getting link…"],
+        ["開唔到，請再試", "Could not open — try again"],
+        ["個案附件", "Case Attachments"],
+        ["欄位", "Field"],
+        ["原檔", "Original"],
         ["在飛書開啟 Base", "Open Base in Feishu"],
         ["資料庫：飛書 Base", "Database: Feishu Base"],
         ["物流系統", "Logistics System"],
@@ -1239,6 +1245,7 @@
           quoteDate: rc.quoteDate || "", validUntil: rc.validUntil || "", extra: "",
           receiveStatus: rc.receiveStatus || "", payStatus: rc.payStatus || "",
           leakText: rc.leak || "", invoiceDoc: rc.invoiceDoc || "", quotationDoc: rc.quotationDoc || "",
+          files: Array.isArray(rc.files) ? rc.files : [],
           revTotal: typeof rc.totalCustomer === "number" ? rc.totalCustomer : null,
           costTotal: typeof rc.totalCost === "number" ? rc.totalCost : null
         };
@@ -1284,10 +1291,10 @@
           return { recordId: ch.recordId || "", "case": ch.case || "", name: ch.name || "", cat: ch.cat || "", curr: ch.curr || "", price: ch.price == null ? 0 : ch.price, unit: ch.unit || "", qty: ch.qty == null ? 0 : ch.qty, amount: ch.amount == null ? 0 : ch.amount };
         });
         INVOICES = (bodies.invoices.invoices || []).map(function (i) {
-          return { recordId: i.recordId || "", no: i.no || "", "case": i.case || "", cat: i.cat || "", date: i.date || "", total: i.total == null ? 0 : i.total, curr: i.curr || "", pay: i.pay || "" };
+          return { recordId: i.recordId || "", no: i.no || "", "case": i.case || "", cat: i.cat || "", date: i.date || "", total: i.total == null ? 0 : i.total, curr: i.curr || "", pay: i.pay || "", fileToken: i.fileToken || "", fileExtra: i.fileExtra || "" };
         });
         DOCS = (bodies.documents.documents || []).map(function (d) {
-          return { name: d.name || d.fileName || "", "case": d.case || "", cat: d.cat || "", date: d.date || "", note: d.note || "" };
+          return { name: d.name || d.fileName || "", "case": d.case || "", cat: d.cat || "", date: d.date || "", note: d.note || "", fileToken: d.fileToken || "", fileExtra: d.fileExtra || "" };
         });
         INTAKES = (bodies.bookings.bookings || []).map(normBooking);
         state.openedIntakes = {};
@@ -1352,6 +1359,32 @@
         var k = docKindOf(inv.cat);
         return '<button type="button" class="doc-thumb ' + k.cls + '" data-preview-invoice="' + idx + '" aria-label="' + esc(k.short) + " " + esc(inv.no) + '" title="撳入預覽">' +
           '<div class="dt-title">' + esc(k.short) + '</div><div class="dt-sub">' + esc(inv.no) + "</div>" + thumbLinesHtml() + "</button>";
+      }
+      /* 飛書原檔「查看」掣：撳落去先向 Worker 即時攞臨時下載連結（時效 24 小時），
+         再開新分頁睇原檔（PDF 直接睇，xlsx 會下載）。無 token 唔出掣。 */
+      function viewFileBtn(token, extra) {
+        if (!token) return "";
+        return "<button type='button' class='preview-link' data-view-file data-token='" + esc(token) + "' data-extra='" + esc(encodeURIComponent(extra || "")) + "'>查看原檔</button>";
+      }
+      function openFeishuFile(btn) {
+        var token = btn.getAttribute("data-token") || "";
+        var extra = "";
+        try { extra = decodeURIComponent(btn.getAttribute("data-extra") || ""); } catch (e) { extra = ""; }
+        if (!token) return;
+        var orig = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = trText("攞緊連結…");
+        var q = extra ? ("?extra=" + encodeURIComponent(extra)) : "";
+        apiFetch("/api/files/" + encodeURIComponent(token) + q).then(function (r) {
+          btn.disabled = false;
+          btn.textContent = orig;
+          if (r.body && r.body.ok && r.body.url) { window.open(r.body.url, "_blank"); }
+          else { btn.textContent = trText("開唔到，請再試"); setTimeout(function () { btn.textContent = orig; }, 2500); }
+        }).catch(function () {
+          btn.disabled = false;
+          btn.textContent = trText("開唔到，請再試");
+          setTimeout(function () { btn.textContent = orig; }, 2500);
+        });
       }
       function ppField(k, v, full) {
         return '<div class="pp-field' + (full ? " full" : "") + '"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v || "—") + "</div></div>";
@@ -1611,7 +1644,7 @@
           h += '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / Invoice No.</th><th>類別</th><th>日期</th><th style="text-align:right">金額</th><th>付款狀態</th></tr></thead><tbody>' +
             invs.map(function (i) {
               var gi = INVOICES.indexOf(i);
-              return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, gi) + "<div class='doc-meta'><div class='mono'>" + esc(i.no) + "</div><button type='button' class='preview-link' data-preview-invoice='" + gi + "'>預覽發票</button></div></div></td><td data-label='類別'>" + esc(i.cat) + "</td><td data-label='日期'>" + fmtDate(i.date) + "</td><td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td><td data-label='付款狀態'><span class='badge badge-warn'>" + esc(i.pay) + "</span></td></tr>";
+              return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, gi) + "<div class='doc-meta'><div class='mono'>" + esc(i.no) + "</div><button type='button' class='preview-link' data-preview-invoice='" + gi + "'>預覽發票</button>" + viewFileBtn(i.fileToken, i.fileExtra) + "</div></div></td><td data-label='類別'>" + esc(i.cat) + "</td><td data-label='日期'>" + fmtDate(i.date) + "</td><td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td><td data-label='付款狀態'><span class='badge badge-warn'>" + esc(i.pay) + "</span></td></tr>";
             }).join("") + "</tbody></table></div>";
         } else {
           h += '<div class="note-box">本案暫無發票記錄。</div>';
@@ -1623,10 +1656,17 @@
         h += '<h2 class="section-title">文件</h2>';
         if (docs.length) {
           h += '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / 檔案名稱</th><th>類別</th><th>上載日期</th></tr></thead><tbody>' +
-            docs.map(function (d) { var gi = DOCS.indexOf(d); return "<tr><td data-label='預覽 / 檔案名稱'><div class='doc-cell'>" + docThumbHtml(d, gi) + "<div class='doc-meta'><div class='mono small'>" + escRaw(d.name) + "</div><button type='button' class='preview-link' data-preview-doc='" + gi + "'>預覽文件</button></div></div></td><td data-label='類別'>" + esc(d.cat) + "</td><td data-label='上載日期'>" + fmtDate(d.date) + "</td></tr>"; }).join("") +
+            docs.map(function (d) { var gi = DOCS.indexOf(d); return "<tr><td data-label='預覽 / 檔案名稱'><div class='doc-cell'>" + docThumbHtml(d, gi) + "<div class='doc-meta'><div class='mono small'>" + escRaw(d.name) + "</div><button type='button' class='preview-link' data-preview-doc='" + gi + "'>預覽文件</button>" + viewFileBtn(d.fileToken, d.fileExtra) + "</div></div></td><td data-label='類別'>" + esc(d.cat) + "</td><td data-label='上載日期'>" + fmtDate(d.date) + "</td></tr>"; }).join("") +
             "</tbody></table></div>";
         } else {
           h += '<div class="note-box">本案暫無文件記錄。</div>';
+        }
+        if (c.files && c.files.length) {
+          h += '<h2 class="section-title">個案附件</h2>';
+          h += '<div class="table-wrap"><table class="data"><thead><tr><th>欄位</th><th>檔案名稱</th><th>原檔</th></tr></thead><tbody>' +
+            c.files.map(function (f) {
+              return "<tr><td data-label='欄位'>" + esc(f.label) + "</td><td data-label='檔案名稱'><div class='mono small'>" + escRaw(f.fileName || f.label) + "</div></td><td data-label='原檔'>" + viewFileBtn(f.fileToken, f.fileExtra) + "</td></tr>";
+            }).join("") + "</tbody></table></div>";
         }
         return h;
       }
@@ -1838,7 +1878,7 @@
       /* ---------- 發票及報價單 ---------- */
       function viewInvoices() {
         var invRows = INVOICES.map(function (i, idx) {
-          return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, idx) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div><button type='button' class='preview-link' data-preview-invoice='" + idx + "'>預覽發票</button></div></div></td>" +
+          return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, idx) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div><button type='button' class='preview-link' data-preview-invoice='" + idx + "'>預覽發票</button>" + viewFileBtn(i.fileToken, i.fileExtra) + "</div></div></td>" +
             "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(i.case) + "'>" + esc(i.case) + "</a></td>" +
             "<td data-label='類別'>" + (i.cat === "客人發票" ? '<span class="badge badge-info">客人發票</span>' : '<span class="badge badge-grey">供應商發票</span>') + "</td>" +
             "<td data-label='日期'>" + fmtDate(i.date) + "</td>" +
@@ -1863,7 +1903,7 @@
       function viewDocs() {
         var rows = DOCS.map(function (d, idx) {
           var c = findCase(d.case);
-          return "<tr><td data-label='預覽 / 檔案'><div class='doc-cell'>" + docThumbHtml(d, idx) + "<div class='doc-meta'><div class='mono small'><strong>" + escRaw(d.name) + "</strong></div><button type='button' class='preview-link' data-preview-doc='" + idx + "'>預覽文件</button></div></div></td>" +
+          return "<tr><td data-label='預覽 / 檔案'><div class='doc-cell'>" + docThumbHtml(d, idx) + "<div class='doc-meta'><div class='mono small'><strong>" + escRaw(d.name) + "</strong></div><button type='button' class='preview-link' data-preview-doc='" + idx + "'>預覽文件</button>" + viewFileBtn(d.fileToken, d.fileExtra) + "</div></div></td>" +
             "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(d.case) + "'>" + esc(d.case) + "</a>" + (c ? "<div class='muted small'>" + esc(c.pol) + " → " + esc(c.pod) + " · " + esc(c.flight) + "</div>" : "") + "</td>" +
             "<td data-label='類別'><span class='badge badge-info'>" + esc(d.cat) + "</span></td>" +
             "<td data-label='上載日期'>" + fmtDate(d.date) + "</td></tr>";
@@ -2037,7 +2077,7 @@
           var cusTxt = chk.cus.length ? chk.cus.map(function (x) { return '<span class="mono">' + esc(x.no) + "</span><div class='small muted'>" + fmtDate(x.date) + " · " + esc(x.pay) + "</div>"; }).join("") : '<span class="badge badge-danger">未出</span>';
           var verdictBadge = chk.kind === "leak" ? '<span class="badge badge-danger">未向客人開票</span>' : chk.kind === "ok" ? '<span class="badge badge-ok">已向客人開票</span>' : '<span class="badge badge-grey">待核對</span>';
           var billKey = c.hawb || c.mawb || "";
-          return "<tr><td data-label='供應商發票'><div class='doc-cell'>" + invoiceThumbHtml(i, INVOICES.indexOf(i)) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div><div class='small muted'>" + fmtDate(i.date) + " · " + esc(i.pay) + "</div><button type='button' class='preview-link' data-preview-invoice='" + INVOICES.indexOf(i) + "'>預覽發票</button></div></div></td>" +
+          return "<tr><td data-label='供應商發票'><div class='doc-cell'>" + invoiceThumbHtml(i, INVOICES.indexOf(i)) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div><div class='small muted'>" + fmtDate(i.date) + " · " + esc(i.pay) + "</div><button type='button' class='preview-link' data-preview-invoice='" + INVOICES.indexOf(i) + "'>預覽發票</button>" + viewFileBtn(i.fileToken, i.fileExtra) + "</div></div></td>" +
             "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(i.case) + "'>" + esc(i.case) + "</a><div class='small muted'>" + esc(billNosOf(c)) + "</div></td>" +
             "<td data-label='供應商金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td>" +
             "<td data-label='客人發票'>" + cusTxt + "</td>" +
@@ -2322,7 +2362,7 @@
 
       document.addEventListener("click", function (ev) {
         if (ev.target && ev.target.id === "preview-overlay") { closePreview(); return; }
-        var t = ev.target.closest("[data-nav],[data-nav-go],[data-open-case],[data-seg],[data-newtype],[data-open-intake],[data-ai-demo],[data-ai-reset],[data-ai-open],[data-reset-triggers],[data-preview-doc],[data-preview-invoice],[data-close-preview],[data-check-bill],[data-clear-supplier],[data-notice-refresh]");
+        var t = ev.target.closest("[data-nav],[data-nav-go],[data-open-case],[data-seg],[data-newtype],[data-open-intake],[data-ai-demo],[data-ai-reset],[data-ai-open],[data-reset-triggers],[data-view-file],[data-preview-doc],[data-preview-invoice],[data-close-preview],[data-check-bill],[data-clear-supplier],[data-notice-refresh]");
         if (!t) return;
         if (t.hasAttribute("data-notice-refresh")) { refreshLive(); }
         else if (t.hasAttribute("data-close-preview")) { closePreview(); }
@@ -2339,6 +2379,7 @@
           state.supplierSubmitted = "";
           render();
         }
+        else if (t.hasAttribute("data-view-file")) { openFeishuFile(t); }
         else if (t.hasAttribute("data-preview-doc")) {
           var pd = DOCS[Number(t.getAttribute("data-preview-doc"))];
           if (pd) openPreview(esc(pd.cat) + " — " + escRaw(pd.name), esc("個案 " + pd.case + " · 上載 " + fmtDate(pd.date)), previewPaperForDoc(pd));
