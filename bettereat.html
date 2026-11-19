@@ -48,6 +48,21 @@
   .card .k { font-size: 12px; color: #8a7f70; }
   .card .v { font-size: 26px; font-weight: 700; margin-top: 4px; }
   h2.sec { font-size: 16px; margin: 22px 0 10px; padding-left: 10px; border-left: 4px solid #c98a2d; }
+  /* 報表左邊分類（2026-11-19）：左邊撳切換顯示邊一節 */
+  .reportWrap { display: flex; gap: 14px; align-items: flex-start; }
+  .reportNav { width: 148px; flex: none; position: sticky; top: 110px; display: flex; flex-direction: column; gap: 6px; }
+  .reportNav .navlabel { font-size: 12px; color: #8a7f70; padding: 2px 4px 4px; }
+  .navbtn { text-align: left; padding: 9px 12px; font-size: 14px; border: 1px solid #d8cbb6; background: #fff; border-radius: 10px; cursor: pointer; color: #6d6152; }
+  .navbtn.on { background: #2b2620; color: #fff; border-color: #2b2620; font-weight: 700; }
+  .reportMain { flex: 1; min-width: 0; }
+  .reportMain h2.sec { margin-top: 0; }
+  .reportSec { margin-bottom: 22px; }
+  @media (max-width: 860px) {
+    .reportWrap { flex-direction: column; }
+    .reportNav { width: 100%; position: static; flex-direction: row; overflow-x: auto; padding-bottom: 4px; }
+    .reportNav .navlabel { display: none; }
+    .navbtn { white-space: nowrap; }
+  }
   .stores { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 4px; }
   .store { background: #fff; border-radius: 14px; padding: 12px; box-shadow: 0 2px 10px rgba(60,45,20,.06); }
   .store .s { font-size: 14px; font-weight: 700; }
@@ -142,6 +157,20 @@
     <h2 class="sec">各店已銷售</h2>
     <div class="stores" id="storeCards"></div>
 
+    <div class="reportWrap">
+      <div class="reportNav" id="reportNav">
+        <div class="navlabel">報表分類</div>
+        <button class="navbtn" id="navBtn-all" onclick="setReportSection('all')">全部</button>
+        <button class="navbtn" id="navBtn-trend" onclick="setReportSection('trend')">銷售趨勢</button>
+        <button class="navbtn" id="navBtn-branch" onclick="setReportSection('branch')">門店比較</button>
+        <button class="navbtn" id="navBtn-cat" onclick="setReportSection('cat')">類別佔比</button>
+        <button class="navbtn" id="navBtn-best" onclick="setReportSection('best')">暢銷／滯銷</button>
+        <button class="navbtn" id="navBtn-promo" onclick="setReportSection('promo')">優惠成本</button>
+        <button class="navbtn" id="navBtn-stock" onclick="setReportSection('stock')">庫存價值</button>
+        <button class="navbtn" id="navBtn-daily" onclick="setReportSection('daily')">每日清單</button>
+      </div>
+      <div class="reportMain">
+      <div class="reportSec" id="sec-trend">
     <h2 class="sec">銷售趨勢</h2>
     <div class="trendbox">
       <div class="minihead">
@@ -155,42 +184,38 @@
       <div style="margin-top:14px;"><b style="font-size:14px;">星期幾平均（銷售額）</b></div>
       <div id="weekdayWrap">載入中…</div>
     </div>
-
+      </div>
+      <div class="reportSec" id="sec-branch">
     <h2 class="sec">門店比較</h2>
     <div class="minihead"><span class="sub" id="branchNote"></span><button class="xbtn" id="expBranch">⬇ 匯出門店比較 CSV</button></div>
     <table><thead><tr><th>門店</th><th class="num">淨銷售額</th><th class="num">已銷售（件）</th><th class="num">佔比（金額）</th><th class="num">日均銷售額</th><th class="num">毛利</th><th class="num">較上期</th></tr></thead><tbody id="branchBody"></tbody></table>
-
+      </div>
+      <div class="reportSec" id="sec-cat">
     <h2 class="sec">類別佔比（金額）</h2>
     <div class="trendbox"><div id="catMixWrap">載入中…</div><div class="sub">按產品小類（中式／泰式…）計；金額用實際金額（有優惠嗰行用優惠後金額，冇就標準價 × 已銷售）。</div></div>
-
+      </div>
+      <div class="reportSec" id="sec-best">
     <h2 class="sec">暢銷榜 / 滯銷榜</h2>
     <div class="twocol">
       <div><h3>🏆 暢銷 Top 10（按銷售額）</h3><table><thead><tr><th>#</th><th>產品</th><th class="num">件數</th><th class="num">銷售額</th></tr></thead><tbody id="topBody"></tbody></table></div>
       <div><h3>🐢 滯銷 Bottom 5（按銷售額，有賣先計）</h3><table><thead><tr><th>#</th><th>產品</th><th class="num">件數</th><th class="num">銷售額</th></tr></thead><tbody id="bottomBody"></tbody></table><div class="sub" id="zeroNote"></div></div>
     </div>
-
+      </div>
+      <div class="reportSec" id="sec-promo">
     <h2 class="sec">優惠成本 ＋ 網上訂單</h2>
     <div class="trendbox">
       <div class="sub" id="promoSummary">讀取緊網上訂單數據…</div>
       <div id="promoRuleWrap" style="margin-top:10px;"></div>
       <div class="sub">免費贈品價值按標準價計；滿減按實際減免金額計。只計網上訂單（銷售紀錄表），紙單優惠唔喺呢度。</div>
     </div>
-
+      </div>
+      <div class="reportSec" id="sec-stock">
     <h2 class="sec">庫存價值</h2>
     <div id="stockWrap"><div class="warnbox">讀取緊庫存數據…</div></div>
     <div class="sub">現金／支付方式、月度損益：Eats365 收銀數據未接入，人工同其他開支亦未有數，呢兩項暫時做唔到。</div>
+      </div>
 
-    <div class="actions">
-      <a class="action a" id="btnFormA" href="#" target="_blank" rel="noopener">
-        <div class="t">📋 紙單上載</div>
-        <div class="d">每日分貨紙單影相上載<br>紙要攤平 · 鏡頭正上方 · 成頁入鏡</div>
-      </a>
-      <a class="action b" id="btnByItem" href="#" onclick="switchTab('byitem');return false;">
-        <div class="t">📊 按產品檢視</div>
-        <div class="d">一行一款，齊睇四間門店嘅分配、已售、剩餘<br>可剔選多款產品並排比較</div>
-      </a>
-    </div>
-
+      <div class="reportSec" id="sec-daily">
     <h2 class="sec">每日已銷售清單</h2>
     <div class="controls">
       <label>日期 <select id="dateSel"></select></label>
@@ -211,6 +236,20 @@
       <tbody id="tbody"></tbody>
       <tfoot id="tfoot"></tfoot>
     </table>
+      </div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <a class="action a" id="btnFormA" href="#" target="_blank" rel="noopener">
+        <div class="t">📋 紙單上載</div>
+        <div class="d">每日分貨紙單影相上載<br>紙要攤平 · 鏡頭正上方 · 成頁入鏡</div>
+      </a>
+      <a class="action b" id="btnByItem" href="#" onclick="switchTab('byitem');return false;">
+        <div class="t">📊 按產品檢視</div>
+        <div class="d">一行一款，齊睇四間門店嘅分配、已售、剩餘<br>可剔選多款產品並排比較</div>
+      </a>
+    </div>
     <div class="foot">數據來源：BETTEREAT 飛書系統 · 每晚自動更新</div>
   </div>
 
@@ -1030,9 +1069,31 @@ document.getElementById("expAll").onclick = function(){
   downloadCSV("bettereat_sold_all.csv", rows);
 };
 
+// ===== 報表左邊分類（2026-11-19）：撳左邊切換顯示邊一節，預設銷售趨勢；選擇會記住 =====
+var REPORT_SECTIONS = ["all", "trend", "branch", "cat", "best", "promo", "stock", "daily"];
+function setReportSection(key){
+  if (REPORT_SECTIONS.indexOf(key) < 0) key = "trend";
+  REPORT_SECTIONS.forEach(function(k){
+    if (k === "all") return;
+    var el = document.getElementById("sec-" + k);
+    if (el) el.style.display = (key === "all" || key === k) ? "" : "none";
+  });
+  REPORT_SECTIONS.forEach(function(k){
+    var b = document.getElementById("navBtn-" + k);
+    if (b) b.className = "navbtn" + (k === key ? " on" : "");
+  });
+  try { localStorage.setItem("bettereat_report_section", key); } catch (e) {}
+}
+function initReportNav(){
+  var saved = null;
+  try { saved = localStorage.getItem("bettereat_report_section"); } catch (e) {}
+  setReportSection(saved || "trend");
+}
+
 // ===== 入口：由已存登入狀態恢復，否則顯示登入畫面 =====
 (function(){
   setupActions();
+  initReportNav();
   var s = getLoginSession();
   if (s) { unlockShell(); return; }
   // 舊主頁登入狀態（bettereat_auth）兼容：之前用舊密碼登入過嘅管理員，直接當管理員入。
