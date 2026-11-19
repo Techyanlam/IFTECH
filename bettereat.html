@@ -57,6 +57,7 @@
   .reportMain { flex: 1; min-width: 0; }
   .reportMain h2.sec { margin-top: 0; }
   .reportSec { margin-bottom: 22px; }
+  select:disabled { opacity: .45; }
   tr.tot td { border-top: 2px solid #c98a2d; }
   @media (max-width: 860px) {
     .reportWrap { flex-direction: column; }
@@ -225,6 +226,7 @@
       <label>類別 <select id="catSel"><option value="ALL">全部類別</option></select></label>
       <label>開始日期 <input type="date" id="dateFrom"></label>
       <label>結束日期 <input type="date" id="dateTo"></label>
+      <span class="sub" id="rangeNote"></span>
       <button class="xbtn" id="expDay">⬇ 匯出本日 CSV</button>
       <button class="xbtn" id="expAll">⬇ 匯出全部歷史 CSV</button>
     </div>
@@ -552,6 +554,12 @@ function passProdCat(r){
   return true;
 }
 function applyDate(){
+  // 日期二揀一：填咗範圍，單日下拉就停用（唔係兩個一齊生效）
+  var rg0 = getRange();
+  var ds0 = document.getElementById("dateSel");
+  if (ds0) ds0.disabled = rg0.active;
+  var rn = document.getElementById("rangeNote");
+  if (rn) rn.textContent = rg0.active ? "已揀範圍，單日唔生效。" : "";
   var base = baseRows();
   // 產品下拉：按當前日期／範圍記錄入面出現的款；揀咗嘅款唔喺入面就跌返「全部產品」
   var codes = {}, codeList = [];
@@ -1085,9 +1093,14 @@ if (expDailyBtn) expDailyBtn.onclick = function(){
     ["日期", "已銷售（件）", "淨銷售額", "毛利", "MAP", "MJF", "MKH", "MMCP"],
     days.map(function(m){ return [m.date, m.sold, Math.round(m.amount * 100) / 100, m.hasCost ? Math.round(m.profit * 100) / 100 : "待填成本", Math.round((m.stores.MAP || 0) * 100) / 100, Math.round((m.stores.MJF || 0) * 100) / 100, Math.round((m.stores.MKH || 0) * 100) / 100, Math.round((m.stores.MMCP || 0) * 100) / 100]; }));
 };
-document.getElementById("dateSel").addEventListener("change", function(){
-  curDate = this.value; applyDate();
-});
+function onDateSelChange(){
+  var ds = document.getElementById("dateSel");
+  if (ds) curDate = ds.value;
+  var f = document.getElementById("dateFrom"); if (f) f.value = "";
+  var t = document.getElementById("dateTo"); if (t) t.value = "";
+  applyDate();
+}
+document.getElementById("dateSel").addEventListener("change", onDateSelChange);
 document.getElementById("prodSel").addEventListener("change", function(){
   curProduct = this.value; applyDate();
 });
