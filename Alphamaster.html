@@ -657,7 +657,7 @@
     <script>
       "use strict";
       var content = document.getElementById("content");
-      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "" };
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "" };
 
       /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
       var ZH_EN = [
@@ -1216,6 +1216,46 @@
         if (c.status === "已完成" || c.status === "已收款" || c.status === "結案") return '<span class="badge badge-ok">' + esc(c.status) + "</span>";
         return '<span class="badge badge-grey">' + esc(c.status) + "</span>";
       }
+      function payInfo(i) {
+        // 發票付款狀態：客人發票 未收/已收、供應商發票 未付/已付。
+        if (i.cat === "客人發票") {
+          if (i.pay === "已收") return { label: "已收", cls: "badge-ok", next: "未收", nextLabel: "改回未收" };
+          return { label: i.pay || "未收", cls: "badge-warn", next: "已收", nextLabel: "標記已收" };
+        }
+        if (i.cat === "供應商發票") {
+          if (i.pay === "已付") return { label: "已付", cls: "badge-ok", next: "未付", nextLabel: "改回未付" };
+          return { label: i.pay || "未付", cls: "badge-warn", next: "已付", nextLabel: "標記已付" };
+        }
+        return { label: i.pay || "—", cls: "badge-grey", next: "", nextLabel: "" };
+      }
+      function payCellHtml(i) {
+        var p = payInfo(i);
+        var h = '<span class="badge ' + p.cls + '">' + esc(p.label) + "</span>";
+        if (state.dataMode === "live" && p.next && i.recordId) {
+          h += ' <button type="button" class="btn btn-ghost" style="padding:2px 8px;font-size:12px" data-action="toggle-pay" data-invoice-id="' + esc(i.recordId) + '" data-next-pay="' + esc(p.next) + '">' + esc(p.nextLabel) + "</button>";
+        }
+        return h;
+      }
+      function casePayChip(c) {
+        for (var k = 0; k < INVOICES.length; k++) {
+          var inv = INVOICES[k];
+          if (inv.case === c.ref && inv.cat === "客人發票") {
+            return inv.pay === "已收"
+              ? ' <span class="badge badge-ok">已收</span>'
+              : ' <span class="badge badge-warn">未收</span>';
+          }
+        }
+        return "";
+      }
+      function togglePay(recordId, nextPay) {
+        if (!recordId || !nextPay || state.payBusy) return;
+        state.payBusy = true;
+        apiJson("/api/invoices/" + encodeURIComponent(recordId), "PATCH", { pay: nextPay }).then(function (r) {
+          state.payBusy = false;
+          if (r.status === 200 && r.body && r.body.ok) refreshLive();
+          else alert("更新付款狀態失敗：" + apiErrorText(r, "未知錯誤"));
+        }).catch(function () { state.payBusy = false; alert("更新付款狀態失敗：網絡錯誤"); });
+      }
       function routeOf(c) {
         if (!c.pol && !c.pod) return '<span class="muted">—</span>';
         return esc(c.pol || "—") + " → " + esc(c.pod || "—");
@@ -1501,7 +1541,7 @@
           '<td data-label="Reference No."><a class="ref-link mono" href="#" data-open-case="' + esc(c.ref) + '">' + esc(c.ref) + "</a>" +
           (c.pending ? '<div><span class="badge badge-warn" style="margin-top:4px">' + esc(c.pending) + "</span></div>" : "") + "</td>" +
           '<td data-label="業務">' + typeChip(c.type) + (splitTypeDir(c.type, c.dir).dir ? ' <span class="small" style="white-space:nowrap">' + esc(splitTypeDir(c.type, c.dir).dir) + "</span>" : "") + "</td>" +
-          '<td data-label="狀態">' + statusBadge(c) + "</td>" +
+          '<td data-label="狀態">' + statusBadge(c) + casePayChip(c) + "</td>" +
           '<td data-label="Shipper / Consignee"><div>' + esc(c.shipper || "—") + '</div><div class="muted small">→ ' + esc(c.consignee || "—") + "</div></td>" +
           '<td data-label="航線"><span class="route">' + routeOf(c) + "</span></td>" +
           '<td data-label="ETD">' + fmtDate(c.etd) + "</td>" + money + "</tr>";
@@ -1758,7 +1798,7 @@
           h += '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / Invoice No.</th><th>類別</th><th>日期</th><th style="text-align:right">金額</th><th>付款狀態</th></tr></thead><tbody>' +
             invs.map(function (i) {
               var gi = INVOICES.indexOf(i);
-              return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, gi) + "<div class='doc-meta'><div class='mono'>" + esc(i.no) + "</div><button type='button' class='preview-link' data-preview-invoice='" + gi + "'>預覽發票</button>" + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td><td data-label='類別'>" + esc(i.cat) + "</td><td data-label='日期'>" + fmtDate(i.date) + "</td><td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td><td data-label='付款狀態'><span class='badge badge-warn'>" + esc(i.pay) + "</span></td></tr>";
+              return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, gi) + "<div class='doc-meta'><div class='mono'>" + esc(i.no) + "</div><button type='button' class='preview-link' data-preview-invoice='" + gi + "'>預覽發票</button>" + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td><td data-label='類別'>" + esc(i.cat) + "</td><td data-label='日期'>" + fmtDate(i.date) + "</td><td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td><td data-label='付款狀態'>" + payCellHtml(i) + "</td></tr>";
             }).join("") + "</tbody></table></div>";
         } else {
           h += '<div class="note-box">本案暫無發票記錄。</div>';
@@ -2011,7 +2051,7 @@
             "<td data-label='類別'>" + (i.cat === "客人發票" ? '<span class="badge badge-info">客人發票</span>' : '<span class="badge badge-grey">供應商發票</span>') + "</td>" +
             "<td data-label='日期'>" + fmtDate(i.date) + "</td>" +
             "<td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td>" +
-            "<td data-label='付款狀態'><span class='badge badge-warn'>" + esc(i.pay) + "</span></td></tr>";
+            "<td data-label='付款狀態'>" + payCellHtml(i) + "</td></tr>";
         }).join("");
         var genRows = DOCGEN.map(function (g) {
           var b = function (s) { return s === "已生成" ? '<span class="badge badge-ok">已生成</span>' : '<span class="badge badge-grey">未生成</span>'; };
@@ -2631,6 +2671,7 @@
         var t = ev.target.closest("[data-nav],[data-nav-go],[data-open-case],[data-seg],[data-newtype],[data-open-intake],[data-ai-demo],[data-ai-reset],[data-ai-open],[data-reset-triggers],[data-preview-doc],[data-preview-invoice],[data-close-preview],[data-check-bill],[data-clear-supplier],[data-notice-refresh],[data-del-charge],[data-gen-invoice],[data-action]");
         if (!t) return;
         if (t.hasAttribute("data-action") && t.getAttribute("data-action") === "toggle-charge-card") { state.chargeCardOpen = !state.chargeCardOpen; render(); }
+        if (t.hasAttribute("data-action") && t.getAttribute("data-action") === "toggle-pay") { togglePay(t.getAttribute("data-invoice-id"), t.getAttribute("data-next-pay")); }
         else if (t.hasAttribute("data-notice-refresh")) { refreshLive(); }
         else if (t.hasAttribute("data-gen-invoice")) {
           if (state.invoiceBusy) return;
