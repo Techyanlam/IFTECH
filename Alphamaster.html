@@ -368,7 +368,7 @@
       .doc-cell .doc-meta .mono { overflow-wrap: anywhere; }
       button.doc-thumb { cursor: pointer; font: inherit; }
       button.doc-thumb:hover { border-color: var(--brand-2); box-shadow: 0 2px 6px rgba(16,34,46,.18), 0 6px 14px rgba(16,34,46,.08); }
-      .preview-link { font-size: 12.5px; font-weight: 700; color: var(--brand-2); background: none; border: 0; padding: 2px 0; cursor: pointer; font-family: inherit; min-height: 28px; }
+      .preview-link { font-size: 12.5px; font-weight: 700; color: var(--brand-2); background: none; border: 0; padding: 2px 0; cursor: pointer; font-family: inherit; min-height: 28px; text-decoration: none; }
       .preview-link:hover { text-decoration: underline; }
 
       .preview-overlay {
@@ -1361,11 +1361,14 @@
         return '<button type="button" class="doc-thumb ' + k.cls + '" data-preview-invoice="' + idx + '" aria-label="' + esc(k.short) + " " + esc(inv.no) + '" title="撳入預覽">' +
           '<div class="dt-title">' + esc(k.short) + '</div><div class="dt-sub">' + esc(inv.no) + "</div>" + thumbLinesHtml() + "</button>";
       }
-      /* 飛書原檔「查看」掣：撳落去先向 Worker 即時攞臨時下載連結（時效 24 小時），
-         再開新分頁睇原檔（PDF 直接睇，xlsx 會下載）。無 token 唔出掣。 */
+      /* 飛書原檔「查看」：用真連結（<a target="_blank">）直接去 Worker 嘅 /redirect 端點，
+         href 喺 render 嗰陣已經計好，撳落去係瀏覽器原生導航，唔經任何 JS。
+         之前用 JS fetch／window.open 嗰兩種寫法，喺瀏覽器度都靜默失敗過，呢個寫法最穩。
+         無 token 唔出連結。 */
       function viewFileBtn(token, extra) {
         if (!token) return "";
-        return "<button type='button' class='preview-link' data-view-file data-token='" + esc(token) + "' data-extra='" + esc(encodeURIComponent(extra || "")) + "'>查看原檔</button>";
+        var q = extra ? ("?extra=" + encodeURIComponent(extra)) : "";
+        return "<a class='preview-link' data-file-link target='_blank' rel='noopener' href='" + esc(API_BASE + "/api/files/" + encodeURIComponent(token) + "/redirect" + q) + "'>查看原檔</a>";
       }
       /* 發票行嘅原檔：發票記錄本身通常冇上載檔案（發票檔案欄係空），
          實體 PDF 係喺個案嘅 Invoice 附件欄——客人發票行用個案附件做後備；
@@ -1382,23 +1385,6 @@
         return null;
       }
       function viewFileBtnObj(f) { return f ? viewFileBtn(f.token, f.extra) : ""; }
-      function openFeishuFile(btn) {
-        var token = btn.getAttribute("data-token") || "";
-        var extra = "";
-        try { extra = decodeURIComponent(btn.getAttribute("data-extra") || ""); } catch (e) { extra = ""; }
-        if (!token) return;
-        /* 直接開新分頁去 Worker 嘅 /redirect 端點：Worker 喺伺服器攞到臨時連結就 302 轉去原檔。
-           全程同步喺撳掣嗰一刻發生，唔經瀏覽器 fetch——之前 fetch 返嚟先開窗／轉址嗰兩種寫法，
-           喺瀏覽器度都會靜默失敗（彈出阻擋／跨窗轉址失效），呢個寫法避開晒。 */
-        var q = extra ? ("?extra=" + encodeURIComponent(extra)) : "";
-        var win = null;
-        try { win = window.open(API_BASE + "/api/files/" + encodeURIComponent(token) + "/redirect" + q, "_blank"); } catch (e) { win = null; }
-        if (!win) {
-          var orig = btn.textContent;
-          btn.textContent = trText("彈出視窗被阻擋，請允許彈出視窗再試");
-          setTimeout(function () { btn.textContent = orig; }, 5000);
-        }
-      }
       function ppField(k, v, full) {
         return '<div class="pp-field' + (full ? " full" : "") + '"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v || "—") + "</div></div>";
       }
@@ -2375,7 +2361,8 @@
 
       document.addEventListener("click", function (ev) {
         if (ev.target && ev.target.id === "preview-overlay") { closePreview(); return; }
-        var t = ev.target.closest("[data-nav],[data-nav-go],[data-open-case],[data-seg],[data-newtype],[data-open-intake],[data-ai-demo],[data-ai-reset],[data-ai-open],[data-reset-triggers],[data-view-file],[data-preview-doc],[data-preview-invoice],[data-close-preview],[data-check-bill],[data-clear-supplier],[data-notice-refresh]");
+        if (ev.target && ev.target.closest && ev.target.closest("[data-file-link]")) return;
+        var t = ev.target.closest("[data-nav],[data-nav-go],[data-open-case],[data-seg],[data-newtype],[data-open-intake],[data-ai-demo],[data-ai-reset],[data-ai-open],[data-reset-triggers],[data-preview-doc],[data-preview-invoice],[data-close-preview],[data-check-bill],[data-clear-supplier],[data-notice-refresh]");
         if (!t) return;
         if (t.hasAttribute("data-notice-refresh")) { refreshLive(); }
         else if (t.hasAttribute("data-close-preview")) { closePreview(); }
@@ -2392,7 +2379,6 @@
           state.supplierSubmitted = "";
           render();
         }
-        else if (t.hasAttribute("data-view-file")) { openFeishuFile(t); }
         else if (t.hasAttribute("data-preview-doc")) {
           var pd = DOCS[Number(t.getAttribute("data-preview-doc"))];
           if (pd) openPreview(esc(pd.cat) + " — " + escRaw(pd.name), esc("個案 " + pd.case + " · 上載 " + fmtDate(pd.date)), previewPaperForDoc(pd));
