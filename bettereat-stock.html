@@ -40,6 +40,7 @@
   .rectable th, .rectable td { border: 1px solid #c3d3e2; padding: 7px 9px; text-align: left; vertical-align: top; }
   .rectable th { background: #dbe7f1; color: #4a6076; white-space: nowrap; }
   .rectable tr:nth-child(even) td { background: #eef5fb; }
+  .rectable tr.tot td { font-weight: 700; background: #dbe7f1; }
   .rectable input[type="number"] { width: 76px; padding: 6px; font-size: 13px; border: 1px solid #ccd9e4; border-radius: 6px; background: #fff; }
   .chklist { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 12px; max-height: 220px; overflow-y: auto; border: 1px solid #ccd9e4; border-radius: 10px; padding: 10px; background: #fff; font-size: 13px; line-height: 1.5; }
   .chklist label { display: flex; gap: 6px; align-items: flex-start; cursor: pointer; }
@@ -76,14 +77,17 @@
 
   <!-- 1. 庫存 -->
   <div id="panel-stock">
-    <div class="warn" id="stockSeedWarn" style="display:none;">⚠️ 未有期初數，庫存未齊——期初數未寫入飛書「庫存異動」表，呢度嘅數未齊全，唔好當最終庫存。</div>
+    <div class="note">庫存以飛書「C_每日分配及出貨記錄」為準（每日快照，夜晚同步更新）。呢度顯示 C 表嘅分配／已售／剩餘；同步規則只收錄已銷售 &gt; 0 嘅記錄。</div>
     <div class="controls">
-      <button class="xbtn" id="stockRefreshBtn" onclick="loadStock()">🔄 重新載入</button>
+      <label for="stockDateSel">日期：</label>
+      <select id="stockDateSel" onchange="onCDateChange()"></select>
+      <button class="xbtn" id="stockRefreshBtn" onclick="reloadCStock()">🔄 重新載入</button>
     </div>
+    <div class="meta" id="stockMeta"></div>
     <div class="err" id="stockStatus"></div>
     <div style="overflow-x:auto;">
       <table class="rectable">
-        <thead><tr><th>門店</th><th>產品</th><th>產品編號</th><th>庫存數量</th></tr></thead>
+        <thead><tr><th>門店</th><th>產品</th><th>產品編號</th><th>單位</th><th>分配（件）</th><th>已售（件）</th><th>剩餘（件）</th></tr></thead>
         <tbody id="stockBody"></tbody>
       </table>
     </div>
@@ -221,7 +225,7 @@
       </div>
     </div>
   </div>
-  <div class="meta" style="text-align:center;">數據來源：BETTEREAT 飛書系統 · 庫存以飛書「庫存異動」為準</div>
+  <div class="meta" style="text-align:center;">數據來源：BETTEREAT 飛書系統 · 庫存以飛書「C_每日分配及出貨記錄」為準</div>
 </div>
 
 <script>
@@ -235,7 +239,9 @@ var products = [];
 var selectedStocktake = [];
 var lastVarianceRows = [];
 var lastVarianceTotals = null;
-var lastStockSeeded = null;
+var DATA_URL = "https://raw.githubusercontent.com/Techyanlam/IFTECH/main/bettereat_sold_data.json";
+var cPayload = null;
+var cDate = "";
 
 function esc(s){ return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
 function pick(r){ for (var i = 1; i < arguments.length; i++) { var v = r[arguments[i]]; if (v !== undefined && v !== null && v !== "") return v; } return ""; }
@@ -343,7 +349,7 @@ function loadProducts(){
     });
     populateProductSelects();
     var m = document.getElementById("metaLine");
-    if (m) m.textContent = "產品目錄：共 " + products.length + " 款 ｜ 庫存以飛書「庫存異動」為準";
+    if (m) m.textContent = "產品目錄：共 " + products.length + " 款 ｜ 庫存以飛書「C_每日分配及出貨記錄」為準";
     var pe = document.getElementById("prodErr");
     if (pe) pe.textContent = "";
   }).catch(function(){
@@ -392,35 +398,60 @@ function switchTab(name){
   else if (name === "receive") loadReceiveList();
 }
 
-// ===== 1. 庫存 =====
+// ===== 1. 庫存（C_每日分配及出貨記錄） =====
 function loadStock(){
+  if (cPayload) { renderCStock(); return Promise.resolve(); }
   var st = document.getElementById("stockStatus");
-  if (st) st.textContent = "載入緊庫存…";
-  var payload = {};
-  var store = currentStore();
-  if (store) payload.store = store;
-  return callWorker("stock", payload).then(function(j){
-    if (!j || !j.ok) {
-      if (st) st.textContent = "載入庫存失敗：" + errText(j && j.error);
-      return;
+  if (st) st.textContent = "載入緊 C 表數據…";
+  return fetch(DATA_URL + "?t=" + Date.now()).then(function(r){ return r.json(); }).then(function(j){
+    cPayload = j;
+    if (!cPayload.history) { cPayload.history = {}; if (j.date) cPayload.history[j.date] = j.records || []; }
+    var dates = Object.keys(cPayload.history).sort().reverse();
+    if (!cDate || !cPayload.history[cDate]) cDate = j.date || dates[0] || "";
+    var sel = document.getElementById("stockDateSel");
+    if (sel) {
+      sel.innerHTML = dates.map(function(d){ return '<option value="' + esc(d) + '">' + esc(d) + "</option>"; }).join("");
+      sel.value = cDate;
     }
-    lastStockSeeded = !!j.seeded;
-    var warn = document.getElementById("stockSeedWarn");
-    if (warn) warn.style.display = j.seeded ? "none" : "block";
-    renderStock(j.stock || []);
     if (st) st.textContent = "";
+    renderCStock();
+  }).catch(function(){
+    if (st) st.textContent = "載入 C 表數據失敗，請按重新載入再試。";
   });
 }
-function renderStock(rows){
+function reloadCStock(){ cPayload = null; loadStock(); }
+function onCDateChange(){
+  var sel = document.getElementById("stockDateSel");
+  cDate = sel ? (sel.value || "") : "";
+  renderCStock();
+}
+function renderCStock(){
+  var body = document.getElementById("stockBody");
+  if (!body || !cPayload) return;
+  var store = currentStore();
+  var rows = ((cPayload.history || {})[cDate] || []).filter(function(r){
+    return !store || r.store === store;
+  }).slice();
+  rows.sort(function(a, b){
+    var si = SHOP_LABELS.indexOf(a.store) - SHOP_LABELS.indexOf(b.store);
+    if (si !== 0) return si;
+    return String(a.product_code || "").localeCompare(String(b.product_code || ""));
+  });
+  var tA = 0, tS = 0, tR = 0;
   var html = "";
   rows.forEach(function(r){
-    var store = pick(r, "store", "門店");
-    var prod = pick(r, "product", "產品");
-    var code = pick(r, "productCode", "產品編號");
-    var qty = pick(r, "qty", "數量");
-    html += "<tr><td>" + esc(store) + "</td><td>" + esc(prod) + "</td><td>" + esc(code) + "</td><td>" + esc(qty) + "</td></tr>";
+    var sold = r.sold_pcs || 0;
+    var rem = r.remaining_pcs || 0;
+    var alloc = (r.no_of_pcs !== null && r.no_of_pcs !== undefined) ? r.no_of_pcs : sold + rem;
+    tA += alloc; tS += sold; tR += rem;
+    html += "<tr><td>" + esc(r.store) + "</td><td>" + esc(r.product_name) + "</td><td>" + esc(r.product_code) + "</td><td>" + esc(r.unit || "") + "</td><td>" + alloc + "</td><td>" + sold + "</td><td>" + rem + "</td></tr>";
   });
-  document.getElementById("stockBody").innerHTML = html || '<tr><td colspan="4" style="color:#71879a;">未有庫存記錄</td></tr>';
+  if (rows.length) {
+    html += '<tr class="tot"><td colspan="4">合計（' + esc(cDate) + "）</td><td>" + tA + "</td><td>" + tS + "</td><td>" + tR + "</td></tr>";
+  }
+  body.innerHTML = html || '<tr><td colspan="7" style="color:#71879a;">呢日未有 C 表記錄</td></tr>';
+  var meta = document.getElementById("stockMeta");
+  if (meta) meta.textContent = "數據日期：" + cDate + " ｜ C 表快照更新時間：" + (cPayload.generated_at || "") + " ｜ 共 " + rows.length + " 行";
 }
 
 // ===== 2. 調整 =====
