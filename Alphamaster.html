@@ -914,6 +914,12 @@
         ["已收款", "Paid"],
         ["已出", "Issued"],
         ["未出", "Not issued"],
+        ["改回未收", "Mark Unpaid"],
+        ["改回未付", "Mark Unpaid"],
+        ["標記已收", "Mark Received"],
+        ["標記已付", "Mark Paid"],
+        ["已收", "Received"],
+        ["已付", "Paid"],
         ["未收", "Unpaid"],
         ["未付", "Unpaid"],
         ["結案", "Closed"],
@@ -2069,19 +2075,14 @@
         });
         return order;
       }
-      function groupHeadHtml(ref, count, unit, span) {
-        var c = findCase(ref);
-        var meta = c ? esc(c.shipper || "") + (c.pol || c.pod ? " · " + esc(c.pol || "—") + " → " + esc(c.pod || "—") : "") + (c.status ? " · " + esc(c.status) : "") : "未連結個案";
-        return "<tr class='group-row'><td colspan='" + span + "'><a class='ref-link mono' href='#' data-open-case='" + esc(ref) + "'>" + esc(ref) + "</a><span class='group-meta'>" + meta + "</span><span class='group-count'>" + count + " " + unit + "</span></td></tr>";
-      }
-
       /* ---------- 發票及報價單 ---------- */
       function viewInvoices() {
         var invRows = groupByCase(INVOICES).map(function (g) {
-          return groupHeadHtml(g.ref, g.items.length, "張", 6) + g.items.map(function (i) {
+          return g.items.map(function (i) {
             var idx = INVOICES.indexOf(i);
+            var gc = findCase(i.case);
             return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, idx) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div>" + previewInvBtn(i, idx) + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td>" +
-              "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(i.case) + "'>" + esc(i.case) + "</a></td>" +
+              "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(i.case) + "'>" + esc(i.case) + "</a>" + (gc ? "<div class='muted small'>" + esc(gc.shipper || "") + "</div>" : "") + "</td>" +
               "<td data-label='類別'>" + (i.cat === "客人發票" ? '<span class="badge badge-info">客人發票</span>' : '<span class="badge badge-grey">供應商發票</span>') + "</td>" +
               "<td data-label='日期'>" + fmtDate(i.date) + "</td>" +
               "<td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td>" +
@@ -2105,7 +2106,7 @@
       /* ---------- 文件 ---------- */
       function viewDocs() {
         var rows = groupByCase(DOCS).map(function (g) {
-          return groupHeadHtml(g.ref, g.items.length, "份", 4) + g.items.map(function (d) {
+          return g.items.map(function (d) {
             var idx = DOCS.indexOf(d);
             var c = findCase(d.case);
             return "<tr><td data-label='預覽 / 檔案'><div class='doc-cell'>" + docThumbHtml(d, idx) + "<div class='doc-meta'><div class='mono small'><strong>" + escRaw(d.name) + "</strong></div>" + previewDocBtn(d, idx) + viewFileBtn(d.fileToken, d.fileExtra) + "</div></div></td>" +
