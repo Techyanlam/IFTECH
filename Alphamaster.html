@@ -914,6 +914,7 @@
         ["已收款", "Paid"],
         ["已出", "Issued"],
         ["未出", "Not issued"],
+        ["建立逾時：張單可能已寫入飛書，請先到「個案一覽」檢查，唔好立即再撳建立，以免重複開單", "Timed out: the case may already have been written to Feishu. Check Cases first — do not submit again right away, or you may create a duplicate."],
         ["Invoice No. 與 Job No. 共用同一統一編號；有飛書原檔嘅發票，縮圖係原檔第一頁，撳入即開原檔", "Invoice No. and Job No. share the same unified number. Where a Feishu original exists, the thumbnail shows its first page — click to open the original."],
         ["每宗個案的文件集中存放，與飛書 Base 文件表對應；有原檔嘅縮圖係原檔第一頁，撳入即開原檔", "Documents are filed per case, matching the Feishu Base documents table. Where an original exists, the thumbnail shows its first page — click to open it."],
         ["改回未收", "Mark Unpaid"],
@@ -1203,8 +1204,9 @@
       var API_BASE = "https://alpha-master-api.yan-lam.workers.dev";
       function apiFetch(path, opts) {
         var ctrl = ("AbortController" in window) ? new AbortController() : null;
-        var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, 20000) : null;
         var init = opts || {};
+        var isWrite = !!(init.method && init.method !== "GET");
+        var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, isWrite ? 90000 : 20000) : null;
         if (ctrl) init.signal = ctrl.signal;
         return fetch(API_BASE + path, init).then(function (res) {
           if (timer) clearTimeout(timer);
@@ -2582,7 +2584,8 @@
                 state.newCaseBusy = false;
                 if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = trText("建立個案"); }
                 var res4 = document.getElementById("newcase-result");
-                if (res4) { res4.innerHTML = trText('<div class="alert-box"><span aria-hidden="true">⚠</span><span>建立失敗，未有寫入飛書：' + esc(e && e.message ? e.message : "連線失敗") + "</span></div>"); }
+                var isAbort = e && (e.name === "AbortError" || /abort/i.test(e.message || ""));
+                if (res4) { res4.innerHTML = trText(isAbort ? '<div class="alert-box"><span aria-hidden="true">⚠</span><span>建立逾時：張單可能已寫入飛書，請先到「個案一覽」檢查，唔好立即再撳建立，以免重複開單</span></div>' : '<div class="alert-box"><span aria-hidden="true">⚠</span><span>建立失敗，未有寫入飛書：' + esc(e && e.message ? e.message : "連線失敗") + "</span></div>"); }
               });
               return;
             }
