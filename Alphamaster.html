@@ -914,6 +914,8 @@
         ["已收款", "Paid"],
         ["已出", "Issued"],
         ["未出", "Not issued"],
+        ["Invoice No. 與 Job No. 共用同一統一編號；有飛書原檔嘅發票，縮圖係原檔第一頁，撳入即開原檔", "Invoice No. and Job No. share the same unified number. Where a Feishu original exists, the thumbnail shows its first page — click to open the original."],
+        ["每宗個案的文件集中存放，與飛書 Base 文件表對應；有原檔嘅縮圖係原檔第一頁，撳入即開原檔", "Documents are filed per case, matching the Feishu Base documents table. Where an original exists, the thumbnail shows its first page — click to open it."],
         ["改回未收", "Mark Unpaid"],
         ["改回未付", "Mark Unpaid"],
         ["標記已收", "Mark Received"],
@@ -2077,6 +2079,14 @@
       }
       /* ---------- 發票及報價單 ---------- */
       function viewInvoices() {
+        var genOf = function (ref) { return DOCGEN.filter(function (g) { return g.case === ref; })[0] || null; };
+        var genBadge = function (s) { return s === "已生成" ? '<span class="badge badge-ok">已生成</span>' : '<span class="badge badge-grey">未生成</span>'; };
+        var genCell = function (ref) {
+          var g = genOf(ref);
+          var q = g ? g.quote : "未生成";
+          var iv = g ? g.invoice : "未生成";
+          return '<span class="small muted">報價單</span> ' + genBadge(q) + ' <span class="small muted">客人發票</span> ' + genBadge(iv) + (g && g.note ? "<div class='small muted'>" + esc(g.note) + "</div>" : "");
+        };
         var invRows = groupByCase(INVOICES).map(function (g) {
           return g.items.map(function (i) {
             var idx = INVOICES.indexOf(i);
@@ -2086,21 +2096,24 @@
               "<td data-label='類別'>" + (i.cat === "客人發票" ? '<span class="badge badge-info">客人發票</span>' : '<span class="badge badge-grey">供應商發票</span>') + "</td>" +
               "<td data-label='日期'>" + fmtDate(i.date) + "</td>" +
               "<td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td>" +
-              "<td data-label='付款狀態'>" + payCellHtml(i) + "</td></tr>";
+              "<td data-label='付款狀態'>" + payCellHtml(i) + "</td>" +
+              "<td data-label='文件生成'>" + genCell(i.case) + "</td></tr>";
           }).join("");
         }).join("");
-        var genRows = DOCGEN.map(function (g) {
-          var b = function (s) { return s === "已生成" ? '<span class="badge badge-ok">已生成</span>' : '<span class="badge badge-grey">未生成</span>'; };
-          return "<tr><td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(g.case) + "'>" + esc(g.case) + "</a></td>" +
-            "<td data-label='報價單'>" + b(g.quote) + "</td><td data-label='客人發票'>" + b(g.invoice) + "</td>" +
-            "<td data-label='備註' class='small'>" + esc(g.note || "—") + "</td></tr>";
+        var invoicedCases = {};
+        INVOICES.forEach(function (i) { invoicedCases[i.case] = true; });
+        var genOnlyRows = DOCGEN.filter(function (g) { return !invoicedCases[g.case]; }).map(function (g) {
+          var gc = findCase(g.case);
+          return "<tr><td data-label='預覽 / Invoice No.'><span class='muted'>—</span></td>" +
+            "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(g.case) + "'>" + esc(g.case) + "</a>" + (gc ? "<div class='muted small'>" + esc(gc.shipper || "") + "</div>" : "") + "</td>" +
+            "<td data-label='類別'><span class='muted'>—</span></td><td data-label='日期'><span class='muted'>—</span></td>" +
+            "<td data-label='金額' class='num'><span class='muted'>—</span></td><td data-label='付款狀態'><span class='muted'>—</span></td>" +
+            "<td data-label='文件生成'>" + genCell(g.case) + "</td></tr>";
         }).join("");
         return '<div class="page-head"><div><h1>發票及報價單</h1><div class="sub">Invoice No. 與 Job No. 共用同一統一編號；有飛書原檔嘅發票，縮圖係原檔第一頁，撳入即開原檔</div></div></div>' +
           '<h2 class="section-title">發票列表</h2>' +
-          '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / Invoice No.</th><th>個案</th><th>類別</th><th>日期</th><th style="text-align:right">金額</th><th>付款狀態</th></tr></thead><tbody>' + invRows + "</tbody></table></div>" +
-          '<div class="note-box" style="margin-top:14px">客人發票 BILL TO 目前顯示「COMPANY NAME」（樣本遮蓋了真實名稱），正式出單前須填上客戶真實名稱。發票上款：ALPHA MASTER LOGISTICS LIMITED，荃灣白田壩街 5-21 號嘉力工業中心 A 座 9 樓 17 室，Tel (852) 3500 7163。下款收款銀行：HSBC Hong Kong，戶口 819-860339-838（USD/HKD），SWIFT HSBCHKHHHKH。</div>' +
-          '<h2 class="section-title">文件生成狀態（DocuGenius）</h2>' +
-          '<div class="table-wrap"><table class="data"><thead><tr><th>個案</th><th>報價單</th><th>客人發票</th><th>備註</th></tr></thead><tbody>' + genRows + "</tbody></table></div>";
+          '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / Invoice No.</th><th>個案</th><th>類別</th><th>日期</th><th style="text-align:right">金額</th><th>付款狀態</th><th>文件生成（DocuGenius）</th></tr></thead><tbody>' + invRows + genOnlyRows + "</tbody></table></div>" +
+          '<div class="note-box" style="margin-top:14px">客人發票 BILL TO 目前顯示「COMPANY NAME」（樣本遮蓋了真實名稱），正式出單前須填上客戶真實名稱。發票上款：ALPHA MASTER LOGISTICS LIMITED，荃灣白田壩街 5-21 號嘉力工業中心 A 座 9 樓 17 室，Tel (852) 3500 7163。下款收款銀行：HSBC Hong Kong，戶口 819-860339-838（USD/HKD），SWIFT HSBCHKHHHKH。</div>';
       }
 
       /* ---------- 文件 ---------- */
