@@ -230,6 +230,11 @@
       </div>
       <div class="reportSec" id="sec-stock">
     <h2 class="sec">即時庫存（分店 × 產品）</h2>
+    <div class="controls" style="margin-bottom:10px;">
+      <label>搜尋 <input type="text" id="stockSearch" placeholder="產品名／編號" style="padding:7px 10px;font-size:14px;border:1px solid #ccd9e4;border-radius:8px;background:#fff;"></label>
+      <label>門店 <select id="stockStoreSel"><option value="ALL">全部門店</option><option value="MJF">謝斐 (MJF)</option><option value="MAP">淘大 (MAP)</option><option value="MKH">Aeon (MKH)</option><option value="MMCP">將軍澳 (MMCP)</option></select></label>
+      <span class="sub" id="stockCount"></span>
+    </div>
     <div id="stockWrap"><div class="warnbox">讀取緊 C 表數據…</div></div>
     <div class="sub">現金／支付方式、月度損益：Eats365 收銀數據未接入，人工同其他開支亦未有數，呢兩項暫時做唔到。</div>
       </div>
@@ -1062,6 +1067,18 @@ function stockCRows(){
   rows.forEach(function(r){ if (r._d && r._d > latest) latest = r._d; });
   return { date: latest, rows: rows.filter(function(r){ return r._d === latest; }) };
 }
+var stockSearch = "";
+var stockStore = "ALL";
+function stockFilteredRows(){
+  var sc = stockCRows();
+  var q = String(stockSearch || "").trim().toLowerCase();
+  var rows = sc.rows.filter(function(r){
+    if (stockStore !== "ALL" && storeCode(r.store) !== stockStore) return false;
+    if (q && String(r.product_name || "").toLowerCase().indexOf(q) < 0 && String(r.product_code || "").toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+  return { date: sc.date, total: sc.rows.length, rows: rows };
+}
 function aggCStock(cRows){
   var map = {}, order = [];
   (cRows || []).forEach(function(r){
@@ -1107,8 +1124,10 @@ function aggCStock(cRows){
 function renderStock(){
   var el = document.getElementById("stockWrap"); if (!el) return;
   if (!payload || !payload.history) { el.innerHTML = '<div class="warnbox">讀取緊 C 表數據…</div>'; return; }
-  var sc = stockCRows();
+  var sc = stockFilteredRows();
   var a = aggCStock(sc.rows);
+  var cnt = document.getElementById("stockCount");
+  if (cnt) cnt.textContent = "顯示 " + a.skus + " / " + aggCStock(stockCRows().rows).skus + " 款";
   var html = '<div class="trendbox"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;"><div>數據日期 <b>' + escHtml(sc.date) + '</b> ｜ 共 <b>' + a.skus + '</b> 款（門店 × 產品）｜ 分配 <b>' + fmt(a.alloc) + '</b> 件 ｜ 已售 <b>' + fmt(a.sold) + '</b> 件 ｜ 剩餘 <b>' + fmt(a.rem) + '</b> 件 ｜ 剩餘零售價值 <b>' + fmtMoney(a.retail) + '</b> ｜ 剩餘成本價值 <b>' + fmtMoney(a.cost) + '</b></div>' +
     '<button class="xbtn" onclick="exportStockCSV()">⬇ 匯出庫存 CSV</button></div>';
   if (a.priceUnknown) html += '<div class="sub">' + a.priceUnknown + ' 款搵唔到售價，未計入剩餘零售價值。</div>';
@@ -1127,7 +1146,7 @@ function renderStock(){
   el.innerHTML = html;
 }
 function exportStockCSV(){
-  var sc = stockCRows();
+  var sc = stockFilteredRows();
   var a = aggCStock(sc.rows);
   var rows = a.rows.map(function(x){
     return [x.store, x.product, x.code, x.unit, x.alloc, x.sold, x.rem,
@@ -1347,6 +1366,10 @@ var biSearchEl = document.getElementById("byItemSearch");
 if (biSearchEl) biSearchEl.addEventListener("input", function(){ byItemSearch = this.value; renderByItem(); });
 var biStoreEl = document.getElementById("byItemStoreSel");
 if (biStoreEl) biStoreEl.addEventListener("change", function(){ byItemStore = this.value; renderByItem(); });
+var stockSearchEl = document.getElementById("stockSearch");
+if (stockSearchEl) stockSearchEl.addEventListener("input", function(){ stockSearch = this.value; renderStock(); });
+var stockStoreEl = document.getElementById("stockStoreSel");
+if (stockStoreEl) stockStoreEl.addEventListener("change", function(){ stockStore = this.value; renderStock(); });
 var biDateEl = document.getElementById("byItemDateSel");
 if (biDateEl) biDateEl.addEventListener("change", function(){ byItemDate = this.value; renderByItem(); });
 document.getElementById("dateFrom").addEventListener("change", function(){ applyDate(); });
