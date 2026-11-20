@@ -188,6 +188,9 @@
       }
       table.data td { padding: 10px 10px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: break-word; }
       table.data tr:last-child td { border-bottom: 0; }
+      table.data tr.group-row td { background: var(--surface-2); font-weight: 700; padding: 8px 10px; }
+      .group-row .group-meta { font-weight: 400; color: var(--ink-2); margin-left: 10px; font-size: 12.5px; }
+      .group-row .group-count { float: right; font-weight: 400; color: var(--ink-2); font-size: 12.5px; }
       table.data tbody tr.clickable { cursor: pointer; }
       table.data tbody tr.clickable:hover { background: var(--surface-2); }
       table.data tfoot td { font-weight: 700; background: var(--surface-2); border-top: 2px solid var(--line-strong); }
@@ -2056,15 +2059,34 @@
           '<div id="intake-result">' + (state.intakeResult || "") + "</div>";
       }
 
+      /* ---------- 按個案分組 ---------- */
+      function groupByCase(list) {
+        var order = [], map = {};
+        list.forEach(function (x) {
+          var key = x.case || "—";
+          if (!map[key]) { map[key] = { ref: key, items: [] }; order.push(map[key]); }
+          map[key].items.push(x);
+        });
+        return order;
+      }
+      function groupHeadHtml(ref, count, unit, span) {
+        var c = findCase(ref);
+        var meta = c ? esc(c.shipper || "") + (c.pol || c.pod ? " · " + esc(c.pol || "—") + " → " + esc(c.pod || "—") : "") + (c.status ? " · " + esc(c.status) : "") : "未連結個案";
+        return "<tr class='group-row'><td colspan='" + span + "'><a class='ref-link mono' href='#' data-open-case='" + esc(ref) + "'>" + esc(ref) + "</a><span class='group-meta'>" + meta + "</span><span class='group-count'>" + count + " " + unit + "</span></td></tr>";
+      }
+
       /* ---------- 發票及報價單 ---------- */
       function viewInvoices() {
-        var invRows = INVOICES.map(function (i, idx) {
-          return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, idx) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div>" + previewInvBtn(i, idx) + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td>" +
-            "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(i.case) + "'>" + esc(i.case) + "</a></td>" +
-            "<td data-label='類別'>" + (i.cat === "客人發票" ? '<span class="badge badge-info">客人發票</span>' : '<span class="badge badge-grey">供應商發票</span>') + "</td>" +
-            "<td data-label='日期'>" + fmtDate(i.date) + "</td>" +
-            "<td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td>" +
-            "<td data-label='付款狀態'>" + payCellHtml(i) + "</td></tr>";
+        var invRows = groupByCase(INVOICES).map(function (g) {
+          return groupHeadHtml(g.ref, g.items.length, "張", 6) + g.items.map(function (i) {
+            var idx = INVOICES.indexOf(i);
+            return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, idx) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div>" + previewInvBtn(i, idx) + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td>" +
+              "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(i.case) + "'>" + esc(i.case) + "</a></td>" +
+              "<td data-label='類別'>" + (i.cat === "客人發票" ? '<span class="badge badge-info">客人發票</span>' : '<span class="badge badge-grey">供應商發票</span>') + "</td>" +
+              "<td data-label='日期'>" + fmtDate(i.date) + "</td>" +
+              "<td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td>" +
+              "<td data-label='付款狀態'>" + payCellHtml(i) + "</td></tr>";
+          }).join("");
         }).join("");
         var genRows = DOCGEN.map(function (g) {
           var b = function (s) { return s === "已生成" ? '<span class="badge badge-ok">已生成</span>' : '<span class="badge badge-grey">未生成</span>'; };
@@ -2082,12 +2104,15 @@
 
       /* ---------- 文件 ---------- */
       function viewDocs() {
-        var rows = DOCS.map(function (d, idx) {
-          var c = findCase(d.case);
-          return "<tr><td data-label='預覽 / 檔案'><div class='doc-cell'>" + docThumbHtml(d, idx) + "<div class='doc-meta'><div class='mono small'><strong>" + escRaw(d.name) + "</strong></div>" + previewDocBtn(d, idx) + viewFileBtn(d.fileToken, d.fileExtra) + "</div></div></td>" +
-            "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(d.case) + "'>" + esc(d.case) + "</a>" + (c ? "<div class='muted small'>" + esc(c.pol) + " → " + esc(c.pod) + " · " + esc(c.flight) + "</div>" : "") + "</td>" +
-            "<td data-label='類別'><span class='badge badge-info'>" + esc(d.cat) + "</span></td>" +
-            "<td data-label='上載日期'>" + fmtDate(d.date) + "</td></tr>";
+        var rows = groupByCase(DOCS).map(function (g) {
+          return groupHeadHtml(g.ref, g.items.length, "份", 4) + g.items.map(function (d) {
+            var idx = DOCS.indexOf(d);
+            var c = findCase(d.case);
+            return "<tr><td data-label='預覽 / 檔案'><div class='doc-cell'>" + docThumbHtml(d, idx) + "<div class='doc-meta'><div class='mono small'><strong>" + escRaw(d.name) + "</strong></div>" + previewDocBtn(d, idx) + viewFileBtn(d.fileToken, d.fileExtra) + "</div></div></td>" +
+              "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(d.case) + "'>" + esc(d.case) + "</a>" + (c ? "<div class='muted small'>" + esc(c.pol) + " → " + esc(c.pod) + " · " + esc(c.flight) + "</div>" : "") + "</td>" +
+              "<td data-label='類別'><span class='badge badge-info'>" + esc(d.cat) + "</span></td>" +
+              "<td data-label='上載日期'>" + fmtDate(d.date) + "</td></tr>";
+          }).join("");
         }).join("");
         return '<div class="page-head"><div><h1>文件</h1><div class="sub">每宗個案的文件集中存放，與飛書 Base 文件表對應；有原檔嘅縮圖係原檔第一頁，撳入即開原檔</div></div></div>' +
           '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / 檔案名稱</th><th>個案</th><th>類別</th><th>上載日期</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
@@ -2105,20 +2130,20 @@
       /* ---------- 文件生成設定 ---------- */
       function viewDocSettingsLive() {
         var rows = [
-          ["客人發票", "全部個案", "已開票", true],
-          ["報價單", "全部個案", "已向供應商落單", true],
-          ["空運提單 HAWB", "空運個案", "—", false],
-          ["海運提單 HBL", "海運個案", "—", false],
-          ["空運主提單 MAWB", "空運個案", "—", false]
+          ["客人發票", "全部個案", "已開票", true, ""],
+          ["報價單", "全部個案", "需報價", true, ""],
+          ["空運提單 HAWB", "空運・出口個案", "客人已下單", true, ""],
+          ["海運提單 HBL", "海運・出口個案", "客人已下單", true, ""],
+          ["空運主提單 MAWB", "空運・出口個案", "已向供應商落單", true, "附加條件卻要求「已完成」，兩者不一致，可能生成不到"]
         ].map(function (r) {
           return "<tr><td data-label='文件'><strong>" + esc(r[0]) + "</strong></td>" +
             "<td data-label='適用個案'>" + esc(r[1]) + "</td>" +
             "<td data-label='觸發狀態'>" + (r[3] ? '<span class="badge badge-info">' + esc(r[2]) + "</span>" : '<span class="muted">—</span>') + "</td>" +
-            "<td data-label='效果'>" + (r[3] ? '<span class="badge badge-ok">飛書自動化（已啟用）</span>' : '<span class="badge badge-grey">飛書暫無自動化</span>') + "</td></tr>";
+            "<td data-label='效果'>" + (r[3] ? '<span class="badge badge-ok">飛書自動化（已啟用）</span>' : '<span class="badge badge-grey">飛書暫無自動化</span>') + (r[4] ? ' <span class="badge badge-warn">⚠ ' + esc(r[4]) + "</span>" : "") + "</td></tr>";
         }).join("");
         return '<div class="page-head"><div><h1>文件生成設定</h1><div class="sub">文件生成由飛書自動化負責，觸發狀態於飛書內設定，本頁只作說明，不能在此更改。</div></div></div>' +
           '<div class="table-wrap"><table class="data"><thead><tr><th>文件</th><th>適用個案</th><th>觸發狀態</th><th>效果</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
-          '<div class="note-box" style="margin-top:14px">客人發票及報價單的自動生成在飛書 Base 的自動化設定：個案狀態轉為觸發狀態時，飛書即經 DocuGenius 生成文件，生成標記會顯示於個案詳情。HAWB/HBL/MAWB 飛書暫無自動化，需人手生成。如需更改觸發狀態，請於飛書 Base 內修改自動化。</div>';
+          '<div class="note-box" style="margin-top:14px">五種文件的自動生成均在飛書 Base 的自動化設定（2026-11-20 查核：6 個自動化全部已啟用）：個案狀態轉為觸發狀態時，飛書即經 DocuGenius 生成文件並寫入個案附件欄。注意 MAWB 自動化的觸發與附加條件不一致（見上表），可能生成不到，建議於飛書修正。如需更改觸發狀態，請於飛書 Base 內修改自動化。</div>';
       }
       function viewDocSettings() {
         if (state.dataMode === "live") return viewDocSettingsLive();
