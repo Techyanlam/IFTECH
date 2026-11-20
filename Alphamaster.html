@@ -368,6 +368,11 @@
       .doc-cell .doc-meta .mono { overflow-wrap: anywhere; }
       button.doc-thumb { cursor: pointer; font: inherit; }
       button.doc-thumb:hover { border-color: var(--brand-2); box-shadow: 0 2px 6px rgba(16,34,46,.18), 0 6px 14px rgba(16,34,46,.08); }
+      a.doc-thumb { cursor: pointer; display: block; text-decoration: none; }
+      a.doc-thumb:hover { border-color: var(--brand-2); box-shadow: 0 2px 6px rgba(16,34,46,.18), 0 6px 14px rgba(16,34,46,.08); }
+      .doc-thumb .dt-real { position: absolute; left: 0; right: 0; top: 4px; bottom: 0; background: #fff; }
+      .doc-thumb .dt-real img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+      .doc-thumb.has-real .dt-title, .doc-thumb.has-real .dt-sub, .doc-thumb.has-real .dt-lines, .doc-thumb.has-real .dt-box { visibility: hidden; }
       .preview-link { font-size: 12.5px; font-weight: 700; color: var(--brand-2); background: none; border: 0; padding: 2px 0; cursor: pointer; font-family: inherit; min-height: 28px; text-decoration: none; }
       .preview-link:hover { text-decoration: underline; }
 
@@ -1348,15 +1353,102 @@
       function thumbLinesHtml() {
         return '<div class="dt-lines"><div class="dt-line dark" style="width:88%"></div><div class="dt-line" style="width:64%"></div><div class="dt-line" style="width:78%"></div></div><div class="dt-box"><span></span><span></span></div><div class="dt-lines"><div class="dt-line" style="width:52%"></div></div>';
       }
+      function fileUrlOf(token, extra) {
+        if (!token) return "";
+        var q = extra ? ("?extra=" + encodeURIComponent(extra)) : "";
+        return API_BASE + "/api/files/" + encodeURIComponent(token) + "/redirect" + q;
+      }
+      /* 有飛書原檔嗰陣，縮圖用真連結（<a target="_blank">）開原檔，入面再用
+         pdf.js 讀返原檔第一頁做真縮圖（見下面 hydrateRealThumbs）；冇原檔
+         先用返假卡按鈕開模擬預覽。 */
+      function realThumbHtml(k, url, name, sub) {
+        return '<a class="doc-thumb ' + k.cls + '" target="_blank" rel="noopener" href="' + esc(url) + '" aria-label="' + esc(k.short) + " " + esc(sub) + '" title="撳入開飛書原檔">' +
+          '<span class="dt-real" data-real-thumb="' + esc(url) + '" data-thumb-name="' + esc(name || "") + '"></span>' +
+          '<div class="dt-title">' + esc(k.short) + '</div><div class="dt-sub">' + esc(sub) + "</div>" + thumbLinesHtml() + "</a>";
+      }
       function docThumbHtml(d, idx) {
         var k = docKindOf(d.cat);
+        if (d.fileToken) return realThumbHtml(k, fileUrlOf(d.fileToken, d.fileExtra), d.name, d.case);
         return '<button type="button" class="doc-thumb ' + k.cls + '" data-preview-doc="' + idx + '" aria-label="預覽 ' + escRaw(d.name) + '" title="撳入預覽">' +
           '<div class="dt-title">' + esc(k.short) + '</div><div class="dt-sub">' + esc(d.case) + "</div>" + thumbLinesHtml() + "</button>";
       }
       function invoiceThumbHtml(inv, idx) {
         var k = docKindOf(inv.cat);
+        var f = invoiceFileOf(inv);
+        if (f) return realThumbHtml(k, fileUrlOf(f.token, f.extra), f.name, inv.no);
         return '<button type="button" class="doc-thumb ' + k.cls + '" data-preview-invoice="' + idx + '" aria-label="' + esc(k.short) + " " + esc(inv.no) + '" title="撳入預覽">' +
           '<div class="dt-title">' + esc(k.short) + '</div><div class="dt-sub">' + esc(inv.no) + "</div>" + thumbLinesHtml() + "</button>";
+      }
+      function previewInvBtn(inv, gi) {
+        var f = invoiceFileOf(inv);
+        if (f) return "<a class='preview-link' data-file-link target='_blank' rel='noopener' href='" + esc(fileUrlOf(f.token, f.extra)) + "'>預覽發票</a>";
+        return "<button type='button' class='preview-link' data-preview-invoice='" + gi + "'>預覽發票</button>";
+      }
+      function previewDocBtn(d, gi) {
+        if (d.fileToken) return "<a class='preview-link' data-file-link target='_blank' rel='noopener' href='" + esc(fileUrlOf(d.fileToken, d.fileExtra)) + "'>預覽文件</a>";
+        return "<button type='button' class='preview-link' data-preview-doc='" + gi + "'>預覽文件</button>";
+      }
+      /* ---------- 真原檔縮圖（pdf.js 讀第一頁） ---------- */
+      var pdfJsPromise = null;
+      var thumbCache = {};
+      var thumbFailed = {};
+      function ensurePdfJs() {
+        if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+        if (pdfJsPromise) return pdfJsPromise;
+        pdfJsPromise = new Promise(function (resolve, reject) {
+          var s = document.createElement("script");
+          s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+          s.onload = function () {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+            resolve(window.pdfjsLib);
+          };
+          s.onerror = function () { reject(new Error("pdf.js load failed")); };
+          document.head.appendChild(s);
+        });
+        return pdfJsPromise;
+      }
+      function applyRealThumb(el, dataUrl) {
+        el.innerHTML = '<img alt="" src="' + dataUrl + '">';
+        var host = el.closest(".doc-thumb");
+        if (host) host.classList.add("has-real");
+      }
+      function renderPdfThumb(url, els) {
+        if (thumbCache[url]) { els.forEach(function (el) { applyRealThumb(el, thumbCache[url]); }); return; }
+        if (thumbFailed[url]) return;
+        ensurePdfJs().then(function (pdfjsLib) {
+          return fetch(url).then(function (r) { if (!r.ok) throw new Error("fetch " + r.status); return r.arrayBuffer(); })
+            .then(function (buf) { return pdfjsLib.getDocument({ data: buf }).promise; })
+            .then(function (pdf) { return pdf.getPage(1); })
+            .then(function (page) {
+              var base = page.getViewport({ scale: 1 });
+              var vp = page.getViewport({ scale: 220 / base.width });
+              var canvas = document.createElement("canvas");
+              canvas.width = Math.ceil(vp.width);
+              canvas.height = Math.ceil(vp.height);
+              return page.render({ canvasContext: canvas.getContext("2d"), viewport: vp }).promise.then(function () { return canvas.toDataURL("image/jpeg", 0.82); });
+            });
+        }).then(function (dataUrl) {
+          thumbCache[url] = dataUrl;
+          els.forEach(function (el) { applyRealThumb(el, dataUrl); });
+        }).catch(function () { thumbFailed[url] = true; });
+      }
+      function hydrateRealThumbs() {
+        var spans = document.querySelectorAll("[data-real-thumb]");
+        if (!spans.length) return;
+        var byUrl = {};
+        spans.forEach(function (el) {
+          var url = el.getAttribute("data-real-thumb");
+          var name = (el.getAttribute("data-thumb-name") || "").toLowerCase();
+          if (/\.(png|jpe?g|gif|webp)$/.test(name)) {
+            el.innerHTML = '<img alt="" src="' + esc(url) + '">';
+            var host = el.closest(".doc-thumb");
+            if (host) host.classList.add("has-real");
+            return;
+          }
+          if (/\.(xlsx|xls|docx|doc|zip|csv|txt)$/.test(name)) return;
+          (byUrl[url] = byUrl[url] || []).push(el);
+        });
+        Object.keys(byUrl).forEach(function (url) { renderPdfThumb(url, byUrl[url]); });
       }
       /* 飛書原檔「查看」：用真連結（<a target="_blank">）直接去 Worker 嘅 /redirect 端點，
          href 喺 render 嗰陣已經計好，撳落去係瀏覽器原生導航，唔經任何 JS。
@@ -1371,12 +1463,12 @@
          實體 PDF 係喺個案嘅 Invoice 附件欄——客人發票行用個案附件做後備；
          供應商發票冇對應附件，唔做後備。 */
       function invoiceFileOf(inv) {
-        if (inv.fileToken) return { token: inv.fileToken, extra: inv.fileExtra };
+        if (inv.fileToken) return { token: inv.fileToken, extra: inv.fileExtra, name: inv.fileName || "" };
         if (inv.cat !== "客人發票") return null;
         var c = findCase(inv["case"]);
         if (c && c.files) {
           for (var k = 0; k < c.files.length; k++) {
-            if (c.files[k].key === "invoice") return { token: c.files[k].fileToken, extra: c.files[k].fileExtra };
+            if (c.files[k].key === "invoice") return { token: c.files[k].fileToken, extra: c.files[k].fileExtra, name: c.files[k].fileName || "" };
           }
         }
         return null;
@@ -1719,7 +1811,7 @@
           h += '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / Invoice No.</th><th>類別</th><th>日期</th><th style="text-align:right">金額</th><th>付款狀態</th></tr></thead><tbody>' +
             invs.map(function (i) {
               var gi = INVOICES.indexOf(i);
-              return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, gi) + "<div class='doc-meta'><div class='mono'>" + esc(i.no) + "</div><button type='button' class='preview-link' data-preview-invoice='" + gi + "'>預覽發票</button>" + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td><td data-label='類別'>" + esc(i.cat) + "</td><td data-label='日期'>" + fmtDate(i.date) + "</td><td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td><td data-label='付款狀態'>" + payCellHtml(i) + "</td></tr>";
+              return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, gi) + "<div class='doc-meta'><div class='mono'>" + esc(i.no) + "</div>" + previewInvBtn(i, gi) + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td><td data-label='類別'>" + esc(i.cat) + "</td><td data-label='日期'>" + fmtDate(i.date) + "</td><td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td><td data-label='付款狀態'>" + payCellHtml(i) + "</td></tr>";
             }).join("") + "</tbody></table></div>";
         } else {
           h += '<div class="note-box">本案暫無發票記錄。</div>';
@@ -1745,7 +1837,7 @@
         h += '<h2 class="section-title">文件</h2>';
         if (docs.length) {
           h += '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / 檔案名稱</th><th>類別</th><th>上載日期</th></tr></thead><tbody>' +
-            docs.map(function (d) { var gi = DOCS.indexOf(d); return "<tr><td data-label='預覽 / 檔案名稱'><div class='doc-cell'>" + docThumbHtml(d, gi) + "<div class='doc-meta'><div class='mono small'>" + escRaw(d.name) + "</div><button type='button' class='preview-link' data-preview-doc='" + gi + "'>預覽文件</button>" + viewFileBtn(d.fileToken, d.fileExtra) + "</div></div></td><td data-label='類別'>" + esc(d.cat) + "</td><td data-label='上載日期'>" + fmtDate(d.date) + "</td></tr>"; }).join("") +
+            docs.map(function (d) { var gi = DOCS.indexOf(d); return "<tr><td data-label='預覽 / 檔案名稱'><div class='doc-cell'>" + docThumbHtml(d, gi) + "<div class='doc-meta'><div class='mono small'>" + escRaw(d.name) + "</div>" + previewDocBtn(d, gi) + viewFileBtn(d.fileToken, d.fileExtra) + "</div></div></td><td data-label='類別'>" + esc(d.cat) + "</td><td data-label='上載日期'>" + fmtDate(d.date) + "</td></tr>"; }).join("") +
             "</tbody></table></div>";
         } else {
           h += '<div class="note-box">本案暫無文件記錄。</div>';
@@ -1967,7 +2059,7 @@
       /* ---------- 發票及報價單 ---------- */
       function viewInvoices() {
         var invRows = INVOICES.map(function (i, idx) {
-          return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, idx) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div><button type='button' class='preview-link' data-preview-invoice='" + idx + "'>預覽發票</button>" + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td>" +
+          return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, idx) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div>" + previewInvBtn(i, idx) + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td>" +
             "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(i.case) + "'>" + esc(i.case) + "</a></td>" +
             "<td data-label='類別'>" + (i.cat === "客人發票" ? '<span class="badge badge-info">客人發票</span>' : '<span class="badge badge-grey">供應商發票</span>') + "</td>" +
             "<td data-label='日期'>" + fmtDate(i.date) + "</td>" +
@@ -1980,7 +2072,7 @@
             "<td data-label='報價單'>" + b(g.quote) + "</td><td data-label='客人發票'>" + b(g.invoice) + "</td>" +
             "<td data-label='備註' class='small'>" + esc(g.note || "—") + "</td></tr>";
         }).join("");
-        return '<div class="page-head"><div><h1>發票及報價單</h1><div class="sub">Invoice No. 與 Job No. 共用同一統一編號；撳縮圖或「預覽發票」即睇大 Preview</div></div></div>' +
+        return '<div class="page-head"><div><h1>發票及報價單</h1><div class="sub">Invoice No. 與 Job No. 共用同一統一編號；有飛書原檔嘅發票，縮圖係原檔第一頁，撳入即開原檔</div></div></div>' +
           '<h2 class="section-title">發票列表</h2>' +
           '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / Invoice No.</th><th>個案</th><th>類別</th><th>日期</th><th style="text-align:right">金額</th><th>付款狀態</th></tr></thead><tbody>' + invRows + "</tbody></table></div>" +
           '<div class="note-box" style="margin-top:14px">客人發票 BILL TO 目前顯示「COMPANY NAME」（樣本遮蓋了真實名稱），正式出單前須填上客戶真實名稱。發票上款：ALPHA MASTER LOGISTICS LIMITED，荃灣白田壩街 5-21 號嘉力工業中心 A 座 9 樓 17 室，Tel (852) 3500 7163。下款收款銀行：HSBC Hong Kong，戶口 819-860339-838（USD/HKD），SWIFT HSBCHKHHHKH。</div>' +
@@ -1992,12 +2084,12 @@
       function viewDocs() {
         var rows = DOCS.map(function (d, idx) {
           var c = findCase(d.case);
-          return "<tr><td data-label='預覽 / 檔案'><div class='doc-cell'>" + docThumbHtml(d, idx) + "<div class='doc-meta'><div class='mono small'><strong>" + escRaw(d.name) + "</strong></div><button type='button' class='preview-link' data-preview-doc='" + idx + "'>預覽文件</button>" + viewFileBtn(d.fileToken, d.fileExtra) + "</div></div></td>" +
+          return "<tr><td data-label='預覽 / 檔案'><div class='doc-cell'>" + docThumbHtml(d, idx) + "<div class='doc-meta'><div class='mono small'><strong>" + escRaw(d.name) + "</strong></div>" + previewDocBtn(d, idx) + viewFileBtn(d.fileToken, d.fileExtra) + "</div></div></td>" +
             "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(d.case) + "'>" + esc(d.case) + "</a>" + (c ? "<div class='muted small'>" + esc(c.pol) + " → " + esc(c.pod) + " · " + esc(c.flight) + "</div>" : "") + "</td>" +
             "<td data-label='類別'><span class='badge badge-info'>" + esc(d.cat) + "</span></td>" +
             "<td data-label='上載日期'>" + fmtDate(d.date) + "</td></tr>";
         }).join("");
-        return '<div class="page-head"><div><h1>文件</h1><div class="sub">每宗個案的文件集中存放，與飛書 Base 文件表對應；撳縮圖或「預覽文件」即睇大 Preview</div></div></div>' +
+        return '<div class="page-head"><div><h1>文件</h1><div class="sub">每宗個案的文件集中存放，與飛書 Base 文件表對應；有原檔嘅縮圖係原檔第一頁，撳入即開原檔</div></div></div>' +
           '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / 檔案名稱</th><th>個案</th><th>類別</th><th>上載日期</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
           '<div class="two-col" style="margin-top:14px">' +
           '<div class="card"><h2 class="section-title">文件範本狀態（Sheet 範本）</h2><ul class="list-clean">' +
@@ -2166,7 +2258,7 @@
           var cusTxt = chk.cus.length ? chk.cus.map(function (x) { return '<span class="mono">' + esc(x.no) + "</span><div class='small muted'>" + fmtDate(x.date) + " · " + esc(x.pay) + "</div>"; }).join("") : '<span class="badge badge-danger">未出</span>';
           var verdictBadge = chk.kind === "leak" ? '<span class="badge badge-danger">未向客人開票</span>' : chk.kind === "ok" ? '<span class="badge badge-ok">已向客人開票</span>' : '<span class="badge badge-grey">待核對</span>';
           var billKey = c.hawb || c.mawb || "";
-          return "<tr><td data-label='供應商發票'><div class='doc-cell'>" + invoiceThumbHtml(i, INVOICES.indexOf(i)) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div><div class='small muted'>" + fmtDate(i.date) + " · " + esc(i.pay) + "</div><button type='button' class='preview-link' data-preview-invoice='" + INVOICES.indexOf(i) + "'>預覽發票</button>" + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td>" +
+          return "<tr><td data-label='供應商發票'><div class='doc-cell'>" + invoiceThumbHtml(i, INVOICES.indexOf(i)) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div><div class='small muted'>" + fmtDate(i.date) + " · " + esc(i.pay) + "</div>" + previewInvBtn(i, INVOICES.indexOf(i)) + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td>" +
             "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(i.case) + "'>" + esc(i.case) + "</a><div class='small muted'>" + esc(billNosOf(c)) + "</div></td>" +
             "<td data-label='供應商金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td>" +
             "<td data-label='客人發票'>" + cusTxt + "</td>" +
@@ -2256,6 +2348,7 @@
         });
         window.scrollTo(0, 0);
         bindView();
+        hydrateRealThumbs();
       }
       function go(view) { state.view = view; render(); }
       function openCase(ref) { state.detailRef = ref; state.view = "detail"; render(); }
