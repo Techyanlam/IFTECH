@@ -1903,7 +1903,7 @@
           var key = f[0], label = f[1], kind = f[2];
           var input;
           if (kind === "textarea") input = '<textarea id="nf-' + key + '" rows="3"></textarea>';
-          else if (kind === "dir") input = '<select id="nf-' + key + '"><option>出口</option><option>進口</option></select>';
+          else if (kind === "dir") input = '<select id="nf-' + key + '"><option value="出口">出口</option><option value="進口">進口</option></select>';
           else if (kind === "date") input = '<input id="nf-' + key + '" type="date" />';
           else if (kind === "number") input = '<input id="nf-' + key + '" type="number" step="any" min="0" />';
           else input = '<input id="nf-' + key + '" type="text" />';
@@ -2553,7 +2553,7 @@
                 if (get("desc")) parts.push(get("desc"));
                 payload = { type: t, shipper: shipper, consignee: consignee, etd: get("etd") || undefined, pcs: num("pcs"), gross: num("gross"), desc: parts.join("；") || undefined };
               } else {
-                payload = { type: t, dir: get("dir") || "出口", shipper: shipper, consignee: consignee, notify: get("notify") || undefined, pol: get("pol") || undefined, pod: get("pod") || undefined, final: get("finalDest") || undefined, flight: get("flight") || undefined, etd: get("etd") || undefined, eta: get("eta") || undefined, pcs: num("pcs"), gross: num("gross"), chargeable: num("chargeable"), mawb: get("mawb") || undefined, hawb: get("hawb") || undefined, container: get("container") || undefined, desc: get("desc") || undefined };
+                payload = { type: t, dir: canon(get("dir")) || "出口", shipper: shipper, consignee: consignee, notify: get("notify") || undefined, pol: get("pol") || undefined, pod: get("pod") || undefined, final: get("finalDest") || undefined, flight: get("flight") || undefined, etd: get("etd") || undefined, eta: get("eta") || undefined, pcs: num("pcs"), gross: num("gross"), chargeable: num("chargeable"), mawb: get("mawb") || undefined, hawb: get("hawb") || undefined, container: get("container") || undefined, desc: get("desc") || undefined };
               }
               state.newCaseBusy = true;
               var submitBtn = form.querySelector('button[type="submit"]');
