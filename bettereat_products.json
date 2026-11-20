@@ -1,11 +1,11 @@
 {
   "source": "BETTEREAT-Feishu-Base-T1",
-  "generated_at": "2026-11-20T06:21:04+08:00",
+  "generated_at": "2026-11-20T12:27:01+08:00",
   "count": 49,
   "products": [
     {
       "product_code": "P-001",
-      "product_name": "驢打滾(18件)",
+      "product_name": "驢打滾",
       "category": "蒸糕",
       "subcategory": "中式",
       "cabinet": "常溫",
@@ -47,7 +47,7 @@
     },
     {
       "product_code": "P-004",
-      "product_name": "啡色紅豆砵仔糕(16件)",
+      "product_name": "啡色紅豆砵仔糕",
       "category": "蒸糕",
       "subcategory": "中式",
       "cabinet": "常溫",
@@ -61,7 +61,7 @@
     },
     {
       "product_code": "P-005",
-      "product_name": "白色紅豆砵仔糕(16件)",
+      "product_name": "白色紅豆砵仔糕",
       "category": "蒸糕",
       "subcategory": "中式",
       "cabinet": "常溫",
@@ -75,7 +75,7 @@
     },
     {
       "product_code": "P-006",
-      "product_name": "斑蘭砵仔糕(16件)",
+      "product_name": "斑蘭砵仔糕",
       "category": "蒸糕",
       "subcategory": "中式",
       "cabinet": "常溫",
@@ -103,7 +103,7 @@
     },
     {
       "product_code": "P-008",
-      "product_name": "馬蹄卷(40條)",
+      "product_name": "馬蹄卷",
       "category": "蒸糕",
       "subcategory": "中式",
       "cabinet": "常溫",
@@ -131,7 +131,7 @@
     },
     {
       "product_code": "P-010",
-      "product_name": "芝麻卷(40條)",
+      "product_name": "芝麻卷",
       "category": "蒸糕",
       "subcategory": "中式",
       "cabinet": "常溫",
@@ -159,7 +159,7 @@
     },
     {
       "product_code": "P-012",
-      "product_name": "斑蘭椰汁卷(40條)",
+      "product_name": "斑蘭椰汁卷",
       "category": "蒸糕",
       "subcategory": "中式",
       "cabinet": "常溫",
@@ -173,7 +173,7 @@
     },
     {
       "product_code": "P-013",
-      "product_name": "斑蘭千層糕(25件)",
+      "product_name": "斑蘭千層糕",
       "category": "蒸糕",
       "subcategory": "中式",
       "cabinet": "常溫",
@@ -187,7 +187,7 @@
     },
     {
       "product_code": "P-014",
-      "product_name": "楊枝金露糕(49件)",
+      "product_name": "楊枝金露糕",
       "category": "凍糕",
       "subcategory": "中式",
       "cabinet": "常溫",
@@ -201,7 +201,7 @@
     },
     {
       "product_code": "P-015",
-      "product_name": "芒果布甸糕(49件)",
+      "product_name": "芒果布甸糕",
       "category": "凍糕",
       "subcategory": "中式",
       "cabinet": "凍櫃",
@@ -215,7 +215,7 @@
     },
     {
       "product_code": "P-016",
-      "product_name": "芒果椰汁西米糕(49件)",
+      "product_name": "芒果椰汁西米糕",
       "category": "凍糕",
       "subcategory": "泰式",
       "cabinet": "常溫",
@@ -229,7 +229,7 @@
     },
     {
       "product_code": "P-017",
-      "product_name": "芒果椰汁糕(49件)",
+      "product_name": "芒果椰汁糕",
       "category": "凍糕",
       "subcategory": "泰式",
       "cabinet": "常溫",
@@ -243,7 +243,7 @@
     },
     {
       "product_code": "P-018",
-      "product_name": "椰汁紫米糕(49件)",
+      "product_name": "椰汁紫米糕",
       "category": "凍糕",
       "subcategory": "泰式",
       "cabinet": "常溫",
@@ -257,7 +257,7 @@
     },
     {
       "product_code": "P-019",
-      "product_name": "椰汁西米糕(49件)",
+      "product_name": "椰汁西米糕",
       "category": "凍糕",
       "subcategory": "泰式",
       "cabinet": "常溫",
@@ -271,7 +271,7 @@
     },
     {
       "product_code": "P-020",
-      "product_name": "椰汁紅豆糕(49件)",
+      "product_name": "椰汁紅豆糕",
       "category": "凍糕",
       "subcategory": "泰式",
       "cabinet": "常溫",
@@ -285,7 +285,7 @@
     },
     {
       "product_code": "P-021",
-      "product_name": "一口tiramisu (49件)",
+      "product_name": "一口tiramisu",
       "category": "凍糕",
       "subcategory": "泰式",
       "cabinet": "常溫",
@@ -299,7 +299,7 @@
     },
     {
       "product_code": "P-022",
-      "product_name": "開心果奶凍糕(49件)",
+      "product_name": "開心果奶凍糕",
       "category": "凍糕",
       "subcategory": "泰式(雪)",
       "cabinet": "凍櫃",
@@ -313,7 +313,7 @@
     },
     {
       "product_code": "P-023",
-      "product_name": "彩虹椰汁糕(49件)",
+      "product_name": "彩虹椰汁糕",
       "category": "凍糕",
       "subcategory": "泰式(雪)",
       "cabinet": "凍櫃",
@@ -327,7 +327,7 @@
     },
     {
       "product_code": "P-024",
-      "product_name": "芝麻糕(49件)",
+      "product_name": "芝麻糕",
       "category": "凍糕",
       "subcategory": "泰式(雪)",
       "cabinet": "凍櫃",
@@ -341,7 +341,7 @@
     },
     {
       "product_code": "P-025",
-      "product_name": "桂花糕(49件)",
+      "product_name": "桂花糕",
       "category": "凍糕",
       "subcategory": "泰式(雪)",
       "cabinet": "凍櫃",
@@ -355,7 +355,7 @@
     },
     {
       "product_code": "P-026",
-      "product_name": "馬豆糕(49件)",
+      "product_name": "馬豆糕",
       "category": "凍糕",
       "subcategory": "中式",
       "cabinet": "凍櫃",
@@ -369,7 +369,7 @@
     },
     {
       "product_code": "P-027",
-      "product_name": "冰花大菜糕(49件)",
+      "product_name": "冰花大菜糕",
       "category": "凍糕",
       "subcategory": "中式",
       "cabinet": "凍櫃",
@@ -383,7 +383,7 @@
     },
     {
       "product_code": "P-028",
-      "product_name": "斑蘭大菜糕(49件)",
+      "product_name": "斑蘭大菜糕",
       "category": "凍糕",
       "subcategory": "泰式(雪)",
       "cabinet": "凍櫃",
@@ -397,7 +397,7 @@
     },
     {
       "product_code": "P-029",
-      "product_name": "柚子檸檬糕(49件)",
+      "product_name": "柚子檸檬糕",
       "category": "凍糕",
       "subcategory": "西式(雪)",
       "cabinet": "凍櫃",
@@ -411,7 +411,7 @@
     },
     {
       "product_code": "P-030",
-      "product_name": "椰青糕(49件)",
+      "product_name": "椰青糕",
       "category": "凍糕",
       "subcategory": "西式(雪)",
       "cabinet": "凍櫃",
@@ -425,7 +425,7 @@
     },
     {
       "product_code": "P-031",
-      "product_name": "斑蘭蛋糕 (件)",
+      "product_name": "斑蘭蛋糕",
       "category": "蛋糕",
       "subcategory": "泰式(雪)",
       "cabinet": "凍櫃",
@@ -439,7 +439,7 @@
     },
     {
       "product_code": "P-032",
-      "product_name": "一口巴斯克(15件)",
+      "product_name": "一口巴斯克",
       "category": "蛋糕",
       "subcategory": "中式(雪)",
       "cabinet": "凍櫃",
@@ -467,7 +467,7 @@
     },
     {
       "product_code": "P-034",
-      "product_name": "花生糯米糍(20粒)",
+      "product_name": "花生糯米糍",
       "category": "糯米糍",
       "subcategory": "中式(雪)",
       "cabinet": "凍櫃",
@@ -481,7 +481,7 @@
     },
     {
       "product_code": "P-035",
-      "product_name": "芒果糯米糍(20粒)",
+      "product_name": "芒果糯米糍",
       "category": "糯米糍",
       "subcategory": "中式(雪)",
       "cabinet": "凍櫃",
@@ -495,7 +495,7 @@
     },
     {
       "product_code": "P-036",
-      "product_name": "芝麻糯米糍(20粒)",
+      "product_name": "芝麻糯米糍",
       "category": "糯米糍",
       "subcategory": "泰式(雪)",
       "cabinet": "凍櫃",

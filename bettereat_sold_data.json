@@ -1,7 +1,7 @@
 {
   "source": "BETTEREAT-Feishu-Base",
   "date": "2026-11-20",
-  "generated_at": "2026-11-20T06:21:23+08:00",
+  "generated_at": "2026-11-20T12:27:16+08:00",
   "records": [
     {
       "store": "Aeon (MKH)",
@@ -9,7 +9,7 @@
       "product_name": "驢打滾",
       "unit": "盤",
       "allocated_pans": 1.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 18,
       "remaining_pcs": null,
       "sold_pcs": 3,
       "amount": null
@@ -20,7 +20,7 @@
       "product_name": "白糖糕",
       "unit": "盤",
       "allocated_pans": 0.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 15,
       "amount": null
@@ -31,7 +31,7 @@
       "product_name": "紅豆糕",
       "unit": "盤",
       "allocated_pans": 0.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 24,
       "amount": null
@@ -42,7 +42,7 @@
       "product_name": "啡色紅豆砵仔糕",
       "unit": "盤",
       "allocated_pans": 1.5,
-      "no_of_pcs": null,
+      "no_of_pcs": 24,
       "remaining_pcs": null,
       "sold_pcs": 8,
       "amount": null
@@ -75,7 +75,7 @@
       "product_name": "焦糖椰汁卷",
       "unit": "盤",
       "allocated_pans": 0.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -86,7 +86,7 @@
       "product_name": "芒果糯米飯",
       "unit": "盤",
       "allocated_pans": 2.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 98,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -97,7 +97,7 @@
       "product_name": "抹茶紅豆糯米糍",
       "unit": "盤",
       "allocated_pans": 0.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -108,7 +108,7 @@
       "product_name": "冰粉(淨底)",
       "unit": "件",
       "allocated_pans": 0.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 5,
       "amount": null
@@ -119,7 +119,7 @@
       "product_name": "木糠布甸",
       "unit": "件",
       "allocated_pans": 20.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 20,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -130,7 +130,7 @@
       "product_name": "Oreo 布甸",
       "unit": "件",
       "allocated_pans": 20.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 20,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -141,7 +141,7 @@
       "product_name": "芒果布甸(淨底)",
       "unit": "件",
       "allocated_pans": 10.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 10,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -152,7 +152,7 @@
       "product_name": "3.6牛奶燉蛋白(淨底)",
       "unit": "件",
       "allocated_pans": 8.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 8,
       "remaining_pcs": null,
       "sold_pcs": 4,
       "amount": null
@@ -163,7 +163,7 @@
       "product_name": "椰汁西米糕",
       "unit": "盤",
       "allocated_pans": 0.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -174,7 +174,7 @@
       "product_name": "椰汁紅豆糕",
       "unit": "盤",
       "allocated_pans": 0.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -185,7 +185,7 @@
       "product_name": "芒果布甸(淨底)",
       "unit": "件",
       "allocated_pans": 0.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -196,7 +196,7 @@
       "product_name": "3.6牛奶燉蛋白(淨底)",
       "unit": "件",
       "allocated_pans": 0.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -206,8 +206,8 @@
       "product_code": "P-001",
       "product_name": "驢打滾",
       "unit": "盤",
-      "allocated_pans": 1.0,
-      "no_of_pcs": null,
+      "allocated_pans": 0.0,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -218,7 +218,7 @@
       "product_name": "白糖糕",
       "unit": "盤",
       "allocated_pans": 0.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 8,
       "amount": null
@@ -229,7 +229,7 @@
       "product_name": "紅豆糕",
       "unit": "盤",
       "allocated_pans": 0.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 2,
       "amount": null
@@ -239,8 +239,8 @@
       "product_code": "P-004",
       "product_name": "啡色紅豆砵仔糕",
       "unit": "盤",
-      "allocated_pans": 2.0,
-      "no_of_pcs": null,
+      "allocated_pans": 0.0,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -251,7 +251,7 @@
       "product_name": "芒果椰汁西米",
       "unit": "杯",
       "allocated_pans": 0.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -262,7 +262,7 @@
       "product_name": "芒芒多重奏",
       "unit": "杯",
       "allocated_pans": 10.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 10,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -273,7 +273,7 @@
       "product_name": "芒果涼粉",
       "unit": "件",
       "allocated_pans": 10.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 10,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -284,7 +284,7 @@
       "product_name": "冰粉(淨底)",
       "unit": "件",
       "allocated_pans": 0.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -295,7 +295,7 @@
       "product_name": "Oreo 布甸",
       "unit": "件",
       "allocated_pans": 10.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 10,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -306,7 +306,7 @@
       "product_name": "白糖糕",
       "unit": "盤",
       "allocated_pans": 9.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 441,
       "remaining_pcs": null,
       "sold_pcs": 7,
       "amount": null
@@ -316,8 +316,8 @@
       "product_code": "P-003",
       "product_name": "紅豆糕",
       "unit": "盤",
-      "allocated_pans": 0.0,
-      "no_of_pcs": null,
+      "allocated_pans": 3.0,
+      "no_of_pcs": 147,
       "remaining_pcs": null,
       "sold_pcs": 3,
       "amount": null
@@ -328,7 +328,7 @@
       "product_name": "楊枝金露(大)",
       "unit": "杯",
       "allocated_pans": 0.0,
-      "no_of_pcs": null,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -338,8 +338,8 @@
       "product_code": "P-049",
       "product_name": "芒果椰汁西米",
       "unit": "杯",
-      "allocated_pans": 12.0,
-      "no_of_pcs": null,
+      "allocated_pans": 0.0,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -349,8 +349,8 @@
       "product_code": "P-051",
       "product_name": "芒芒多重奏",
       "unit": "杯",
-      "allocated_pans": 10.0,
-      "no_of_pcs": null,
+      "allocated_pans": 0.0,
+      "no_of_pcs": 0,
       "remaining_pcs": null,
       "sold_pcs": 1,
       "amount": null
@@ -18334,7 +18334,7 @@
         "product_name": "驢打滾",
         "unit": "盤",
         "allocated_pans": 1.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 18,
         "remaining_pcs": null,
         "sold_pcs": 3,
         "amount": null
@@ -18345,7 +18345,7 @@
         "product_name": "白糖糕",
         "unit": "盤",
         "allocated_pans": 0.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 15,
         "amount": null
@@ -18356,7 +18356,7 @@
         "product_name": "紅豆糕",
         "unit": "盤",
         "allocated_pans": 0.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 24,
         "amount": null
@@ -18367,7 +18367,7 @@
         "product_name": "啡色紅豆砵仔糕",
         "unit": "盤",
         "allocated_pans": 1.5,
-        "no_of_pcs": null,
+        "no_of_pcs": 24,
         "remaining_pcs": null,
         "sold_pcs": 8,
         "amount": null
@@ -18400,7 +18400,7 @@
         "product_name": "焦糖椰汁卷",
         "unit": "盤",
         "allocated_pans": 0.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18411,7 +18411,7 @@
         "product_name": "芒果糯米飯",
         "unit": "盤",
         "allocated_pans": 2.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 98,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18422,7 +18422,7 @@
         "product_name": "抹茶紅豆糯米糍",
         "unit": "盤",
         "allocated_pans": 0.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18433,7 +18433,7 @@
         "product_name": "冰粉(淨底)",
         "unit": "件",
         "allocated_pans": 0.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 5,
         "amount": null
@@ -18444,7 +18444,7 @@
         "product_name": "木糠布甸",
         "unit": "件",
         "allocated_pans": 20.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 20,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18455,7 +18455,7 @@
         "product_name": "Oreo 布甸",
         "unit": "件",
         "allocated_pans": 20.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 20,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18466,7 +18466,7 @@
         "product_name": "芒果布甸(淨底)",
         "unit": "件",
         "allocated_pans": 10.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 10,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18477,7 +18477,7 @@
         "product_name": "3.6牛奶燉蛋白(淨底)",
         "unit": "件",
         "allocated_pans": 8.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 8,
         "remaining_pcs": null,
         "sold_pcs": 4,
         "amount": null
@@ -18488,7 +18488,7 @@
         "product_name": "椰汁西米糕",
         "unit": "盤",
         "allocated_pans": 0.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18499,7 +18499,7 @@
         "product_name": "椰汁紅豆糕",
         "unit": "盤",
         "allocated_pans": 0.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18510,7 +18510,7 @@
         "product_name": "芒果布甸(淨底)",
         "unit": "件",
         "allocated_pans": 0.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18521,7 +18521,7 @@
         "product_name": "3.6牛奶燉蛋白(淨底)",
         "unit": "件",
         "allocated_pans": 0.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18531,8 +18531,8 @@
         "product_code": "P-001",
         "product_name": "驢打滾",
         "unit": "盤",
-        "allocated_pans": 1.0,
-        "no_of_pcs": null,
+        "allocated_pans": 0.0,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18543,7 +18543,7 @@
         "product_name": "白糖糕",
         "unit": "盤",
         "allocated_pans": 0.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 8,
         "amount": null
@@ -18554,7 +18554,7 @@
         "product_name": "紅豆糕",
         "unit": "盤",
         "allocated_pans": 0.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 2,
         "amount": null
@@ -18564,8 +18564,8 @@
         "product_code": "P-004",
         "product_name": "啡色紅豆砵仔糕",
         "unit": "盤",
-        "allocated_pans": 2.0,
-        "no_of_pcs": null,
+        "allocated_pans": 0.0,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18576,7 +18576,7 @@
         "product_name": "芒果椰汁西米",
         "unit": "杯",
         "allocated_pans": 0.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18587,7 +18587,7 @@
         "product_name": "芒芒多重奏",
         "unit": "杯",
         "allocated_pans": 10.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 10,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18598,7 +18598,7 @@
         "product_name": "芒果涼粉",
         "unit": "件",
         "allocated_pans": 10.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 10,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18609,7 +18609,7 @@
         "product_name": "冰粉(淨底)",
         "unit": "件",
         "allocated_pans": 0.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18620,7 +18620,7 @@
         "product_name": "Oreo 布甸",
         "unit": "件",
         "allocated_pans": 10.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 10,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18631,7 +18631,7 @@
         "product_name": "白糖糕",
         "unit": "盤",
         "allocated_pans": 9.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 441,
         "remaining_pcs": null,
         "sold_pcs": 7,
         "amount": null
@@ -18641,8 +18641,8 @@
         "product_code": "P-003",
         "product_name": "紅豆糕",
         "unit": "盤",
-        "allocated_pans": 0.0,
-        "no_of_pcs": null,
+        "allocated_pans": 3.0,
+        "no_of_pcs": 147,
         "remaining_pcs": null,
         "sold_pcs": 3,
         "amount": null
@@ -18653,7 +18653,7 @@
         "product_name": "楊枝金露(大)",
         "unit": "杯",
         "allocated_pans": 0.0,
-        "no_of_pcs": null,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18663,8 +18663,8 @@
         "product_code": "P-049",
         "product_name": "芒果椰汁西米",
         "unit": "杯",
-        "allocated_pans": 12.0,
-        "no_of_pcs": null,
+        "allocated_pans": 0.0,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
@@ -18674,8 +18674,8 @@
         "product_code": "P-051",
         "product_name": "芒芒多重奏",
         "unit": "杯",
-        "allocated_pans": 10.0,
-        "no_of_pcs": null,
+        "allocated_pans": 0.0,
+        "no_of_pcs": 0,
         "remaining_pcs": null,
         "sold_pcs": 1,
         "amount": null
