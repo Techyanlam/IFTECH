@@ -691,7 +691,7 @@ function renderChips(){
       (s==="ALL" ? "全部門店" : s) + "</span>";
   }).join("");
   Array.prototype.forEach.call(document.querySelectorAll(".chip"), function(c){
-    c.onclick = function(){ curStore = c.getAttribute("data-store"); renderChips(); renderTable(); };
+    c.onclick = function(){ curStore = c.getAttribute("data-store"); applyDate(); };
   });
 }
 function renderTable(){
