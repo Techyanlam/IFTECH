@@ -104,7 +104,41 @@ def num(v):
 def _remaining(f):
     return num(f.get("Total 剩餘量"))
 
-def fetch_current(token):
+def _short_name(name):
+    return re.sub(r"\s*[\(（][^\)）]*[\)）]\s*$", "", name or "").strip()
+
+def _per_pan_map(products):
+    # T1「No of pcs」＝每盤件數；以產品名（全名＋去括號短名）做對照，
+    # 因為 C 表嘅產品編號同 T1 唔完全對得上（有改號／已刪產品），名先對得齊。
+    m = {}
+    for p in products or []:
+        pcs = p.get("no_of_pcs")
+        name = p.get("product_name") or ""
+        if pcs is None or not name:
+            continue
+        if name not in m:
+            m[name] = pcs
+        short = _short_name(name)
+        if short and short not in m:
+            m[short] = pcs
+    return m
+
+def _alloc_pcs(c_name, allocated, existing_pcs, per_pan):
+    # C 表「分配量」係盤數，要轉返件數：分配（件）＝ 分配量（盤）× T1 每盤件數。
+    # C 自己有「No of pcs」就用返 C 嗰個；對唔到產品名就留空，唔好估。
+    if existing_pcs is not None:
+        return existing_pcs
+    if allocated is None or not per_pan:
+        return None
+    per = per_pan.get(c_name)
+    if per is None:
+        per = per_pan.get(_short_name(c_name))
+    if per is None:
+        return None
+    v = allocated * per
+    return int(v) if v == int(v) else v
+
+def fetch_current(token, per_pan=None):
     rows = []
     for it in list_records(token, C_TABLE):
         f = it.get("fields") or {}
@@ -113,13 +147,14 @@ def fetch_current(token):
             continue
         if sold == int(sold):
             sold = int(sold)
+        allocated = num(f.get("分配量"))
         rows.append({
             "store": text_of(f.get("門店代號")),
             "product_code": text_of(f.get("產品編號")),
             "product_name": text_of(f.get("產品名稱")),
             "unit": text_of(f.get("計量單位")),
-            "allocated_pans": num(f.get("分配量")),
-            "no_of_pcs": num(f.get("No of pcs")),
+            "allocated_pans": allocated,
+            "no_of_pcs": _alloc_pcs(text_of(f.get("產品名稱")), allocated, num(f.get("No of pcs")), per_pan or {}),
             "remaining_pcs": _remaining(f),
             "sold_pcs": sold,
         })
@@ -288,7 +323,7 @@ def main():
         print(f"wrote {PRODUCTS_OUT}: count={len(products)}")
     else:
         print("no T1 products found; leaving existing products JSON untouched")
-    rows = fetch_current(token)
+    rows = fetch_current(token, _per_pan_map(products))
     if not rows:
         print("no sold records found; leaving existing JSON untouched")
         return
