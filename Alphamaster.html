@@ -578,18 +578,21 @@
       /* 飛書「客戶」表（快照模式為空；即時模式由 /api/customers 載入） */
       var CUSTOMERS = [];
 
+      /* 飛書「港口」表（快照模式為空；即時模式由 /api/ports 載入） */
+      var PORTS = [];
+
       /* 快照副本：Worker 未設定/未能連接時跌返嚟用（2026-11-20 清空交客） */
-      var SNAPSHOT_DATA = JSON.parse(JSON.stringify({ cases: CASES, charges: CHARGES, totals: TOTALS, invoices: INVOICES, docs: DOCS, intakes: INTAKES, docgen: DOCGEN, rates: RATES, customers: CUSTOMERS }));
+      var SNAPSHOT_DATA = JSON.parse(JSON.stringify({ cases: CASES, charges: CHARGES, totals: TOTALS, invoices: INVOICES, docs: DOCS, intakes: INTAKES, docgen: DOCGEN, rates: RATES, customers: CUSTOMERS, ports: PORTS }));
       function restoreSnapshot() {
         var s = JSON.parse(JSON.stringify(SNAPSHOT_DATA));
-        CASES = s.cases; CHARGES = s.charges; TOTALS = s.totals; INVOICES = s.invoices; DOCS = s.docs; INTAKES = s.intakes; DOCGEN = s.docgen; RATES = s.rates || []; CUSTOMERS = s.customers || [];
+        CASES = s.cases; CHARGES = s.charges; TOTALS = s.totals; INVOICES = s.invoices; DOCS = s.docs; INTAKES = s.intakes; DOCGEN = s.docgen; RATES = s.rates || []; CUSTOMERS = s.customers || []; PORTS = s.ports || [];
       }
 </script>
 
     <script>
       "use strict";
       var content = document.getElementById("content");
-      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "" };
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "" };
 
       /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
       var ZH_EN = [
@@ -642,6 +645,12 @@
         ["儲存客戶", "Save Customer"],
         ["請先填公司名稱", "Please enter the company name first"],
         ["參考版未能寫入飛書，請喺正式版再新增客戶", "The preview version cannot write to Feishu; add the customer in the live version"],
+        ["全部港口", "All Ports"],
+        ["匯率（可空，空 = 預設）", "Rate (optional, blank = default)"],
+        ["參考匯率（飛書「Exchange rate」表）：", "Reference rates (Feishu Exchange rate table): "],
+        ["。個別收費行可另設匯率覆蓋。金額以飛書 Base 記錄的 TOTAL 為準；逐行金額以 2 位小數顯示，相加或與總額相差 0.01。", ". Individual charge lines can override the rate. Amounts follow the TOTAL recorded in Feishu Base; line amounts are shown to 2 decimal places, so sums may differ from totals by 0.01."],
+        ["匯率留空用預設，填咗逐行覆蓋；實際金額以飛書公式為準", "Leave the rate blank to use the default; a filled rate overrides that line. Actual amounts follow the Feishu formula"],
+        ["匯率", "Rate"],
         [" 張客人發票", " customer invoices"],
         ["已記錄供應商發票", "Supplier invoices recorded"],
         [" 張", ""],
@@ -1311,7 +1320,7 @@
       function applyLiveData(bodies) {
         CASES = (bodies.cases.cases || []).map(normCase);
         CHARGES = (bodies.charges.charges || []).map(function (ch) {
-          return { recordId: ch.recordId || "", "case": ch.case || "", name: ch.name || "", cat: ch.cat || "", curr: ch.curr || "", price: ch.price == null ? 0 : ch.price, unit: ch.unit || "", qty: ch.qty == null ? 0 : ch.qty, amount: ch.amount == null ? 0 : ch.amount };
+          return { recordId: ch.recordId || "", "case": ch.case || "", name: ch.name || "", cat: ch.cat || "", curr: ch.curr || "", price: ch.price == null ? 0 : ch.price, rate: ch.rate == null ? 0 : ch.rate, unit: ch.unit || "", qty: ch.qty == null ? 0 : ch.qty, amount: ch.amount == null ? 0 : ch.amount };
         });
         INVOICES = (bodies.invoices.invoices || []).map(function (i) {
           return { recordId: i.recordId || "", no: i.no || "", "case": i.case || "", cat: i.cat || "", date: i.date || "", total: i.total == null ? 0 : i.total, curr: i.curr || "", pay: i.pay || "", fileToken: i.fileToken || "", fileExtra: i.fileExtra || "" };
@@ -1326,19 +1335,26 @@
         CUSTOMERS = ((bodies.customers && bodies.customers.customers) || []).map(function (c) {
           return { recordId: c.recordId || "", code: c.code || "", name: c.name || "", address: c.address || "", contact: c.contact || "", phone: c.phone || "", email: c.email || "" };
         });
+        PORTS = ((bodies.ports && bodies.ports.ports) || []).map(function (p) {
+          return { recordId: p.recordId || "", name: p.name || "", code: p.code || "", type: p.type || "", country: p.country || "" };
+        });
+        if (bodies.fx && bodies.fx.rates) FX_HKD = bodies.fx.rates;
         state.openedIntakes = {};
         rebuildTotals();
         DOCGEN = deriveDocGen();
       }
       function fetchAllLive() {
-        return Promise.all([apiFetch("/api/cases"), apiFetch("/api/charges"), apiFetch("/api/invoices"), apiFetch("/api/documents"), apiFetch("/api/bookings"), apiFetch("/api/rates"), apiFetch("/api/customers")]).then(function (rs) {
-          var keys = ["cases", "charges", "invoices", "documents", "bookings", "rates", "customers"];
+        return Promise.all([apiFetch("/api/cases"), apiFetch("/api/charges"), apiFetch("/api/invoices"), apiFetch("/api/documents"), apiFetch("/api/bookings"), apiFetch("/api/rates"), apiFetch("/api/customers"), apiFetch("/api/ports")]).then(function (rs) {
+          var keys = ["cases", "charges", "invoices", "documents", "bookings", "rates", "customers", "ports"];
           for (var i = 0; i < rs.length; i++) {
             if (rs[i].status !== 200 || !rs[i].body || rs[i].body.ok !== true) throw new Error(apiErrorText(rs[i], "live data load failed"));
           }
           var bodies = {};
           keys.forEach(function (k, i) { bodies[k] = rs[i].body; });
-          return bodies;
+          return apiFetch("/api/fx").then(function (fxRes) {
+            if (fxRes && fxRes.body && fxRes.body.ok === true) bodies.fx = fxRes.body;
+            return bodies;
+          }).catch(function () { return bodies; });
         });
       }
       function enterSnapshot() {
@@ -1601,7 +1617,7 @@
           }
           return "<tr><td data-label='收費項目'>" + esc(ch.name) + "</td>" +
             "<td data-label='貨幣'>" + esc(ch.curr) + "</td>" +
-            "<td data-label='單價' class='num'>" + fmt(ch.price) + "</td>" +
+            "<td data-label='單價' class='num'>" + fmt(ch.price) + (ch.rate > 0 ? "<div class='small muted'>匯率 " + ch.rate + "</div>" : "") + "</td>" +
             "<td data-label='單位'>" + esc(ch.unit) + "</td>" +
             "<td data-label='數量' class='num'>" + fmtNum(ch.qty) + "</td>" +
             "<td data-label='金額 (HKD)' class='num'>" + fmt(ch.amount) + "</td>" + del + "</tr>";
@@ -1641,7 +1657,7 @@
           "</div>" +
           (leaks.length ? '<h2 class="section-title">漏開票警告</h2>' + leakHtml : "") +
           '<h2 class="section-title">最近個案</h2>' + caseTable(recent, true) +
-          '<div class="footer-note">匯率（客人文件印明）：CNY = HKD 1.153 · USD = HKD 7.85。金額以飛書 Base 記錄的 TOTAL 為準；逐行金額以 2 位小數顯示，相加或與總額相差 0.01。</div>';
+          '<div class="footer-note">參考匯率（飛書「Exchange rate」表）：CNY = HKD ' + (FX_HKD.CNY || 1.153) + ' · USD = HKD ' + (FX_HKD.USD || 7.85) + '。個別收費行可另設匯率覆蓋。金額以飛書 Base 記錄的 TOTAL 為準；逐行金額以 2 位小數顯示，相加或與總額相差 0.01。</div>';
       }
 
       /* ---------- 個案一覽 ---------- */
@@ -1655,6 +1671,7 @@
           if (state.caseType !== "全部" && c.type !== state.caseType) return false;
           if (state.caseDir !== "全部" && c.dir !== state.caseDir) return false;
           if (state.caseStatus !== "全部" && (c.status || "處理中") !== state.caseStatus) return false;
+          if (state.casePort !== "全部" && c.pol !== state.casePort && c.pod !== state.casePort) return false;
           if (state.caseQuery) {
             var q = state.caseQuery.toLowerCase();
             var hay = (c.ref + " " + c.shipper + " " + c.consignee + " " + c.pol + " " + c.pod + " " + (c.mawb || "") + " " + (c.hawb || "")).toLowerCase();
@@ -1667,6 +1684,13 @@
           '<div class="toolbar">' + segHtml("type", ["全部", "空運", "海運", "本地派送", "物流服務"], state.caseType) +
           segHtml("dir", ["全部", "出口", "進口"], state.caseDir) +
           segHtml("status", ["全部", "處理中", "已下單", "已向供應商落單", "已完成", "已開票", "已收款", "結案"], state.caseStatus) +
+          (function () {
+            var seen = {};
+            CASES.forEach(function (c) { [c.pol, c.pod].forEach(function (v) { if (v) seen[v] = true; }); });
+            var opts = '<option value="全部"' + (state.casePort === "全部" ? " selected" : "") + ">全部港口</option>";
+            Object.keys(seen).sort().forEach(function (v) { opts += '<option value="' + esc(v) + '"' + (state.casePort === v ? " selected" : "") + ">" + esc(v) + "</option>"; });
+            return '<select id="case-port" class="search-input" style="min-width:130px" aria-label="按港口篩選">' + opts + "</select>";
+          })() +
           '<span class="spacer"></span>' +
           '<input class="search-input" id="case-search" type="search" placeholder="搜尋 Reference No." value="' + esc(state.caseQuery) + '" aria-label="搜尋個案" />' +
           "</div>" + caseTable(list, true) +
@@ -1798,12 +1822,13 @@
                 "<td data-label='單價'><input type='number' step='any' min='0' class='tpl-price' data-idx='" + gi + "' value='" + esc(r.price) + "' style='width:110px' /></td>" +
                 "<td data-label='單位'>" + esc(r.unit) + "</td>" +
                 "<td data-label='數量'><input type='number' step='any' min='0' class='tpl-qty' data-idx='" + gi + "' placeholder='0' style='width:90px' /></td>" +
+                "<td data-label='匯率'><input type='number' step='any' min='0' class='tpl-rate' data-idx='" + gi + "' placeholder='預設' style='width:80px' /></td>" +
                 "<td data-label='預計金額 (HKD)' class='num tpl-amt' data-amt='" + gi + "'>—</td></tr>";
             }).join("");
             h += '<h3 style="margin:4px 0 8px">範本收費 — ' + esc(caseCat) + '</h3>' +
               '<p class="small muted" style="margin:0 0 10px">本案係' + esc(caseCat) + '，以下係飛書標準費率嘅範本收費。填咗數量嘅行會一次過加入（單價可以改），冇填嘅唔會加入。</p>' +
               '<form id="tpl-form"><div class="form-grid" style="margin-bottom:10px"><div class="field"><label for="tf-cat">類別</label><select id="tf-cat"><option value="向客收費">向客收費</option><option value="供應商成本">供應商成本</option></select></div></div>' +
-              '<div class="table-wrap"><table class="data"><thead><tr><th>收費項目</th><th>貨幣</th><th>單價</th><th>單位</th><th>數量</th><th style="text-align:right">預計金額 (HKD)</th></tr></thead><tbody>' + trows + "</tbody></table></div>" +
+              '<div class="table-wrap"><table class="data"><thead><tr><th>收費項目</th><th>貨幣</th><th>單價</th><th>單位</th><th>數量</th><th>匯率</th><th style="text-align:right">預計金額 (HKD)</th></tr></thead><tbody>' + trows + "</tbody></table></div>" +
               '<div style="margin-top:12px"><button class="btn" type="submit"' + (state.templateBusy ? " disabled" : "") + ">" + (state.templateBusy ? "正在寫入飛書…" : "加入已填收費") + "</button></div>" +
               '<div id="tpl-result"></div></form>' +
               '<h3 style="margin:18px 0 8px">自訂項目（逐項加入）</h3>';
@@ -1818,8 +1843,9 @@
             '<div class="field"><label for="cf-price">單價</label><input id="cf-price" type="number" step="any" min="0" /></div>' +
             '<div class="field"><label for="cf-unit">單位</label><input id="cf-unit" type="text" /></div>' +
             '<div class="field"><label for="cf-qty">數量</label><input id="cf-qty" type="number" step="any" min="0" /></div>' +
+            '<div class="field"><label for="cf-fx">匯率（可空，空 = 預設）</label><input id="cf-fx" type="number" step="any" min="0" placeholder="預設" /></div>' +
             "</div>" +
-            '<p class="small muted" style="margin:12px 0 0">開單日期：<strong>' + esc(todayStr) + '</strong>（今日，自動生成） · 預計金額 (HKD)：<strong id="cf-amount">—</strong>（匯率 CNY = 1.153、USD = 7.85；實際金額以飛書公式為準）</p>' +
+            '<p class="small muted" style="margin:12px 0 0">開單日期：<strong>' + esc(todayStr) + '</strong>（今日，自動生成） · 預計金額 (HKD)：<strong id="cf-amount">—</strong>（匯率留空用預設，填咗逐行覆蓋；實際金額以飛書公式為準）</p>' +
             '<div style="margin-top:14px"><button class="btn" type="submit"' + (state.chargeBusy ? " disabled" : "") + ">" + (state.chargeBusy ? "正在寫入飛書…" : "加入收費並寫入飛書") + "</button></div>" +
             '<div id="charge-result"></div></form>';
         }
@@ -1929,6 +1955,7 @@
           else if (kind === "dir") input = '<select id="nf-' + key + '"><option value="出口">出口</option><option value="進口">進口</option></select>';
           else if (kind === "date") input = '<input id="nf-' + key + '" type="date" />';
           else if (kind === "number") input = '<input id="nf-' + key + '" type="number" step="any" min="0" />';
+          else if (key === "pol" || key === "pod") input = '<input id="nf-' + key + '" type="text" list="nf-portlist" autocomplete="off" />';
           else input = '<input id="nf-' + key + '" type="text" />';
           return '<div class="field' + (kind === "textarea" ? " full" : kind === 1 ? " wide" : "") + '"><label for="nf-' + key + '">' + esc(label) + "</label>" + input + "</div>";
         }).join("");
@@ -1962,6 +1989,7 @@
           "</div>" +
           '<div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap"><button class="btn small" type="button" id="nc-addcust-save">儲存客戶</button><button class="btn ghost small" type="button" id="nc-addcust-cancel">取消</button></div>' +
           '<div id="nc-addcust-result" style="margin-top:10px"></div></div>' +
+          '<datalist id="nf-portlist">' + PORTS.map(function (p) { var v = p.code || p.name; return '<option value="' + esc(v) + '">' + esc(p.name + (p.type ? " · " + p.type : "") + (p.country ? " · " + p.country : "")) + "</option>"; }).join("") + "</datalist>" +
           refBox +
           '<div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap"><button class="btn" type="submit"' + (state.newCaseBusy ? " disabled" : "") + ">" + (state.newCaseBusy ? "正在建立個案並寫入飛書…" : live ? "建立個案" : "建立個案（預覽）") + "</button>" +
           '<button class="btn ghost" type="reset">清除</button></div>' +
@@ -2373,7 +2401,9 @@
         var qty = qEl ? Number(qEl.value) : NaN;
         var curr = cEl ? cEl.value : "HKD";
         if (!(price > 0) || !(qty > 0)) { amt.textContent = "—"; return; }
-        amt.textContent = fmt(price * qty * (FX_HKD[curr] || 1));
+        var fxEl = document.getElementById("cf-fx");
+        var fxIn = fxEl ? Number(fxEl.value) : NaN;
+        amt.textContent = fmt(price * qty * (fxIn > 0 ? fxIn : (FX_HKD[curr] || 1)));
       }
       function chargeCatalog(title, ref) {
         var list = CHARGES.filter(function (ch) { return ch.case === ref && ch.cat === "向客收費"; });
@@ -2442,11 +2472,13 @@
             if (isNaN(price) || price < 0) price = r.price;
             var cuEl = tform.querySelector(".tpl-curr[data-idx='" + idx + "']");
             var curr = cuEl ? cuEl.value : r.curr;
-            cell.textContent = fmt(price * qty * (FX_HKD[curr] || 1));
+            var rtEl = tform.querySelector(".tpl-rate[data-idx='" + idx + "']");
+            var rtIn = rtEl ? Number(rtEl.value) : NaN;
+            cell.textContent = fmt(price * qty * (rtIn > 0 ? rtIn : (FX_HKD[curr] || 1)));
           };
           var onTplField = function (ev) {
             var el = ev.target;
-            if (el && el.getAttribute && el.getAttribute("data-idx") != null && (el.classList.contains("tpl-qty") || el.classList.contains("tpl-price") || el.classList.contains("tpl-curr"))) updRow(el.getAttribute("data-idx"));
+            if (el && el.getAttribute && el.getAttribute("data-idx") != null && (el.classList.contains("tpl-qty") || el.classList.contains("tpl-price") || el.classList.contains("tpl-curr") || el.classList.contains("tpl-rate"))) updRow(el.getAttribute("data-idx"));
           };
           tform.addEventListener("input", onTplField);
           tform.addEventListener("change", onTplField);
@@ -2471,7 +2503,11 @@
               if (isNaN(price) || price < 0) price = r.price;
               var cuEl = tform.querySelector(".tpl-curr[data-idx='" + idx + "']");
               var curr = cuEl ? cuEl.value : r.curr;
-              items.push({ name: r.name, cat: cat, curr: curr, price: price, unit: r.unit, qty: qty, standard: true });
+              var item = { name: r.name, cat: cat, curr: curr, price: price, unit: r.unit, qty: qty, standard: true };
+              var rtEl2 = tform.querySelector(".tpl-rate[data-idx='" + idx + "']");
+              var rtIn2 = rtEl2 ? Number(rtEl2.value) : NaN;
+              if (rtIn2 > 0) item.rate = rtIn2;
+              items.push(item);
             });
             if (!items.length) { failBox("請先喺範本填至少一行數量。"); return; }
             state.templateBusy = true;
@@ -2503,7 +2539,7 @@
         var cform = document.getElementById("charge-form");
         if (cform) {
           var updCf = function () { updateCfAmount(); };
-          ["cf-price", "cf-qty"].forEach(function (id) { var n = document.getElementById(id); if (n) n.addEventListener("input", updCf); });
+          ["cf-price", "cf-qty", "cf-fx"].forEach(function (id) { var n = document.getElementById(id); if (n) n.addEventListener("input", updCf); });
           var ccurr = document.getElementById("cf-curr");
           if (ccurr) ccurr.addEventListener("change", updCf);
           cform.addEventListener("submit", function (ev) {
@@ -2522,6 +2558,8 @@
             if (qtyS === "" || isNaN(qty) || qty <= 0) { fail("請輸入有效數量。"); return; }
             var rateSel = document.getElementById("cf-rate");
             var payload = { name: name, cat: canon(gv("cf-cat")), curr: gv("cf-curr"), price: price, unit: gv("cf-unit"), qty: qty, standard: !!(rateSel && rateSel.value !== "") };
+            var fxVal = Number(gv("cf-fx"));
+            if (fxVal > 0) payload.rate = fxVal;
             state.chargeBusy = true;
             state.chargeNotice = null;
             var btn = cform.querySelector('button[type="submit"]');
@@ -2567,6 +2605,10 @@
             var s2 = document.getElementById("case-search");
             if (s2) { s2.focus(); s2.setSelectionRange(pos, pos); }
           });
+        }
+        var portSel2 = document.getElementById("case-port");
+        if (portSel2) {
+          portSel2.addEventListener("change", function () { state.casePort = portSel2.value; render(); });
         }
         var form = document.getElementById("newcase-form");
         if (form) {
