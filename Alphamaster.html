@@ -931,6 +931,7 @@
         ["已向供應商落單", "Ordered to Supplier"],
         ["需報價", "Needs Quotation"],
         ["客人已下單", "Customer Ordered"],
+        ["客人order form", "Customer Order Form"],
         ["已完成", "Completed"],
         ["已開票", "Invoiced"],
         ["已收款", "Paid"],
@@ -1051,7 +1052,7 @@
         ["。", "."]
       ];
       /* 把英文顯示值還原為內部中文值（篩選/狀態邏輯用） */
-      var CANON = { "All": "全部", "Air": "空運", "Sea": "海運", "Local Delivery": "本地派送", "Logistics Service": "物流服務", "Export": "出口", "Import": "進口", "Ordered": "已下單", "Ordered to Supplier": "已向供應商落單", "Needs Quotation": "需報價", "Customer Ordered": "客人已下單", "Completed": "已完成", "Invoiced": "已開票", "Paid": "已收款", "Closed": "結案", "In Progress": "處理中", "Manual": "手動", "Customer Charges": "向客收費", "Supplier Costs": "供應商成本" };
+      var CANON = { "All": "全部", "Air": "空運", "Sea": "海運", "Local Delivery": "本地派送", "Logistics Service": "物流服務", "Export": "出口", "Import": "進口", "Ordered": "已下單", "Ordered to Supplier": "已向供應商落單", "Needs Quotation": "需報價", "Customer Ordered": "客人已下單", "Customer Order Form": "客人order form", "Completed": "已完成", "Invoiced": "已開票", "Paid": "已收款", "Closed": "結案", "In Progress": "處理中", "Manual": "手動", "Customer Charges": "向客收費", "Supplier Costs": "供應商成本" };
       function canon(v) { return CANON[v] || v; }
       var ZH_EN_SORTED = ZH_EN.slice().sort(function (a, b) { return b[0].length - a[0].length; });
       function trText(s) {
@@ -1096,7 +1097,7 @@
       }
 
       /* ---------- 文件生成觸發設定 ---------- */
-      var STATUS_OPTIONS = ["已下單", "已向供應商落單", "已完成", "已開票", "已收款", "結案", "需報價", "客人已下單"];
+      var STATUS_OPTIONS = ["已下單", "已向供應商落單", "已完成", "已開票", "已收款", "結案", "需報價", "客人已下單", "客人order form"];
       var DOC_TYPES = [
         { key: "invoice", name: "客人發票", applies: "全部個案", template: "發票範本 v3（各 1 頁 A4）；Sheet 範本尚待建立" },
         { key: "quote", name: "報價單", applies: "全部個案", template: "報價單範本 v2（各 1 頁 A4）" },
@@ -1688,7 +1689,7 @@
           '<button class="btn" data-nav-go="newcase" type="button">＋ 開新單</button></div>' +
           '<div class="toolbar">' + segHtml("type", ["全部", "空運", "海運", "本地派送", "物流服務"], state.caseType) +
           segHtml("dir", ["全部", "出口", "進口"], state.caseDir) +
-          segHtml("status", ["全部", "處理中", "已下單", "已向供應商落單", "已完成", "已開票", "已收款", "結案", "需報價", "客人已下單"], state.caseStatus) +
+          segHtml("status", ["全部", "處理中", "已下單", "已向供應商落單", "已完成", "已開票", "已收款", "結案", "需報價", "客人已下單", "客人order form"], state.caseStatus) +
           (function () {
             var seen = {};
             CASES.forEach(function (c) { [c.pol, c.pod].forEach(function (v) { if (v) seen[v] = true; }); });
