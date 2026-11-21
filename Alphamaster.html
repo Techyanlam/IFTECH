@@ -575,11 +575,14 @@
       /* 飛書「標準費率」表（快照模式為空；即時模式由 /api/rates 載入） */
       var RATES = [];
 
+      /* 飛書「客戶」表（快照模式為空；即時模式由 /api/customers 載入） */
+      var CUSTOMERS = [];
+
       /* 快照副本：Worker 未設定/未能連接時跌返嚟用（2026-11-20 清空交客） */
-      var SNAPSHOT_DATA = JSON.parse(JSON.stringify({ cases: CASES, charges: CHARGES, totals: TOTALS, invoices: INVOICES, docs: DOCS, intakes: INTAKES, docgen: DOCGEN, rates: RATES }));
+      var SNAPSHOT_DATA = JSON.parse(JSON.stringify({ cases: CASES, charges: CHARGES, totals: TOTALS, invoices: INVOICES, docs: DOCS, intakes: INTAKES, docgen: DOCGEN, rates: RATES, customers: CUSTOMERS }));
       function restoreSnapshot() {
         var s = JSON.parse(JSON.stringify(SNAPSHOT_DATA));
-        CASES = s.cases; CHARGES = s.charges; TOTALS = s.totals; INVOICES = s.invoices; DOCS = s.docs; INTAKES = s.intakes; DOCGEN = s.docgen; RATES = s.rates || [];
+        CASES = s.cases; CHARGES = s.charges; TOTALS = s.totals; INVOICES = s.invoices; DOCS = s.docs; INTAKES = s.intakes; DOCGEN = s.docgen; RATES = s.rates || []; CUSTOMERS = s.customers || [];
       }
 </script>
 
@@ -632,6 +635,13 @@
         ["客人發票及報價單的自動生成在飛書 Base 的自動化設定：個案狀態轉為觸發狀態時，飛書即經 DocuGenius 生成文件，生成標記會顯示於個案詳情。HAWB/HBL/MAWB 飛書暫無自動化，需人手生成。如需更改觸發狀態，請於飛書 Base 內修改自動化。", "Customer invoice and quotation auto-generation lives in the Feishu Base automation settings: when a case status reaches the trigger status, Feishu generates the document via DocuGenius, and the generation marker appears in Case Details. HAWB / HBL / MAWB have no Feishu automation yet and are generated manually. To change a trigger status, edit the automation inside Feishu Base."],
         ["認讀於飛書進行（Kimi 圖片理解）：上載後系統會建立落單記錄並上載相片，認出欄位後於此頁顯示，核對後撳「開案」即經飛書自動化開案。", "Recognition runs in Feishu (Kimi image understanding): uploading creates an intake record and attaches the photo; once the fields are read they appear here for checking, and Create Case then opens the case via the Feishu automation."],
         ["建立個案", "Create Case"],
+        ["客戶（由客戶資料庫選擇，自動填入 Shipper）", "Customer (pick from the customer database; fills Shipper)"],
+        ["— 不選擇／自行輸入 —", "— None / type manually —"],
+        ["＋ 新增客戶…", "+ Add new customer…"],
+        ["公司名稱（必填）", "Company Name (required)"],
+        ["儲存客戶", "Save Customer"],
+        ["請先填公司名稱", "Please enter the company name first"],
+        ["參考版未能寫入飛書，請喺正式版再新增客戶", "The preview version cannot write to Feishu; add the customer in the live version"],
         [" 張客人發票", " customer invoices"],
         ["已記錄供應商發票", "Supplier invoices recorded"],
         [" 張", ""],
@@ -1313,13 +1323,16 @@
         RATES = ((bodies.rates && bodies.rates.rates) || []).map(function (r) {
           return { recordId: r.recordId || "", name: r.name || "", type: r.type || "", curr: r.curr || "", price: r.price == null ? 0 : r.price, unit: r.unit || "", effectiveDate: r.effectiveDate || "" };
         });
+        CUSTOMERS = ((bodies.customers && bodies.customers.customers) || []).map(function (c) {
+          return { recordId: c.recordId || "", code: c.code || "", name: c.name || "", address: c.address || "", contact: c.contact || "", phone: c.phone || "", email: c.email || "" };
+        });
         state.openedIntakes = {};
         rebuildTotals();
         DOCGEN = deriveDocGen();
       }
       function fetchAllLive() {
-        return Promise.all([apiFetch("/api/cases"), apiFetch("/api/charges"), apiFetch("/api/invoices"), apiFetch("/api/documents"), apiFetch("/api/bookings"), apiFetch("/api/rates")]).then(function (rs) {
-          var keys = ["cases", "charges", "invoices", "documents", "bookings", "rates"];
+        return Promise.all([apiFetch("/api/cases"), apiFetch("/api/charges"), apiFetch("/api/invoices"), apiFetch("/api/documents"), apiFetch("/api/bookings"), apiFetch("/api/rates"), apiFetch("/api/customers")]).then(function (rs) {
+          var keys = ["cases", "charges", "invoices", "documents", "bookings", "rates", "customers"];
           for (var i = 0; i < rs.length; i++) {
             if (rs[i].status !== 200 || !rs[i].body || rs[i].body.ok !== true) throw new Error(apiErrorText(rs[i], "live data load failed"));
           }
@@ -1899,6 +1912,14 @@
         var seq = String(CASES.length + 1 + Object.keys(state.openedIntakes).length).padStart(3, "0");
         return "AML" + letter + yymm + seq;
       }
+      function customerOptionsHtml(selId) {
+        var opts = '<option value="">— 不選擇／自行輸入 —</option>';
+        CUSTOMERS.forEach(function (c) {
+          opts += '<option value="' + esc(c.recordId) + '"' + (c.recordId === selId ? " selected" : "") + ">" + esc(c.name + (c.code ? "（" + c.code + "）" : "")) + "</option>";
+        });
+        opts += '<option value="__new__">＋ 新增客戶…</option>';
+        return opts;
+      }
       function viewNewCase() {
         var t = state.newType;
         var fields = NEW_FIELDS[t].map(function (f) {
@@ -1928,7 +1949,19 @@
           '<div class="type-picker">' + typeCards + "</div>" +
           (t === "本地派送" ? '<div class="note-box" style="margin-bottom:16px">本地派送沒有落單表格，客人以電郵通知；此頁面供人手開案之用（電郵格式樣本待客人提供）。</div>' +
             (live ? "" : '<div class="note-box" style="margin-bottom:16px">注意：本地派送為參考版新增的開案入口，目前飛書 Base 個案主表並無此業務的實際個案。</div>') : "") +
-          '<form id="newcase-form" class="card"><div class="form-grid">' + fields + "</div>" +
+          '<form id="newcase-form" class="card"><div class="form-grid">' +
+          '<div class="field wide"><label for="nf-customer">客戶（由客戶資料庫選擇，自動填入 Shipper）</label><select id="nf-customer">' + customerOptionsHtml("") + "</select></div>" +
+          fields + "</div>" +
+          '<div id="nc-addcust" class="note-box" style="display:none; margin-bottom:16px">' +
+          '<div class="form-grid">' +
+          '<div class="field wide"><label for="nc-cname">公司名稱（必填）</label><input id="nc-cname" type="text" /></div>' +
+          '<div class="field"><label for="nc-ccontact">聯絡人</label><input id="nc-ccontact" type="text" /></div>' +
+          '<div class="field"><label for="nc-cphone">電話</label><input id="nc-cphone" type="text" /></div>' +
+          '<div class="field"><label for="nc-cemail">電郵</label><input id="nc-cemail" type="text" /></div>' +
+          '<div class="field wide"><label for="nc-caddress">地址</label><input id="nc-caddress" type="text" /></div>' +
+          "</div>" +
+          '<div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap"><button class="btn small" type="button" id="nc-addcust-save">儲存客戶</button><button class="btn ghost small" type="button" id="nc-addcust-cancel">取消</button></div>' +
+          '<div id="nc-addcust-result" style="margin-top:10px"></div></div>' +
           refBox +
           '<div style="margin-top:18px; display:flex; gap:10px; flex-wrap:wrap"><button class="btn" type="submit"' + (state.newCaseBusy ? " disabled" : "") + ">" + (state.newCaseBusy ? "正在建立個案並寫入飛書…" : live ? "建立個案" : "建立個案（預覽）") + "</button>" +
           '<button class="btn ghost" type="reset">清除</button></div>' +
@@ -2597,6 +2630,47 @@
               "<div>" + (t === "本地派送" ? "送貨地址：" + esc(route) + " · 送貨日期：" : "航線：" + esc(route) + " · " + (t === "海運" ? "ETD：" : "日期：")) + esc(dateLine) + "</div>" +
               '<p class="small" style="margin:8px 0 0">參考版不會將資料寫入飛書。正式版啟用後，此個案會直接寫入飛書 Base 個案主表，並以同一編號作為 Job No./Invoice No.。</p></div>');
             result.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          });
+          var custSel = document.getElementById("nf-customer");
+          if (custSel) {
+            custSel.addEventListener("change", function () {
+              var panel = document.getElementById("nc-addcust");
+              if (custSel.value === "__new__") { if (panel) panel.style.display = ""; return; }
+              if (panel) panel.style.display = "none";
+              var c = null;
+              CUSTOMERS.forEach(function (x) { if (x.recordId === custSel.value) c = x; });
+              if (c) { var sh = document.getElementById("nf-shipper"); if (sh) sh.value = c.name; }
+            });
+          }
+          var acCancel = document.getElementById("nc-addcust-cancel");
+          if (acCancel) acCancel.addEventListener("click", function () {
+            var panel = document.getElementById("nc-addcust");
+            if (panel) panel.style.display = "none";
+            if (custSel) custSel.value = "";
+          });
+          var acSave = document.getElementById("nc-addcust-save");
+          if (acSave) acSave.addEventListener("click", function () {
+            var res = document.getElementById("nc-addcust-result");
+            var gv = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ""; };
+            var nm = gv("nc-cname");
+            if (!nm) { if (res) res.innerHTML = trText('<span class="small" style="color:#c0392b">請先填公司名稱</span>'); return; }
+            if (state.dataMode !== "live") { if (res) res.innerHTML = trText('<span class="small" style="color:#c0392b">參考版未能寫入飛書，請喺正式版再新增客戶</span>'); return; }
+            acSave.disabled = true;
+            apiJson("/api/customers", "POST", { name: nm, contact: gv("nc-ccontact") || undefined, phone: gv("nc-cphone") || undefined, email: gv("nc-cemail") || undefined, address: gv("nc-caddress") || undefined }).then(function (r) {
+              acSave.disabled = false;
+              if (!r.body || !r.body.ok || !r.body.customer) { if (res) res.innerHTML = trText('<span class="small" style="color:#c0392b">新增失敗：' + esc(apiErrorText(r, "未知錯誤")) + "</span>"); return; }
+              var ncust = r.body.customer;
+              var mapped = { recordId: ncust.recordId || "", code: ncust.code || "", name: ncust.name || "", address: ncust.address || "", contact: ncust.contact || "", phone: ncust.phone || "", email: ncust.email || "" };
+              var found = false;
+              CUSTOMERS.forEach(function (x) { if (x.recordId === mapped.recordId) found = true; });
+              if (!found) CUSTOMERS.push(mapped);
+              if (custSel) { custSel.innerHTML = trText(customerOptionsHtml(mapped.recordId)); custSel.value = mapped.recordId; }
+              var sh2 = document.getElementById("nf-shipper"); if (sh2) sh2.value = mapped.name;
+              var panel = document.getElementById("nc-addcust"); if (panel) panel.style.display = "none";
+            }).catch(function (e) {
+              acSave.disabled = false;
+              if (res) res.innerHTML = trText('<span class="small" style="color:#c0392b">新增失敗：' + esc(e && e.message ? e.message : "連線失敗") + "</span>");
+            });
           });
         }
       }
