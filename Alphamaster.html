@@ -646,6 +646,7 @@
         ["請先填公司名稱", "Please enter the company name first"],
         ["參考版未能寫入飛書，請喺正式版再新增客戶", "The preview version cannot write to Feishu; add the customer in the live version"],
         ["全部港口", "All Ports"],
+        ["建立者：", "Created by: "],
         ["匯率（可空，空 = 預設）", "Rate (optional, blank = default)"],
         ["參考匯率（飛書「Exchange rate」表）：", "Reference rates (Feishu Exchange rate table): "],
         ["。個別收費行可另設匯率覆蓋。金額以飛書 Base 記錄的 TOTAL 為準；逐行金額以 2 位小數顯示，相加或與總額相差 0.01。", ". Individual charge lines can override the rate. Amounts follow the TOTAL recorded in Feishu Base; line amounts are shown to 2 decimal places, so sums may differ from totals by 0.01."],
@@ -1323,7 +1324,7 @@
           return { recordId: ch.recordId || "", "case": ch.case || "", name: ch.name || "", cat: ch.cat || "", curr: ch.curr || "", price: ch.price == null ? 0 : ch.price, rate: ch.rate == null ? 0 : ch.rate, unit: ch.unit || "", qty: ch.qty == null ? 0 : ch.qty, amount: ch.amount == null ? 0 : ch.amount };
         });
         INVOICES = (bodies.invoices.invoices || []).map(function (i) {
-          return { recordId: i.recordId || "", no: i.no || "", "case": i.case || "", cat: i.cat || "", date: i.date || "", total: i.total == null ? 0 : i.total, curr: i.curr || "", pay: i.pay || "", fileToken: i.fileToken || "", fileExtra: i.fileExtra || "" };
+          return { recordId: i.recordId || "", no: i.no || "", "case": i.case || "", cat: i.cat || "", date: i.date || "", total: i.total == null ? 0 : i.total, curr: i.curr || "", pay: i.pay || "", creator: i.creator || "", createdAt: i.createdAt || "", fileToken: i.fileToken || "", fileExtra: i.fileExtra || "" };
         });
         DOCS = (bodies.documents.documents || []).map(function (d) {
           return { name: d.name || d.fileName || "", "case": d.case || "", cat: d.cat || "", date: d.date || "", note: d.note || "", fileToken: d.fileToken || "", fileExtra: d.fileExtra || "" };
@@ -1863,7 +1864,7 @@
           h += '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / Invoice No.</th><th>類別</th><th>日期</th><th style="text-align:right">金額</th><th>付款狀態</th></tr></thead><tbody>' +
             invs.map(function (i) {
               var gi = INVOICES.indexOf(i);
-              return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, gi) + "<div class='doc-meta'><div class='mono'>" + esc(i.no) + "</div>" + previewInvBtn(i, gi) + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td><td data-label='類別'>" + esc(i.cat) + "</td><td data-label='日期'>" + fmtDate(i.date) + "</td><td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td><td data-label='付款狀態'>" + payCellHtml(i) + "</td></tr>";
+              return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, gi) + "<div class='doc-meta'><div class='mono'>" + esc(i.no) + "</div>" + previewInvBtn(i, gi) + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td><td data-label='類別'>" + esc(i.cat) + "</td><td data-label='日期'>" + fmtDate(i.date) + (i.creator ? "<div class='muted small'>建立者：" + esc(i.creator) + "</div>" : "") + "</td><td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td><td data-label='付款狀態'>" + payCellHtml(i) + "</td></tr>";
             }).join("") + "</tbody></table></div>";
         } else {
           h += '<div class="note-box">本案暫無發票記錄。</div>';
@@ -2157,7 +2158,7 @@
             return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, idx) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div>" + previewInvBtn(i, idx) + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td>" +
               "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(i.case) + "'>" + esc(i.case) + "</a>" + (gc ? "<div class='muted small'>" + esc(gc.shipper || "") + "</div>" : "") + "</td>" +
               "<td data-label='類別'>" + (i.cat === "客人發票" ? '<span class="badge badge-info">客人發票</span>' : '<span class="badge badge-grey">供應商發票</span>') + "</td>" +
-              "<td data-label='日期'>" + fmtDate(i.date) + "</td>" +
+              "<td data-label='日期'>" + fmtDate(i.date) + (i.creator ? "<div class='muted small'>建立者：" + esc(i.creator) + (i.createdAt ? " · " + esc(i.createdAt) : "") + "</div>" : "") + "</td>" +
               "<td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td>" +
               "<td data-label='付款狀態'>" + payCellHtml(i) + "</td>" +
               "<td data-label='文件生成'>" + genCell(i.case) + "</td></tr>";
