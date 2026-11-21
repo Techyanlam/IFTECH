@@ -498,6 +498,10 @@
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6"/></svg>
           <span data-nav-label>Invoices & Quotations</span>
         </button>
+        <button class="nav-btn" data-nav="quotations" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4"/><path d="M10 12h6M10 16h6"/></svg>
+          <span data-nav-label>Quotations</span>
+        </button>
         <button class="nav-btn" data-nav="suppliercheck" type="button">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/><path d="M8.5 11l2 2 3.5-3.5"/></svg>
           <span data-nav-label>Supplier Invoice Check</span>
@@ -565,6 +569,9 @@
 
       var INVOICES = [];
 
+      /* 飛書「報價」表（Quotation 獨立模組；快照模式為空） */
+      var QUOTATIONS = [];
+
       var DOCS = [];
 
       var INTAKES = [];
@@ -582,17 +589,17 @@
       var PORTS = [];
 
       /* 快照副本：Worker 未設定/未能連接時跌返嚟用（2026-11-20 清空交客） */
-      var SNAPSHOT_DATA = JSON.parse(JSON.stringify({ cases: CASES, charges: CHARGES, totals: TOTALS, invoices: INVOICES, docs: DOCS, intakes: INTAKES, docgen: DOCGEN, rates: RATES, customers: CUSTOMERS, ports: PORTS }));
+      var SNAPSHOT_DATA = JSON.parse(JSON.stringify({ cases: CASES, charges: CHARGES, totals: TOTALS, invoices: INVOICES, quotations: QUOTATIONS, docs: DOCS, intakes: INTAKES, docgen: DOCGEN, rates: RATES, customers: CUSTOMERS, ports: PORTS }));
       function restoreSnapshot() {
         var s = JSON.parse(JSON.stringify(SNAPSHOT_DATA));
-        CASES = s.cases; CHARGES = s.charges; TOTALS = s.totals; INVOICES = s.invoices; DOCS = s.docs; INTAKES = s.intakes; DOCGEN = s.docgen; RATES = s.rates || []; CUSTOMERS = s.customers || []; PORTS = s.ports || [];
+        CASES = s.cases; CHARGES = s.charges; TOTALS = s.totals; INVOICES = s.invoices; QUOTATIONS = s.quotations || []; DOCS = s.docs; INTAKES = s.intakes; DOCGEN = s.docgen; RATES = s.rates || []; CUSTOMERS = s.customers || []; PORTS = s.ports || [];
       }
 </script>
 
     <script>
       "use strict";
       var content = document.getElementById("content");
-      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "" };
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null };
 
       /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
       var ZH_EN = [
@@ -932,6 +939,17 @@
         ["需報價", "Needs Quotation"],
         ["客人已下單", "Customer Ordered"],
         ["客人order form", "Customer Order Form"],
+        ["跟Job報價", "Job Quotation"],
+        ["長期報價", "Long-term Quotation"],
+        ["草稿", "Draft"],
+        ["已發送", "Sent"],
+        ["新增報價", "New Quotation"],
+        ["建立報價", "Create Quotation"],
+        ["報價日期", "Quote Date"],
+        ["連結個案", "Linked Case"],
+        ["上載檔案", "Upload File"],
+        ["一鍵開案", "Create Case"],
+        ["報價", "Quotations"],
         ["已完成", "Completed"],
         ["已開票", "Invoiced"],
         ["已收款", "Paid"],
@@ -1052,7 +1070,7 @@
         ["。", "."]
       ];
       /* 把英文顯示值還原為內部中文值（篩選/狀態邏輯用） */
-      var CANON = { "All": "全部", "Air": "空運", "Sea": "海運", "Local Delivery": "本地派送", "Logistics Service": "物流服務", "Export": "出口", "Import": "進口", "Ordered": "已下單", "Ordered to Supplier": "已向供應商落單", "Needs Quotation": "需報價", "Customer Ordered": "客人已下單", "Customer Order Form": "客人order form", "Completed": "已完成", "Invoiced": "已開票", "Paid": "已收款", "Closed": "結案", "In Progress": "處理中", "Manual": "手動", "Customer Charges": "向客收費", "Supplier Costs": "供應商成本" };
+      var CANON = { "All": "全部", "Air": "空運", "Sea": "海運", "Local Delivery": "本地派送", "Logistics Service": "物流服務", "Export": "出口", "Import": "進口", "Ordered": "已下單", "Ordered to Supplier": "已向供應商落單", "Needs Quotation": "需報價", "Customer Ordered": "客人已下單", "Customer Order Form": "客人order form", "Job Quotation": "跟Job報價", "Long-term Quotation": "長期報價", "Draft": "草稿", "Sent": "已發送", "Completed": "已完成", "Invoiced": "已開票", "Paid": "已收款", "Closed": "結案", "In Progress": "處理中", "Manual": "手動", "Customer Charges": "向客收費", "Supplier Costs": "供應商成本" };
       function canon(v) { return CANON[v] || v; }
       var ZH_EN_SORTED = ZH_EN.slice().sort(function (a, b) { return b[0].length - a[0].length; });
       function trText(s) {
@@ -1063,7 +1081,7 @@
         }
         return out;
       }
-      var NAV_LABELS = { dashboard: ["總覽", "Dashboard"], cases: ["個案一覽", "Cases"], newcase: ["開新單", "New Case"], intake: ["落單認讀", "Order Intake"], invoices: ["發票及報價單", "Invoices & Quotations"], suppliercheck: ["外判發票核對", "Supplier Invoice Check"], docs: ["文件", "Documents"], docsettings: ["文件生成設定", "Doc Generation Settings"], charges: ["收費項目", "Charge Items"] };
+      var NAV_LABELS = { dashboard: ["總覽", "Dashboard"], cases: ["個案一覽", "Cases"], newcase: ["開新單", "New Case"], intake: ["落單認讀", "Order Intake"], invoices: ["發票及報價單", "Invoices & Quotations"], quotations: ["報價", "Quotations"], suppliercheck: ["外判發票核對", "Supplier Invoice Check"], docs: ["文件", "Documents"], docsettings: ["文件生成設定", "Doc Generation Settings"], charges: ["收費項目", "Charge Items"] };
       function noticeInfo() {
         if (state.dataMode === "live") return { title: "已接駁飛書（即時數據）", text: "數據即時來自飛書 Base；於本網站進行的操作（開案、轉換狀態、落單開案）會直接寫入飛書。" + (state.workerVersion ? "（Worker " + state.workerVersion + "）" : ""), btn: "重新整理" };
         if (state.dataMode === "loading") return { title: "正在連接飛書", text: "正在向後端 Worker 查核飛書連接；連接成功後會自動轉為即時數據，其間先顯示資料快照。", btn: "重新連接" };
@@ -1219,6 +1237,35 @@
           else alert("更新付款狀態失敗：" + apiErrorText(r, "未知錯誤"));
         }).catch(function () { state.payBusy = false; alert("更新付款狀態失敗：網絡錯誤"); });
       }
+      function updQfTotal() {
+        var tot = document.getElementById("qf-total");
+        var box = document.getElementById("qf-lines");
+        if (!tot || !box) return;
+        var sum = 0;
+        box.querySelectorAll(".qf-line").forEach(function (ln) {
+          var price = Number(ln.querySelector(".qf-l-price").value) || 0;
+          var qty = Number(ln.querySelector(".qf-l-qty").value) || 0;
+          var rate = Number(ln.querySelector(".qf-l-rate").value) || 0;
+          var curr = ln.querySelector(".qf-l-curr").value;
+          var eff = rate > 0 ? rate : (FX_HKD[curr] || 1);
+          sum += price * qty * eff;
+        });
+        tot.textContent = fmt(sum);
+      }
+      function createCaseFromQuotation(qid) {
+        if (!qid || state.quoteBusy) return;
+        var q = QUOTATIONS.filter(function (x) { return x.recordId === qid; })[0];
+        if (!q) return;
+        if (!window.confirm(trText("將報價 ") + q.no + trText(" 開案？系統會派發 Job No.，並將報價收費原數帶入個案。"))) return;
+        state.quoteBusy = true;
+        apiJson("/api/quotations/" + encodeURIComponent(qid) + "/create-case", "POST", {}).then(function (r) {
+          state.quoteBusy = false;
+          if ((r.status === 200 || r.status === 201) && r.body && r.body.ok) {
+            state.quoteNotice = "報價 " + q.no + " 已開案：" + (r.body.ref || "") + "（收費已帶入 " + (r.body.chargesCopied || 0) + " 行）";
+            refreshLive();
+          } else alert("開案失敗：" + apiErrorText(r, "未知錯誤"));
+        }).catch(function () { state.quoteBusy = false; alert("開案失敗：網絡錯誤"); });
+      }
       function routeOf(c) {
         if (!c.pol && !c.pod) return '<span class="muted">—</span>';
         return esc(c.pol || "—") + " → " + esc(c.pod || "—");
@@ -1344,6 +1391,9 @@
         PORTS = ((bodies.ports && bodies.ports.ports) || []).map(function (p) {
           return { recordId: p.recordId || "", name: p.name || "", code: p.code || "", type: p.type || "", country: p.country || "" };
         });
+        QUOTATIONS = ((bodies.quotations && bodies.quotations.quotations) || []).map(function (q) {
+          return { recordId: q.recordId || "", no: q.no || "", customerId: q.customerId || "", customer: q.customer || "", type: q.type || "", date: q.date || "", validUntil: q.validUntil || "", bizType: q.bizType || "", dir: q.dir || "", pol: q.pol || "", pod: q.pod || "", charges: q.charges || [], summary: q.summary || "", total: q.total == null ? 0 : q.total, status: q.status || "", cases: q.cases || [], hasFile: !!q.hasFile, fileToken: q.fileToken || "", fileExtra: q.fileExtra || "", fileName: q.fileName || "", remark: q.remark || "", creator: q.creator || "", createdAt: q.createdAt || "" };
+        });
         if (bodies.fx && bodies.fx.rates) FX_HKD = bodies.fx.rates;
         state.openedIntakes = {};
         rebuildTotals();
@@ -1359,7 +1409,10 @@
           keys.forEach(function (k, i) { bodies[k] = rs[i].body; });
           return apiFetch("/api/fx").then(function (fxRes) {
             if (fxRes && fxRes.body && fxRes.body.ok === true) bodies.fx = fxRes.body;
-            return bodies;
+            return apiFetch("/api/quotations").then(function (qRes) {
+              if (qRes && qRes.body && qRes.body.ok === true) bodies.quotations = qRes.body;
+              return bodies;
+            }).catch(function () { return bodies; });
           }).catch(function () { return bodies; });
         });
       }
@@ -2185,6 +2238,88 @@
           '<div class="note-box" style="margin-top:14px">客人發票 BILL TO 目前顯示「COMPANY NAME」（樣本遮蓋了真實名稱），正式出單前須填上客戶真實名稱。發票上款：ALPHA MASTER LOGISTICS LIMITED，荃灣白田壩街 5-21 號嘉力工業中心 A 座 9 樓 17 室，Tel (852) 3500 7163。下款收款銀行：HSBC Hong Kong，戶口 819-860339-838（USD/HKD），SWIFT HSBCHKHHHKH。</div>';
       }
 
+      /* ---------- 報價 (Quotation 獨立模組) ---------- */
+      function quoteBadge(s) {
+        if (s === "Awarded") return '<span class="badge badge-ok">Awarded</span>';
+        if (s === "已發送") return '<span class="badge badge-info">已發送</span>';
+        if (s === "Rejected") return '<span class="badge badge-danger">Rejected</span>';
+        return '<span class="badge badge-grey">草稿</span>';
+      }
+      function qfLineHtml(l) {
+        l = l || {};
+        var curOpts = ["HKD", "CNY", "USD", "EUR"].map(function (c) { return '<option value="' + c + '"' + (l.curr === c ? " selected" : "") + ">" + c + "</option>"; }).join("");
+        return '<div class="qf-line" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;align-items:center">' +
+          '<input class="qf-l-name" type="text" placeholder="收費名稱" value="' + esc(l.name || "") + '" style="flex:2;min-width:150px">' +
+          '<select class="qf-l-curr">' + curOpts + "</select>" +
+          '<input class="qf-l-price" type="number" step="0.01" min="0" placeholder="單價" value="' + (l.price == null ? "" : l.price) + '" style="width:100px">' +
+          '<input class="qf-l-unit" type="text" placeholder="單位" value="' + esc(l.unit || "") + '" style="width:80px">' +
+          '<input class="qf-l-qty" type="number" step="0.01" min="0" placeholder="數量" value="' + (l.qty == null ? "" : l.qty) + '" style="width:80px">' +
+          '<input class="qf-l-rate" type="number" step="0.0001" min="0" placeholder="匯率（空=預設）" value="' + (l.rate == null ? "" : l.rate) + '" style="width:130px">' +
+          '<button type="button" class="btn btn-ghost" data-action="qf-del-line" style="padding:2px 8px">✕</button></div>';
+      }
+      function viewQuotations() {
+        var list = QUOTATIONS.filter(function (q) {
+          if (state.quoteStatus !== "全部" && q.status !== state.quoteStatus) return false;
+          if (state.quoteType !== "全部" && q.type !== state.quoteType) return false;
+          if (state.quoteCustomer !== "全部" && q.customerId !== state.quoteCustomer) return false;
+          if (state.quoteQuery) {
+            var hay = (q.no + " " + q.customer + " " + (q.summary || "")).toLowerCase();
+            if (hay.indexOf(state.quoteQuery.toLowerCase()) < 0) return false;
+          }
+          return true;
+        });
+        var custOpts = '<option value="全部"' + (state.quoteCustomer === "全部" ? " selected" : "") + ">全部客戶</option>" + CUSTOMERS.map(function (c) { return '<option value="' + esc(c.recordId) + '"' + (state.quoteCustomer === c.recordId ? " selected" : "") + ">" + esc(c.name) + "</option>"; }).join("");
+        var rows = list.map(function (q) {
+          var statusSel = '<select class="quote-status-sel" data-qid="' + esc(q.recordId) + '"' + (state.quoteBusy ? " disabled" : "") + ">" + ["草稿", "已發送", "Awarded", "Rejected"].map(function (s) { return '<option value="' + s + '"' + (q.status === s ? " selected" : "") + ">" + s + "</option>"; }).join("") + "</select>";
+          var fileCell = q.hasFile ? viewFileBtn(q.fileToken, q.fileExtra) : '<button type="button" class="btn btn-ghost" style="padding:2px 8px;font-size:12px" data-action="quote-upload-btn" data-qid="' + esc(q.recordId) + '">上載檔案</button><input type="file" class="quote-file-input" data-qid="' + esc(q.recordId) + '" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" style="display:none">';
+          var caseCell = q.cases && q.cases.length ? q.cases.map(function (r) { return "<a class='ref-link mono' href='#' data-open-case='" + esc(r) + "'>" + esc(r) + "</a>"; }).join("<br>") : '<span class="muted">—</span>';
+          var actCell = (q.status === "Awarded" && q.type !== "長期報價" && !(q.cases && q.cases.length)) ? '<button type="button" class="btn" style="padding:2px 10px;font-size:12px" data-action="quote-create-case" data-qid="' + esc(q.recordId) + '">一鍵開案</button>' : "";
+          return "<tr><td data-label='Quotation No.'><span class='mono'><strong>" + esc(q.no) + "</strong></span>" + (q.creator ? "<div class='muted small'>建立者：" + esc(q.creator) + "</div>" : "") + "</td>" +
+            "<td data-label='客戶'>" + esc(q.customer || "—") + "</td>" +
+            "<td data-label='類別'>" + (q.type === "長期報價" ? '<span class="badge badge-warn">長期報價</span>' : '<span class="badge badge-info">跟Job報價</span>') + "</td>" +
+            "<td data-label='報價日期'>" + fmtDate(q.date) + (q.validUntil ? "<div class='muted small'>有效期至 " + fmtDate(q.validUntil) + "</div>" : "") + "</td>" +
+            "<td data-label='業務 / 航線'>" + esc(q.bizType || "") + (q.dir ? "・" + esc(q.dir) : "") + (q.pol || q.pod ? "<div class='muted small'>" + esc(q.pol || "") + " → " + esc(q.pod || "") + "</div>" : "") + "</td>" +
+            "<td data-label='收費摘要'><span class='small'>" + esc(q.summary || "—") + "</span>" + (q.remark ? "<div class='muted small'>" + esc(q.remark) + "</div>" : "") + "</td>" +
+            "<td data-label='總額' class='num'>HKD " + fmt(q.total) + "</td>" +
+            "<td data-label='狀態'>" + quoteBadge(q.status) + "<div style='margin-top:4px'>" + statusSel + "</div></td>" +
+            "<td data-label='連結個案'>" + caseCell + "</td>" +
+            "<td data-label='檔案'>" + fileCell + "</td>" +
+            "<td data-label='操作'>" + actCell + "</td></tr>";
+        }).join("");
+        var formCustOpts = CUSTOMERS.map(function (c) { return '<option value="' + esc(c.recordId) + '">' + esc(c.name) + "</option>"; }).join("");
+        var rateOpts = RATES.map(function (r, i) { return '<option value="' + i + '">' + esc(r.name) + " (" + esc(r.curr) + " " + fmt(r.price) + (r.unit ? " / " + esc(r.unit) : "") + ")</option>"; }).join("");
+        var portOpts = PORTS.map(function (p) { var v = p.code || p.name; return '<option value="' + esc(v) + '">' + esc(p.name + (p.type ? " · " + p.type : "") + (p.country ? " · " + p.country : "")) + "</option>"; }).join("");
+        var todayStr = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+        return '<div class="page-head"><div><h1>報價</h1><div class="sub">Quotation 獨立模組：報價有自己編號（AMQ + 年月 + 流水）、狀態同檔案；Awarded 之後先開案，收費原數帶入個案</div></div></div>' +
+          (state.quoteNotice ? '<div class="success-box" style="margin-bottom:12px"><span>' + esc(state.quoteNotice) + "</span></div>" : "") +
+          '<div class="toolbar">' + segHtml("qstatus", ["全部", "草稿", "已發送", "Awarded", "Rejected"], state.quoteStatus) + segHtml("qtype", ["全部", "跟Job報價", "長期報價"], state.quoteType) +
+          '<select id="quote-customer">' + custOpts + '</select>' +
+          '<input id="quote-search" type="search" placeholder="搜尋編號 / 客戶 / 收費" value="' + esc(state.quoteQuery) + '"></div>' +
+          '<div class="table-wrap"><table class="data"><thead><tr><th>Quotation No.</th><th>客戶</th><th>類別</th><th>報價日期</th><th>業務 / 航線</th><th>收費摘要</th><th style="text-align:right">總額</th><th>狀態</th><th>連結個案</th><th>檔案</th><th>操作</th></tr></thead><tbody>' + (rows || '<tr><td colspan="11" class="muted">未有報價記錄</td></tr>') + "</tbody></table></div>" +
+          '<form id="quote-form" class="card" style="margin-top:16px"><h2 class="section-title">新增報價</h2>' +
+          '<div class="form-grid">' +
+          '<div class="field wide"><label for="qf-customer">客戶</label><select id="qf-customer">' + formCustOpts + "</select></div>" +
+          '<div class="field"><label for="qf-type">報價類別</label><select id="qf-type"><option value="跟Job報價">跟Job報價</option><option value="長期報價">長期報價</option></select></div>' +
+          '<div class="field"><label for="qf-biz">業務類型</label><select id="qf-biz"><option value="空運">空運</option><option value="海運">海運</option><option value="本地派送">本地派送</option><option value="物流服務">物流服務</option></select></div>' +
+          '<div class="field"><label for="qf-dir">方向</label><select id="qf-dir"><option value="出口">出口</option><option value="進口">進口</option></select></div>' +
+          '<div class="field"><label for="qf-pol">POL</label><input id="qf-pol" type="text" list="qf-portlist"></div>' +
+          '<div class="field"><label for="qf-pod">POD</label><input id="qf-pod" type="text" list="qf-portlist"></div>' +
+          '<div class="field"><label for="qf-date">報價日期</label><input id="qf-date" type="date" value="' + todayStr + '"></div>' +
+          '<div class="field"><label for="qf-valid">有效期至</label><input id="qf-valid" type="date"></div>' +
+          "</div>" +
+          '<datalist id="qf-portlist">' + portOpts + "</datalist>" +
+          '<h3 class="section-title" style="margin-top:14px">收費項目</h3>' +
+          '<div id="qf-lines"></div>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px"><button type="button" class="btn btn-ghost" data-action="qf-add-line">＋ 加一行</button>' +
+          '<select id="qf-rate-sel">' + rateOpts + '</select><button type="button" class="btn btn-ghost" data-action="qf-add-rate">由範本加入</button>' +
+          '<span class="small muted">預計總額：HKD <strong id="qf-total">0.00</strong></span></div>' +
+          '<div class="field" style="margin-top:12px"><label for="qf-remark">備註</label><input id="qf-remark" type="text"></div>' +
+          '<div id="quote-result" style="margin-top:10px"></div>' +
+          '<button type="submit" class="btn" style="margin-top:10px">建立報價</button>' +
+          "</form>" +
+          '<div class="note-box" style="margin-top:14px">編號格式 AMQ＋YYMM＋3 位流水係建議格式（待客人確認 Queenie 現行排號方式後可再調整）。長期報價唔直接開案；跟Job報價 Awarded 後撳「一鍵開案」，系統會派 Job No. 並將收費項目原數帶入個案向客收費。報價原檔（Word／PDF）可於列表上載存檔；客戶未喺名單入面，可先喺「開新單」頁即場新增客戶。</div>';
+      }
+
       /* ---------- 文件 ---------- */
       function viewDocs() {
         var rows = groupByCase(DOCS).map(function (g) {
@@ -2446,6 +2581,7 @@
         else if (state.view === "newcase") html = viewNewCase();
         else if (state.view === "intake") html = viewIntake();
         else if (state.view === "invoices") html = viewInvoices();
+        else if (state.view === "quotations") html = viewQuotations();
         else if (state.view === "suppliercheck") html = viewSupplierCheck();
         else if (state.view === "docs") html = viewDocs();
         else if (state.view === "docsettings") html = viewDocSettings();
@@ -2615,6 +2751,90 @@
         var portSel2 = document.getElementById("case-port");
         if (portSel2) {
           portSel2.addEventListener("change", function () { state.casePort = portSel2.value; render(); });
+        }
+        var qsearch = document.getElementById("quote-search");
+        if (qsearch) {
+          qsearch.addEventListener("input", function () {
+            state.quoteQuery = qsearch.value;
+            var pos = qsearch.selectionStart;
+            render();
+            var s3 = document.getElementById("quote-search");
+            if (s3) { s3.focus(); s3.setSelectionRange(pos, pos); }
+          });
+        }
+        var qcSel = document.getElementById("quote-customer");
+        if (qcSel) {
+          qcSel.addEventListener("change", function () { state.quoteCustomer = qcSel.value; render(); });
+        }
+        document.querySelectorAll(".quote-status-sel").forEach(function (sel) {
+          sel.addEventListener("change", function () {
+            if (state.quoteBusy) return;
+            state.quoteBusy = true;
+            apiJson("/api/quotations/" + encodeURIComponent(sel.getAttribute("data-qid")), "PATCH", { status: canon(sel.value) }).then(function (r) {
+              state.quoteBusy = false;
+              if (r.status === 200 && r.body && r.body.ok) refreshLive();
+              else { alert("更新報價狀態失敗：" + apiErrorText(r, "未知錯誤")); render(); }
+            }).catch(function () { state.quoteBusy = false; alert("更新報價狀態失敗：網絡錯誤"); render(); });
+          });
+        });
+        document.querySelectorAll(".quote-file-input").forEach(function (inp) {
+          inp.addEventListener("change", function () {
+            var file = inp.files && inp.files[0];
+            if (!file || state.quoteBusy) return;
+            state.quoteBusy = true;
+            var fd = new FormData(); fd.append("file", file);
+            apiFetch("/api/quotations/" + encodeURIComponent(inp.getAttribute("data-qid")) + "/upload", { method: "POST", body: fd }).then(function (r) {
+              state.quoteBusy = false;
+              if (r.body && r.body.ok) { state.quoteNotice = "報價檔案已上載存檔"; refreshLive(); }
+              else alert("上載失敗：" + apiErrorText(r, "未知錯誤"));
+            }).catch(function () { state.quoteBusy = false; alert("上載失敗：網絡錯誤"); });
+          });
+        });
+        var qform = document.getElementById("quote-form");
+        if (qform) {
+          var linesBox = document.getElementById("qf-lines");
+          if (linesBox && !linesBox.children.length) { var d0 = document.createElement("div"); d0.innerHTML = qfLineHtml({}); linesBox.appendChild(d0.firstChild); }
+          qform.addEventListener("input", updQfTotal);
+          qform.addEventListener("submit", function (ev) {
+            ev.preventDefault();
+            var result = document.getElementById("quote-result");
+            var gv = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ""; };
+            if (state.dataMode !== "live") {
+              if (result) result.innerHTML = trText('<div class="note-box">參考版（快照模式）不會將資料寫入飛書。</div>');
+              return;
+            }
+            if (state.quoteBusy) return;
+            var customerId = gv("qf-customer");
+            if (!customerId) { if (result) result.innerHTML = trText('<div class="alert-box"><span>請先選擇客戶（客戶名單為空的話，先喺「開新單」頁新增客戶）。</span></div>'); return; }
+            var lines = [];
+            qform.querySelectorAll(".qf-line").forEach(function (ln) {
+              var name = ln.querySelector(".qf-l-name").value.trim();
+              var price = Number(ln.querySelector(".qf-l-price").value);
+              var qty = Number(ln.querySelector(".qf-l-qty").value);
+              if (!name || !(price >= 0) || !(qty > 0)) return;
+              var rate = Number(ln.querySelector(".qf-l-rate").value);
+              lines.push({ name: name, curr: ln.querySelector(".qf-l-curr").value, price: price, unit: ln.querySelector(".qf-l-unit").value.trim(), qty: qty, rate: rate > 0 ? rate : undefined });
+            });
+            var payload = { customerId: customerId, type: canon(gv("qf-type")), bizType: canon(gv("qf-biz")), dir: canon(gv("qf-dir")), pol: gv("qf-pol") || undefined, pod: gv("qf-pod") || undefined, date: gv("qf-date") || undefined, validUntil: gv("qf-valid") || undefined, charges: lines, remark: gv("qf-remark") || undefined };
+            state.quoteBusy = true;
+            var btn = qform.querySelector('button[type="submit"]');
+            if (btn) { btn.disabled = true; btn.textContent = trText("正在建立報價並寫入飛書…"); }
+            apiJson("/api/quotations", "POST", payload).then(function (r) {
+              state.quoteBusy = false;
+              if ((r.status === 200 || r.status === 201) && r.body && r.body.ok) {
+                state.quoteNotice = "報價已建立：" + (r.body.no || "");
+                state.quoteStatus = "全部"; state.quoteType = "全部"; state.quoteCustomer = "全部"; state.quoteQuery = "";
+                refreshLive();
+              } else {
+                if (btn) { btn.disabled = false; btn.textContent = trText("建立報價"); }
+                if (result) result.innerHTML = trText('<div class="alert-box"><span>建立失敗，未有寫入飛書：' + esc(apiErrorText(r, "未知錯誤")) + "</span></div>");
+              }
+            }).catch(function () {
+              state.quoteBusy = false;
+              if (btn) { btn.disabled = false; btn.textContent = trText("建立報價"); }
+              if (result) result.innerHTML = trText('<div class="alert-box"><span>建立失敗：網絡錯誤，未有寫入飛書。</span></div>');
+            });
+          });
         }
         var form = document.getElementById("newcase-form");
         if (form) {
@@ -2850,6 +3070,11 @@
         if (!t) return;
         if (t.hasAttribute("data-action") && t.getAttribute("data-action") === "toggle-charge-card") { state.chargeCardOpen = !state.chargeCardOpen; render(); }
         if (t.hasAttribute("data-action") && t.getAttribute("data-action") === "toggle-pay") { togglePay(t.getAttribute("data-invoice-id"), t.getAttribute("data-next-pay")); }
+        if (t.hasAttribute("data-action") && t.getAttribute("data-action") === "qf-add-line") { var qfl = document.getElementById("qf-lines"); if (qfl) { var d1 = document.createElement("div"); d1.innerHTML = qfLineHtml({}); qfl.appendChild(d1.firstChild); } }
+        if (t.hasAttribute("data-action") && t.getAttribute("data-action") === "qf-del-line") { var ln = t.closest(".qf-line"); if (ln) { ln.remove(); updQfTotal(); } }
+        if (t.hasAttribute("data-action") && t.getAttribute("data-action") === "qf-add-rate") { var rsel = document.getElementById("qf-rate-sel"); var qfl2 = document.getElementById("qf-lines"); if (rsel && qfl2 && RATES[Number(rsel.value)]) { var rr = RATES[Number(rsel.value)]; var d2 = document.createElement("div"); d2.innerHTML = qfLineHtml({ name: rr.name, curr: rr.curr, price: rr.price, unit: rr.unit, qty: 1 }); qfl2.appendChild(d2.firstChild); updQfTotal(); } }
+        if (t.hasAttribute("data-action") && t.getAttribute("data-action") === "quote-upload-btn") { var qin = document.querySelector('.quote-file-input[data-qid="' + t.getAttribute("data-qid") + '"]'); if (qin) qin.click(); }
+        if (t.hasAttribute("data-action") && t.getAttribute("data-action") === "quote-create-case") { createCaseFromQuotation(t.getAttribute("data-qid")); }
         else if (t.hasAttribute("data-notice-refresh")) { refreshLive(); }
         else if (t.hasAttribute("data-gen-invoice")) {
           if (state.invoiceBusy) return;
@@ -2921,7 +3146,7 @@
         else if (t.hasAttribute("data-open-case")) { ev.preventDefault(); openCase(t.getAttribute("data-open-case")); }
         else if (t.hasAttribute("data-seg")) {
           var kind = t.getAttribute("data-seg"), val = canon(t.getAttribute("data-val"));
-          if (kind === "type") state.caseType = val; else if (kind === "dir") state.caseDir = val; else state.caseStatus = val;
+          if (kind === "type") state.caseType = val; else if (kind === "dir") state.caseDir = val; else if (kind === "qstatus") state.quoteStatus = val; else if (kind === "qtype") state.quoteType = val; else state.caseStatus = val;
           render();
         } else if (t.hasAttribute("data-newtype")) {
           state.newType = canon(t.getAttribute("data-newtype"));
