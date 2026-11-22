@@ -2287,7 +2287,7 @@
             "<td data-label='類別'>" + (q.type === "長期報價" ? '<span class="badge badge-warn">長期報價</span>' : '<span class="badge badge-info">跟Job報價</span>') + "</td>" +
             "<td data-label='報價日期'>" + fmtDate(q.date) + (q.validUntil ? "<div class='muted small'>有效期至 " + fmtDate(q.validUntil) + "</div>" : "") + "</td>" +
             "<td data-label='業務 / 航線'>" + esc(q.bizType || "") + (q.dir ? "・" + esc(q.dir) : "") + (q.pol || q.pod ? "<div class='muted small'>" + esc(q.pol || "") + " → " + esc(q.pod || "") + "</div>" : "") + "</td>" +
-            "<td data-label='收費摘要'><span class='small'>" + esc(q.summary || "—") + "</span>" + (q.remark ? "<div class='muted small'>" + esc(q.remark) + "</div>" : "") + "</td>" +
+            "<td data-label='收費摘要'><span class='small' style='white-space:pre-line'>" + esc(q.summary || "—") + "</span>" + (q.remark ? "<div class='muted small'>" + esc(q.remark) + "</div>" : "") + "</td>" +
             "<td data-label='總額' class='num'>HKD " + fmt(q.total) + "</td>" +
             "<td data-label='狀態'>" + quoteBadge(q.status) + "<div style='margin-top:4px'>" + statusSel + "</div></td>" +
             "<td data-label='連結個案'>" + caseCell + "</td>" +
