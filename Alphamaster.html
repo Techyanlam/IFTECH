@@ -496,7 +496,7 @@
         </button>
         <button class="nav-btn" data-nav="invoices" type="button">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 2h12v20l-3-2-3 2-3-2-3 2z"/><path d="M9 7h6M9 11h6"/></svg>
-          <span data-nav-label>Invoices & Quotations</span>
+          <span data-nav-label>Invoices</span>
         </button>
         <button class="nav-btn" data-nav="quotations" type="button">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4"/><path d="M10 12h6M10 16h6"/></svg>
@@ -833,7 +833,7 @@
         ["文件生成設定", "Doc Generation Settings"],
         ["文件生成狀態", "Document Generation Status"],
         ["外判發票核對", "Supplier Invoice Check"],
-        ["發票及報價單", "Invoices & Quotations"],
+        ["發票及報價單", "Invoices"],
         ["空運主提單 MAWB", "Master Air Waybill (MAWB)"],
         ["空運提單 HAWB", "House Air Waybill (HAWB)"],
         ["海運提單 HBL", "House Bill of Lading (HBL)"],
@@ -941,6 +941,9 @@
         ["客人order form", "Customer Order Form"],
         ["跟Job報價", "Job Quotation"],
         ["長期報價", "Long-term Quotation"],
+        ["報價類別", "Quotation Type"],
+        ["報價原檔", "Quotation File"],
+        ["未有報價記錄", "No quotation records yet"],
         ["草稿", "Draft"],
         ["已發送", "Sent"],
         ["新增報價", "New Quotation"],
@@ -1081,7 +1084,7 @@
         }
         return out;
       }
-      var NAV_LABELS = { dashboard: ["總覽", "Dashboard"], cases: ["個案一覽", "Cases"], newcase: ["開新單", "New Case"], intake: ["落單認讀", "Order Intake"], invoices: ["發票及報價單", "Invoices & Quotations"], quotations: ["報價", "Quotations"], suppliercheck: ["外判發票核對", "Supplier Invoice Check"], docs: ["文件", "Documents"], docsettings: ["文件生成設定", "Doc Generation Settings"], charges: ["收費項目", "Charge Items"] };
+      var NAV_LABELS = { dashboard: ["總覽", "Dashboard"], cases: ["個案一覽", "Cases"], newcase: ["開新單", "New Case"], intake: ["落單認讀", "Order Intake"], invoices: ["發票", "Invoices"], quotations: ["報價", "Quotations"], suppliercheck: ["外判發票核對", "Supplier Invoice Check"], docs: ["文件", "Documents"], docsettings: ["文件生成設定", "Doc Generation Settings"], charges: ["收費項目", "Charge Items"] };
       function noticeInfo() {
         if (state.dataMode === "live") return { title: "已接駁飛書（即時數據）", text: "數據即時來自飛書 Base；於本網站進行的操作（開案、轉換狀態、落單開案）會直接寫入飛書。" + (state.workerVersion ? "（Worker " + state.workerVersion + "）" : ""), btn: "重新整理" };
         if (state.dataMode === "loading") return { title: "正在連接飛書", text: "正在向後端 Worker 查核飛書連接；連接成功後會自動轉為即時數據，其間先顯示資料快照。", btn: "重新連接" };
@@ -2199,7 +2202,7 @@
         });
         return order;
       }
-      /* ---------- 發票及報價單 ---------- */
+      /* ---------- 發票 ---------- */
       function viewInvoices() {
         var genOf = function (ref) { return DOCGEN.filter(function (g) { return g.case === ref; })[0] || null; };
         var genBadge = function (s) { return s === "已生成" ? '<span class="badge badge-ok">已生成</span>' : '<span class="badge badge-grey">未生成</span>'; };
@@ -2232,7 +2235,7 @@
             "<td data-label='金額' class='num'><span class='muted'>—</span></td><td data-label='付款狀態'><span class='muted'>—</span></td>" +
             "<td data-label='文件生成'>" + genCell(g.case) + "</td></tr>";
         }).join("");
-        return '<div class="page-head"><div><h1>發票及報價單</h1><div class="sub">Invoice No. 與 Job No. 共用同一統一編號；有飛書原檔嘅發票，縮圖係原檔第一頁，撳入即開原檔</div></div></div>' +
+        return '<div class="page-head"><div><h1>發票</h1><div class="sub">Invoice No. 與 Job No. 共用同一統一編號；有飛書原檔嘅發票，縮圖係原檔第一頁，撳入即開原檔</div></div></div>' +
           '<h2 class="section-title">發票列表</h2>' +
           '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / Invoice No.</th><th>個案</th><th>類別</th><th>日期</th><th style="text-align:right">金額</th><th>付款狀態</th><th>文件生成（DocuGenius）</th></tr></thead><tbody>' + invRows + genOnlyRows + "</tbody></table></div>" +
           '<div class="note-box" style="margin-top:14px">客人發票 BILL TO 目前顯示「COMPANY NAME」（樣本遮蓋了真實名稱），正式出單前須填上客戶真實名稱。發票上款：ALPHA MASTER LOGISTICS LIMITED，荃灣白田壩街 5-21 號嘉力工業中心 A 座 9 樓 17 室，Tel (852) 3500 7163。下款收款銀行：HSBC Hong Kong，戶口 819-860339-838（USD/HKD），SWIFT HSBCHKHHHKH。</div>';
