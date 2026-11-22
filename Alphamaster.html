@@ -647,7 +647,7 @@
         ["建立個案", "Create Case"],
         ["客戶（由客戶資料庫選擇，自動填入 Shipper）", "Customer (pick from the customer database; fills Shipper)"],
         ["— 不選擇／自行輸入 —", "— None / type manually —"],
-        ["＋ 新增客戶…", "+ Add new customer…"],
+        ["＋ 新增客戶…", "＋ Create New Customer…"],
         ["公司名稱（必填）", "Company Name (required)"],
         ["儲存客戶", "Save Customer"],
         ["請先填公司名稱", "Please enter the company name first"],
@@ -939,6 +939,10 @@
         ["需報價", "Needs Quotation"],
         ["客人已下單", "Customer Ordered"],
         ["客人order form", "Customer Order Form"],
+        ["新客戶已建立並已選取：", "New customer created and selected: "],
+        ["，可以繼續填報價。", " — you can continue with the quotation."],
+        ["你揀咗新增客戶：請先填下面嘅新客戶資料並撳「儲存客戶」，儲存後會自動揀返個客戶，再撳建立報價。", "You chose to create a new customer: fill in the details below and click Save Customer — it will be selected automatically, then click Create Quotation."],
+        ["請先選擇客戶；全新客戶就揀「＋ 新增客戶…」即場建立。", "Please select a customer first; for a brand-new customer, choose \"＋ Create New Customer…\" to add one on the spot."],
         ["跟Job報價", "Job Quotation"],
         ["長期報價", "Long-term Quotation"],
         ["報價類別", "Quotation Type"],
@@ -2289,7 +2293,7 @@
             "<td data-label='檔案'>" + fileCell + "</td>" +
             "<td data-label='操作'>" + actCell + "</td></tr>";
         }).join("");
-        var formCustOpts = CUSTOMERS.map(function (c) { return '<option value="' + esc(c.recordId) + '">' + esc(c.name) + "</option>"; }).join("");
+        var formCustOpts = customerOptionsHtml("");
         var rateOpts = RATES.map(function (r, i) { return '<option value="' + i + '">' + esc(r.name) + " (" + esc(r.curr) + " " + fmt(r.price) + (r.unit ? " / " + esc(r.unit) : "") + ")</option>"; }).join("");
         var portOpts = PORTS.map(function (p) { var v = p.code || p.name; return '<option value="' + esc(v) + '">' + esc(p.name + (p.type ? " · " + p.type : "") + (p.country ? " · " + p.country : "")) + "</option>"; }).join("");
         var todayStr = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
@@ -2310,6 +2314,16 @@
           '<div class="field"><label for="qf-date">報價日期</label><input id="qf-date" type="date" value="' + todayStr + '"></div>' +
           '<div class="field"><label for="qf-valid">有效期至</label><input id="qf-valid" type="date"></div>' +
           "</div>" +
+          '<div id="qf-addcust" class="note-box" style="display:none; margin-bottom:16px">' +
+          '<div class="form-grid">' +
+          '<div class="field wide"><label for="qf-nc-cname">公司名稱（必填）</label><input id="qf-nc-cname" type="text" /></div>' +
+          '<div class="field"><label for="qf-nc-ccontact">聯絡人</label><input id="qf-nc-ccontact" type="text" /></div>' +
+          '<div class="field"><label for="qf-nc-cphone">電話</label><input id="qf-nc-cphone" type="text" /></div>' +
+          '<div class="field"><label for="qf-nc-cemail">電郵</label><input id="qf-nc-cemail" type="text" /></div>' +
+          '<div class="field wide"><label for="qf-nc-caddress">地址</label><input id="qf-nc-caddress" type="text" /></div>' +
+          "</div>" +
+          '<div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap"><button class="btn small" type="button" id="qf-addcust-save">儲存客戶</button><button class="btn ghost small" type="button" id="qf-addcust-cancel">取消</button></div>' +
+          '<div id="qf-addcust-result" style="margin-top:10px"></div></div>' +
           '<datalist id="qf-portlist">' + portOpts + "</datalist>" +
           '<h3 class="section-title" style="margin-top:14px">收費項目</h3>' +
           '<div id="qf-lines"></div>' +
@@ -2808,7 +2822,8 @@
             }
             if (state.quoteBusy) return;
             var customerId = gv("qf-customer");
-            if (!customerId) { if (result) result.innerHTML = trText('<div class="alert-box"><span>請先選擇客戶（客戶名單為空的話，先喺「開新單」頁新增客戶）。</span></div>'); return; }
+            if (customerId === "__new__") { if (result) result.innerHTML = trText('<div class="alert-box"><span>你揀咗新增客戶：請先填下面嘅新客戶資料並撳「儲存客戶」，儲存後會自動揀返個客戶，再撳建立報價。</span></div>'); return; }
+            if (!customerId) { if (result) result.innerHTML = trText('<div class="alert-box"><span>請先選擇客戶；全新客戶就揀「＋ 新增客戶…」即場建立。</span></div>'); return; }
             var lines = [];
             qform.querySelectorAll(".qf-line").forEach(function (ln) {
               var name = ln.querySelector(".qf-l-name").value.trim();
@@ -2839,6 +2854,47 @@
             });
           });
         }
+        var qCustSel = document.getElementById("qf-customer");
+        if (qCustSel) {
+          qCustSel.addEventListener("change", function () {
+            var panel = document.getElementById("qf-addcust");
+            if (qCustSel.value === "__new__") { if (panel) panel.style.display = ""; return; }
+            if (panel) panel.style.display = "none";
+          });
+        }
+        var qAcCancel = document.getElementById("qf-addcust-cancel");
+        if (qAcCancel) qAcCancel.addEventListener("click", function () {
+          var panel = document.getElementById("qf-addcust");
+          if (panel) panel.style.display = "none";
+          if (qCustSel) qCustSel.value = "";
+        });
+        var qAcSave = document.getElementById("qf-addcust-save");
+        if (qAcSave) qAcSave.addEventListener("click", function () {
+          var res = document.getElementById("qf-addcust-result");
+          var result = document.getElementById("quote-result");
+          var gv2 = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ""; };
+          var nm = gv2("qf-nc-cname");
+          if (!nm) { if (res) res.innerHTML = trText('<span class="small" style="color:#c0392b">請先填公司名稱</span>'); return; }
+          if (state.dataMode !== "live") { if (res) res.innerHTML = trText('<span class="small" style="color:#c0392b">參考版未能寫入飛書，請喺正式版再新增客戶</span>'); return; }
+          qAcSave.disabled = true;
+          apiJson("/api/customers", "POST", { name: nm, contact: gv2("qf-nc-ccontact") || undefined, phone: gv2("qf-nc-cphone") || undefined, email: gv2("qf-nc-cemail") || undefined, address: gv2("qf-nc-caddress") || undefined }).then(function (r) {
+            qAcSave.disabled = false;
+            if (!r.body || !r.body.ok || !r.body.customer) { if (res) res.innerHTML = trText('<span class="small" style="color:#c0392b">新增失敗：' + esc(apiErrorText(r, "未知錯誤")) + "</span>"); return; }
+            var ncust = r.body.customer;
+            var mapped = { recordId: ncust.recordId || "", code: ncust.code || "", name: ncust.name || "", address: ncust.address || "", contact: ncust.contact || "", phone: ncust.phone || "", email: ncust.email || "" };
+            var found = false;
+            CUSTOMERS.forEach(function (x) { if (x.recordId === mapped.recordId) found = true; });
+            if (!found) CUSTOMERS.push(mapped);
+            if (qCustSel) { qCustSel.innerHTML = trText(customerOptionsHtml(mapped.recordId)); qCustSel.value = mapped.recordId; }
+            var filt = document.getElementById("quote-customer");
+            if (filt) { filt.innerHTML = trText('<option value="全部">全部客戶</option>' + CUSTOMERS.map(function (c) { return '<option value="' + esc(c.recordId) + '">' + esc(c.name) + "</option>"; }).join("")); filt.value = state.quoteCustomer; }
+            var panel = document.getElementById("qf-addcust"); if (panel) panel.style.display = "none";
+            if (result) result.innerHTML = trText('<div class="success-box"><span>新客戶已建立並已選取：' + esc(mapped.name) + "，可以繼續填報價。</span></div>");
+          }).catch(function (e) {
+            qAcSave.disabled = false;
+            if (res) res.innerHTML = trText('<span class="small" style="color:#c0392b">新增失敗：' + esc(e && e.message ? e.message : "連線失敗") + "</span>");
+          });
+        });
         var form = document.getElementById("newcase-form");
         if (form) {
           form.addEventListener("submit", function (ev) {
