@@ -461,6 +461,18 @@
         table.data tfoot tr { display: block; background: var(--surface-2); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 4px; }
         .search-input { min-width: 0; flex: 1; }
       }
+      .auth-overlay { position: fixed; inset: 0; background: var(--bg); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+      .auth-card { background: #fff; border: 1px solid #d7e5f2; border-radius: 14px; box-shadow: 0 12px 40px rgba(11,95,165,.18); max-width: 380px; width: 100%; padding: 28px 26px; display: flex; flex-direction: column; }
+      .auth-brand { color: var(--brand); font-weight: 800; letter-spacing: .12em; font-size: 13px; }
+      .auth-card h2 { margin: 6px 0 2px; font-size: 22px; }
+      .auth-sub { color: #5b7186; font-size: 12px; margin-bottom: 14px; }
+      .auth-note { color: #5b7186; font-size: 13px; margin: 0 0 10px; }
+      .auth-label { font-size: 13px; font-weight: 600; margin: 10px 0 4px; }
+      .auth-input { padding: 10px 12px; border: 1px solid #c4d6e8; border-radius: 8px; font-size: 15px; width: 100%; box-sizing: border-box; background: #fff; color: #16324a; }
+      .auth-error { color: #c0392b; font-size: 13px; min-height: 18px; margin-top: 10px; }
+      .auth-btn { margin-top: 12px; padding: 11px; font-size: 15px; }
+      .auth-result { margin-top: 10px; font-size: 13px; color: var(--brand); word-break: break-all; }
+      #user-chip-name { font-weight: 600; }
     </style>
   </head>
   <body>
@@ -519,7 +531,15 @@
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
           <span data-nav-label>Charge Items</span>
         </button>
+        <button class="nav-btn" data-nav="users" type="button" id="nav-users-btn" style="display:none">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M17.5 15.3c2 .6 3.4 2.2 4 4.7"/></svg>
+          <span data-nav-label>User Management</span>
+        </button>
         <div class="sidebar-foot">
+          <div id="user-chip" style="display:none;margin-bottom:8px;">
+            <span id="user-chip-name"></span><br />
+            <button class="btn ghost small" id="user-logout" type="button">Log Out</button>
+          </div>
           <span id="sidebar-db-label">Database: Feishu Base</span><br />
           <a id="sidebar-open-base" href="https://ccnxpo99xc1t.feishu.cn/base/Ryz0b5N51a54SpslooOcTmHHn0f" target="_blank" rel="noopener">Open Base in Feishu</a>
         </div>
@@ -537,6 +557,36 @@
           </span>
         </div>
         <div class="content" id="content"><!-- views rendered by script --></div>
+      </div>
+    </div>
+
+    <!-- 登入 -->
+    <div class="auth-overlay" id="login-overlay" style="display:none;">
+      <div class="auth-card">
+        <div class="auth-brand">ALPHA MASTER</div>
+        <h2 id="login-title">Sign In</h2>
+        <div class="auth-sub" id="login-sub">ALPHA MASTER LOGISTICS LIMITED</div>
+        <label class="auth-label" id="login-user-label" for="login-user">Username</label>
+        <input class="auth-input" id="login-user" type="text" autocomplete="username" />
+        <label class="auth-label" id="login-pass-label" for="login-pass">Password</label>
+        <input class="auth-input" id="login-pass" type="password" autocomplete="current-password" />
+        <div class="auth-error" id="login-error"></div>
+        <button class="btn primary auth-btn" id="login-btn" type="button">Sign In</button>
+      </div>
+    </div>
+    <div class="auth-overlay" id="chg-overlay" style="display:none;">
+      <div class="auth-card">
+        <div class="auth-brand">ALPHA MASTER</div>
+        <h2 id="chg-title">Change Password</h2>
+        <p class="auth-note" id="chg-note"></p>
+        <label class="auth-label" id="chg-cur-label" for="chg-cur">Current password</label>
+        <input class="auth-input" id="chg-cur" type="password" autocomplete="current-password" />
+        <label class="auth-label" id="chg-new-label" for="chg-new">New password</label>
+        <input class="auth-input" id="chg-new" type="password" autocomplete="new-password" />
+        <label class="auth-label" id="chg-confirm-label" for="chg-confirm">Confirm new password</label>
+        <input class="auth-input" id="chg-confirm" type="password" autocomplete="new-password" />
+        <div class="auth-error" id="chg-error"></div>
+        <button class="btn primary auth-btn" id="chg-btn" type="button">Change Password</button>
       </div>
     </div>
 
@@ -1089,7 +1139,7 @@
         }
         return out;
       }
-      var NAV_LABELS = { dashboard: ["總覽", "Dashboard"], cases: ["個案一覽", "Cases"], newcase: ["開新單", "New Case"], intake: ["落單認讀", "Order Intake"], invoices: ["發票", "Invoices"], quotations: ["報價", "Quotations"], suppliercheck: ["外判發票核對", "Supplier Invoice Check"], docs: ["文件", "Documents"], docsettings: ["文件生成設定", "Doc Generation Settings"], charges: ["收費項目", "Charge Items"] };
+      var NAV_LABELS = { dashboard: ["總覽", "Dashboard"], cases: ["個案一覽", "Cases"], newcase: ["開新單", "New Case"], intake: ["落單認讀", "Order Intake"], invoices: ["發票", "Invoices"], quotations: ["報價", "Quotations"], suppliercheck: ["外判發票核對", "Supplier Invoice Check"], docs: ["文件", "Documents"], docsettings: ["文件生成設定", "Doc Generation Settings"], charges: ["收費項目", "Charge Items"], users: ["使用者管理", "User Management"] };
       function noticeInfo() {
         if (state.dataMode === "live") return { title: "已接駁飛書（即時數據）", text: "數據即時來自飛書 Base；於本網站進行的操作（開案、轉換狀態、落單開案）會直接寫入飛書。" + (state.workerVersion ? "（Worker " + state.workerVersion + "）" : ""), btn: "重新整理" };
         if (state.dataMode === "loading") return { title: "正在連接飛書", text: "正在向後端 Worker 查核飛書連接；連接成功後會自動轉為即時數據，其間先顯示資料快照。", btn: "重新連接" };
@@ -1120,6 +1170,7 @@
         document.querySelectorAll("[data-set-lang]").forEach(function (b) {
           b.classList.toggle("active", b.getAttribute("data-set-lang") === state.lang);
         });
+        if (typeof updateUserChip === "function") updateUserChip();
       }
 
       /* ---------- 文件生成觸發設定 ---------- */
@@ -1288,9 +1339,18 @@
         var isWrite = !!(init.method && init.method !== "GET");
         var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, isWrite ? 90000 : 20000) : null;
         if (ctrl) init.signal = ctrl.signal;
+        if (typeof AUTH !== "undefined" && AUTH.token) {
+          init.headers = Object.assign({}, init.headers || {}, { "Authorization": "Bearer " + AUTH.token });
+        }
         return fetch(API_BASE + path, init).then(function (res) {
           if (timer) clearTimeout(timer);
-          return res.json().catch(function () { return {}; }).then(function (body) { return { status: res.status, body: body || {} }; });
+          return res.json().catch(function () { return {}; }).then(function (body) {
+            if (typeof AUTH !== "undefined" && state.authEnforced && path.indexOf("/api/auth/") !== 0) {
+              if (res.status === 401) onAuthLost();
+              else if (res.status === 403 && body && body.error === "password_change_required") showAuthOverlay("chg");
+            }
+            return { status: res.status, body: body || {} };
+          });
         }).catch(function (e) { if (timer) clearTimeout(timer); throw e; });
       }
       function apiJson(path, method, payload) {
@@ -2604,6 +2664,7 @@
         else if (state.view === "docs") html = viewDocs();
         else if (state.view === "docsettings") html = viewDocSettings();
         else if (state.view === "charges") html = viewCharges();
+        else if (state.view === "users") html = viewUsers();
         content.innerHTML = trText(html);
         applyStaticLang();
         updateBadges();
@@ -2618,6 +2679,7 @@
       function openCase(ref) { state.detailRef = ref; state.view = "detail"; render(); }
 
       function bindView() {
+        bindUsersView();
         var tform = document.getElementById("tpl-form");
         if (tform) {
           var updRow = function (idx) {
@@ -3315,8 +3377,203 @@
         }
       });
 
-      render();
-      connectLive();
+
+      /* ---------- 登入系統 (2026-11-23) ---------- */
+      var AUTH = { token: "", user: null };
+      try {
+        AUTH.token = localStorage.getItem("aml_token") || "";
+        var savedUser = localStorage.getItem("aml_user");
+        if (savedUser) AUTH.user = JSON.parse(savedUser);
+      } catch (e) { AUTH.token = ""; AUTH.user = null; }
+      function saveAuth() {
+        try {
+          if (AUTH.token) localStorage.setItem("aml_token", AUTH.token); else localStorage.removeItem("aml_token");
+          if (AUTH.user) localStorage.setItem("aml_user", JSON.stringify(AUTH.user)); else localStorage.removeItem("aml_user");
+        } catch (e) {}
+      }
+      function clearAuth() { AUTH.token = ""; AUTH.user = null; saveAuth(); }
+      function tt(zh, en) { return state.lang === "en" ? en : zh; }
+      function authErrorText(code) {
+        if (code === "invalid_credentials") return tt("用戶名或密碼錯誤", "Incorrect username or password");
+        if (code === "account_disabled") return tt("帳戶已停用，請聯絡管理員", "Account disabled - please contact the administrator");
+        if (code === "weak_password") return tt("新密碼至少 8 個字元", "New password must be at least 8 characters");
+        if (code === "same_password") return tt("新密碼唔可以同目前密碼一樣", "New password must differ from the current password");
+        return tt("登入失敗，請再試", "Sign-in failed - please try again");
+      }
+      function showAuthOverlay(which) {
+        var lo = document.getElementById("login-overlay");
+        var co = document.getElementById("chg-overlay");
+        if (lo) lo.style.display = which === "login" ? "flex" : "none";
+        if (co) co.style.display = which === "chg" ? "flex" : "none";
+        applyAuthLang();
+      }
+      function applyAuthLang() {
+        var set = function (id, txt) { var n = document.getElementById(id); if (n) n.textContent = txt; };
+        set("login-title", tt("登入", "Sign In"));
+        set("login-user-label", tt("用戶名", "Username"));
+        set("login-pass-label", tt("密碼", "Password"));
+        set("login-btn", tt("登入", "Sign In"));
+        set("chg-title", tt("修改密碼", "Change Password"));
+        set("chg-note", tt("首次登入必須先修改密碼，先可以進入系統。", "You must change your password on first sign-in before entering the system."));
+        set("chg-cur-label", tt("目前密碼（臨時密碼）", "Current password (temporary)"));
+        set("chg-new-label", tt("新密碼（至少 8 個字元）", "New password (min. 8 characters)"));
+        set("chg-confirm-label", tt("確認新密碼", "Confirm new password"));
+        set("chg-btn", tt("修改密碼並進入", "Change Password & Enter"));
+        set("user-logout", tt("登出", "Log Out"));
+      }
+      function updateUserChip() {
+        var chip = document.getElementById("user-chip");
+        var navUsers = document.getElementById("nav-users-btn");
+        if (AUTH.user) {
+          if (chip) { chip.style.display = "block"; var nm = document.getElementById("user-chip-name"); if (nm) nm.textContent = AUTH.user.displayName + " (" + AUTH.user.username + ")"; }
+          if (navUsers) navUsers.style.display = AUTH.user.role === "管理員" ? "" : "none";
+        } else {
+          if (chip) chip.style.display = "none";
+          if (navUsers) navUsers.style.display = "none";
+        }
+        applyAuthLang();
+      }
+      function onAuthLost() {
+        if (!state.authEnforced) return;
+        clearAuth(); updateUserChip(); showAuthOverlay("login");
+      }
+      function doLogin() {
+        var uEl = document.getElementById("login-user");
+        var pEl = document.getElementById("login-pass");
+        var err = document.getElementById("login-error");
+        if (!uEl || !pEl || !err) return;
+        err.textContent = "";
+        apiJson("/api/auth/login", "POST", { username: uEl.value.trim(), password: pEl.value }).then(function (r) {
+          if (r.status === 200 && r.body && r.body.ok) {
+            AUTH.token = r.body.token; AUTH.user = r.body.user; saveAuth(); updateUserChip();
+            pEl.value = "";
+            if (AUTH.user.mustChange) { showAuthOverlay("chg"); return; }
+            showAuthOverlay(""); connectLive();
+          } else {
+            err.textContent = authErrorText(r.body && r.body.error);
+          }
+        }).catch(function () { err.textContent = authErrorText(""); });
+      }
+      function doChangePassword() {
+        var cur = document.getElementById("chg-cur").value;
+        var nw = document.getElementById("chg-new").value;
+        var cf = document.getElementById("chg-confirm").value;
+        var err = document.getElementById("chg-error");
+        err.textContent = "";
+        if (nw.length < 8) { err.textContent = authErrorText("weak_password"); return; }
+        if (nw !== cf) { err.textContent = tt("兩次輸入嘅新密碼唔一致", "The two new passwords do not match"); return; }
+        apiJson("/api/auth/change-password", "POST", { currentPassword: cur, newPassword: nw }).then(function (r) {
+          if (r.status === 200 && r.body && r.body.ok) {
+            AUTH.token = r.body.token; AUTH.user = r.body.user; saveAuth(); updateUserChip();
+            document.getElementById("chg-cur").value = ""; document.getElementById("chg-new").value = ""; document.getElementById("chg-confirm").value = "";
+            showAuthOverlay(""); connectLive();
+          } else {
+            err.textContent = authErrorText(r.body && r.body.error);
+          }
+        }).catch(function () { err.textContent = authErrorText(""); });
+      }
+      function doLogout() { clearAuth(); location.reload(); }
+
+      /* ---------- 使用者管理 (管理員) ---------- */
+      var USERS_CACHE = { loaded: false, rows: [], error: "" };
+      function loadUsers() {
+        return apiFetch("/api/users").then(function (r) {
+          if (r.status === 200 && r.body && r.body.ok) { USERS_CACHE.rows = r.body.users || []; USERS_CACHE.error = ""; }
+          else { USERS_CACHE.error = (r.body && r.body.error) || "load_failed"; }
+          USERS_CACHE.loaded = true;
+          if (state.view === "users") render();
+        }).catch(function () { USERS_CACHE.error = "load_failed"; USERS_CACHE.loaded = true; if (state.view === "users") render(); });
+      }
+      function viewUsers() {
+        if (!AUTH.user || AUTH.user.role !== "管理員") return "<div class='card'><p>" + esc(tt("只有管理員可以管理使用者帳戶。", "Only administrators can manage user accounts.")) + "</p></div>";
+        var h = "<div class='page-head'><h1>" + esc(tt("使用者管理", "User Management")) + "</h1></div>";
+        h += "<div class='card'><h3>" + esc(tt("新增使用者", "Add User")) + "</h3>" +
+          "<div class='form-grid'>" +
+          "<label>" + esc(tt("用戶名", "Username")) + "<input id='nu-username' type='text' autocomplete='off'></label>" +
+          "<label>" + esc(tt("顯示名稱", "Display name")) + "<input id='nu-display' type='text' autocomplete='off'></label>" +
+          "<label>" + esc(tt("角色", "Role")) + "<select id='nu-role'><option value='一般'>" + esc(tt("一般", "Standard")) + "</option><option value='管理員'>" + esc(tt("管理員", "Administrator")) + "</option></select></label>" +
+          "</div><button class='btn primary' id='nu-create' type='button'>" + esc(tt("新增", "Add")) + "</button>" +
+          "<div id='nu-result' class='auth-result'></div></div>";
+        h += "<div class='card'><h3>" + esc(tt("現有使用者", "Existing Users")) + "</h3>";
+        if (!USERS_CACHE.loaded) { h += "<p>" + esc(tt("載入中…", "Loading...")) + "</p>"; }
+        else if (USERS_CACHE.error) { h += "<p>" + esc(tt("載入失敗：", "Failed to load: ")) + esc(USERS_CACHE.error) + "</p>"; }
+        else {
+          h += "<table class='tbl'><thead><tr><th>" + esc(tt("用戶名", "Username")) + "</th><th>" + esc(tt("顯示名稱", "Display name")) + "</th><th>" + esc(tt("角色", "Role")) + "</th><th>" + esc(tt("狀態", "Status")) + "</th><th>" + esc(tt("最後登入", "Last sign-in")) + "</th><th></th></tr></thead><tbody>";
+          USERS_CACHE.rows.forEach(function (u) {
+            h += "<tr><td>" + esc(u.username) + "</td><td>" + esc(u.displayName) + "</td><td>" + esc(u.role === "管理員" ? tt("管理員", "Administrator") : tt("一般", "Standard")) + "</td><td>" + esc(u.active ? tt("啟用", "Active") : tt("已停用", "Disabled")) + (u.mustChange ? " / " + esc(tt("待改密碼", "must change password")) : "") + "</td><td>" + esc(u.lastLogin ? new Date(u.lastLogin).toLocaleString() : "-") + "</td><td>" +
+              "<button class='btn small' type='button' data-user-reset='" + esc(u.recordId) + "'>" + esc(tt("重設密碼", "Reset password")) + "</button> " +
+              "<button class='btn small ghost' type='button' data-user-toggle='" + esc(u.recordId) + "' data-active='" + (u.active ? "1" : "0") + "'>" + esc(u.active ? tt("停用", "Disable") : tt("啟用", "Enable")) + "</button></td></tr>";
+          });
+          h += "</tbody></table><div id='users-result' class='auth-result'></div>";
+        }
+        h += "</div>";
+        return h;
+      }
+      function bindUsersView() {
+        var nuBtn = document.getElementById("nu-create");
+        if (!nuBtn) return;
+        if (!USERS_CACHE.loaded) loadUsers();
+        nuBtn.addEventListener("click", function () {
+          var un = document.getElementById("nu-username").value.trim();
+          var dn = document.getElementById("nu-display").value.trim();
+          var role = document.getElementById("nu-role").value;
+          var res = document.getElementById("nu-result");
+          if (!un) { res.textContent = tt("請輸入用戶名", "Please enter a username"); return; }
+          apiJson("/api/users", "POST", { username: un, displayName: dn || undefined, role: role }).then(function (r) {
+            if (r.status === 201 && r.body && r.body.ok) {
+              res.textContent = tt("已新增 ", "Created ") + un + tt("；臨時密碼（只顯示一次）：", "; temporary password (shown once): ") + r.body.tempPassword;
+              USERS_CACHE.loaded = false; loadUsers();
+            } else {
+              res.textContent = tt("新增失敗：", "Failed: ") + ((r.body && r.body.error) || r.status);
+            }
+          });
+        });
+        document.querySelectorAll("[data-user-toggle]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            var rid = b.getAttribute("data-user-toggle");
+            var next = b.getAttribute("data-active") !== "1";
+            apiJson("/api/users/" + encodeURIComponent(rid), "PATCH", { active: next }).then(function () {
+              USERS_CACHE.loaded = false; loadUsers();
+            });
+          });
+        });
+        document.querySelectorAll("[data-user-reset]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            var rid = b.getAttribute("data-user-reset");
+            apiJson("/api/users/" + encodeURIComponent(rid) + "/reset-password", "POST", {}).then(function (r) {
+              var box = document.getElementById("users-result");
+              if (r.status === 200 && r.body && r.body.ok) { if (box) box.textContent = tt("臨時密碼（只顯示一次）：", "Temporary password (shown once): ") + r.body.tempPassword; USERS_CACHE.loaded = false; loadUsers(); }
+              else if (box) box.textContent = tt("重設失敗", "Reset failed");
+            });
+          });
+        });
+      }
+
+      function bootApp() {
+        render();
+        updateUserChip();
+        var lb = document.getElementById("login-btn"); if (lb) lb.addEventListener("click", doLogin);
+        var cb = document.getElementById("chg-btn"); if (cb) cb.addEventListener("click", doChangePassword);
+        var lo = document.getElementById("user-logout"); if (lo) lo.addEventListener("click", doLogout);
+        ["login-user", "login-pass"].forEach(function (id) { var n = document.getElementById(id); if (n) n.addEventListener("keydown", function (ev) { if (ev.key === "Enter") doLogin(); }); });
+        ["chg-cur", "chg-new", "chg-confirm"].forEach(function (id) { var n = document.getElementById(id); if (n) n.addEventListener("keydown", function (ev) { if (ev.key === "Enter") doChangePassword(); }); });
+        apiFetch("/api/health").then(function (r) {
+          var enforced = !!(r.body && r.body.authEnforced);
+          var forceLogin = /[?&]login=1/.test(location.search);
+          state.authEnforced = enforced;
+          if (!enforced && !forceLogin) { connectLive(); return; }
+          if (!AUTH.token) { showAuthOverlay("login"); return; }
+          apiFetch("/api/auth/me").then(function (me) {
+            if (me.status === 200 && me.body && me.body.ok) {
+              AUTH.user = me.body.user; saveAuth(); updateUserChip();
+              if (AUTH.user.mustChange) { showAuthOverlay("chg"); return; }
+              connectLive();
+            } else { clearAuth(); updateUserChip(); showAuthOverlay("login"); }
+          }).catch(function () { showAuthOverlay("login"); });
+        }).catch(function () { connectLive(); });
+      }
+
+      bootApp();
     </script>
   </body>
 </html>
