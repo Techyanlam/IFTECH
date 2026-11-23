@@ -3477,6 +3477,47 @@
 
       /* ---------- 使用者管理 (管理員) ---------- */
       var USERS_CACHE = { loaded: false, rows: [], error: "" };
+      /* 臨時密碼顯示：保留 1 分鐘，附 copy 提示與倒數，過時自動隱藏 */
+      var TEMP_PW = null; var TEMP_PW_TIMER = null;
+      function tempPwActive(target) { return !!(TEMP_PW && TEMP_PW.target === target && Date.now() < TEMP_PW.expiresAt); }
+      function tempPwHtml() {
+        if (!TEMP_PW) return "";
+        var secs = Math.max(0, Math.round((TEMP_PW.expiresAt - Date.now()) / 1000));
+        return "<div style='border:1px solid var(--brand,#0b5fa5);background:var(--surface-muted,#eef5fc);border-radius:10px;padding:12px 14px'>" +
+          "<div>" + esc(TEMP_PW.prefix) + "</div>" +
+          "<div style='display:flex;align-items:center;gap:10px;margin:8px 0;flex-wrap:wrap'><code style='font-size:19px;font-weight:700;letter-spacing:1px'>" + esc(TEMP_PW.pw) + "</code>" +
+          "<button class='btn small primary tp-copy' type='button'>" + esc(tt("複製", "Copy")) + "</button></div>" +
+          "<div style='color:#b3261e;font-weight:600'>" + esc(tt("請即刻 copy 低呢個臨時密碼，之後唔會再顯示。", "Copy this temporary password now - it will not be shown again.")) + "</div>" +
+          "<div class='muted small'>" + esc(tt("只顯示 1 分鐘，", "Shown for 1 minute only, ")) + "<span class='tp-count'>" + secs + "</span>" + esc(tt(" 秒後自動隱藏。", "s left before it hides automatically.")) + "</div></div>";
+      }
+      function setTempPw(target, prefix, pw) {
+        TEMP_PW = { target: target, prefix: prefix, pw: pw, expiresAt: Date.now() + 60000 };
+        startTempPwTick();
+      }
+      function startTempPwTick() {
+        if (TEMP_PW_TIMER) return;
+        TEMP_PW_TIMER = setInterval(function () {
+          if (!TEMP_PW) { clearInterval(TEMP_PW_TIMER); TEMP_PW_TIMER = null; return; }
+          var left = TEMP_PW.expiresAt - Date.now();
+          if (left <= 0) {
+            TEMP_PW = null; clearInterval(TEMP_PW_TIMER); TEMP_PW_TIMER = null;
+            ["nu-result", "users-result"].forEach(function (id) { var n = document.getElementById(id); if (n) n.innerHTML = "<div class='muted'>" + esc(tt("臨時密碼已隱藏（1 分鐘已過）。如果未有 copy 低，請再重設一次。", "Temporary password hidden (1 minute passed). If you did not copy it, please reset again.")) + "</div>"; });
+            return;
+          }
+          var secs = Math.round(left / 1000);
+          document.querySelectorAll(".tp-count").forEach(function (s) { s.textContent = secs; });
+        }, 500);
+      }
+      function bindTempPwCopy(scope) {
+        (scope || document).querySelectorAll(".tp-copy").forEach(function (b) {
+          b.addEventListener("click", function () {
+            if (!TEMP_PW) return;
+            var done = function () { b.textContent = tt("已複製 ✓", "Copied ✓"); setTimeout(function () { b.textContent = tt("複製", "Copy"); }, 2000); };
+            if (navigator.clipboard && navigator.clipboard.writeText) { navigator.clipboard.writeText(TEMP_PW.pw).then(done).catch(done); }
+            else { var ta = document.createElement("textarea"); ta.value = TEMP_PW.pw; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); } catch (e) {} document.body.removeChild(ta); done(); }
+          });
+        });
+      }
       function loadUsers() {
         return apiFetch("/api/users").then(function (r) {
           if (r.status === 200 && r.body && r.body.ok) { USERS_CACHE.rows = r.body.users || []; USERS_CACHE.error = ""; }
@@ -3494,7 +3535,7 @@
           "<label>" + esc(tt("顯示名稱", "Display name")) + "<input id='nu-display' type='text' autocomplete='off'></label>" +
           "<label>" + esc(tt("角色", "Role")) + "<select id='nu-role'><option value='一般'>" + esc(tt("一般", "Standard")) + "</option><option value='管理員'>" + esc(tt("管理員", "Administrator")) + "</option></select></label>" +
           "</div><button class='btn primary' id='nu-create' type='button'>" + esc(tt("新增", "Add")) + "</button>" +
-          "<div id='nu-result' class='auth-result'></div></div>";
+          "<div id='nu-result' class='auth-result'>" + (tempPwActive("nu") ? tempPwHtml() : "") + "</div></div>";
         h += "<div class='card'><h3>" + esc(tt("現有使用者", "Existing Users")) + "</h3>";
         if (!USERS_CACHE.loaded) { h += "<p>" + esc(tt("載入中…", "Loading...")) + "</p>"; }
         else if (USERS_CACHE.error) { h += "<p>" + esc(tt("載入失敗：", "Failed to load: ")) + esc(USERS_CACHE.error) + "</p>"; }
@@ -3505,7 +3546,7 @@
               "<button class='btn small' type='button' data-user-reset='" + esc(u.recordId) + "'>" + esc(tt("重設密碼", "Reset password")) + "</button> " +
               "<button class='btn small ghost' type='button' data-user-toggle='" + esc(u.recordId) + "' data-active='" + (u.active ? "1" : "0") + "'>" + esc(u.active ? tt("停用", "Disable") : tt("啟用", "Enable")) + "</button></td></tr>";
           });
-          h += "</tbody></table><div id='users-result' class='auth-result'></div>";
+          h += "</tbody></table><div id='users-result' class='auth-result'>" + (tempPwActive("users") ? tempPwHtml() : "") + "</div>";
         }
         h += "</div>";
         return h;
@@ -3513,6 +3554,7 @@
       function bindUsersView() {
         var nuBtn = document.getElementById("nu-create");
         if (!nuBtn) return;
+        if (TEMP_PW) { startTempPwTick(); bindTempPwCopy(); }
         if (!USERS_CACHE.loaded) loadUsers();
         nuBtn.addEventListener("click", function () {
           var un = document.getElementById("nu-username").value.trim();
@@ -3522,7 +3564,8 @@
           if (!un) { res.textContent = tt("請輸入用戶名", "Please enter a username"); return; }
           apiJson("/api/users", "POST", { username: un, displayName: dn || undefined, role: role }).then(function (r) {
             if (r.status === 201 && r.body && r.body.ok) {
-              res.textContent = tt("已新增 ", "Created ") + un + tt("；臨時密碼（只顯示一次）：", "; temporary password (shown once): ") + r.body.tempPassword;
+              setTempPw("nu", tt("已新增 ", "Created ") + un + tt("；臨時密碼：", "; temporary password: "), r.body.tempPassword);
+              res.innerHTML = tempPwHtml(); bindTempPwCopy();
               USERS_CACHE.loaded = false; loadUsers();
             } else {
               res.textContent = tt("新增失敗：", "Failed: ") + ((r.body && r.body.error) || r.status);
@@ -3543,7 +3586,7 @@
             var rid = b.getAttribute("data-user-reset");
             apiJson("/api/users/" + encodeURIComponent(rid) + "/reset-password", "POST", {}).then(function (r) {
               var box = document.getElementById("users-result");
-              if (r.status === 200 && r.body && r.body.ok) { if (box) box.textContent = tt("臨時密碼（只顯示一次）：", "Temporary password (shown once): ") + r.body.tempPassword; USERS_CACHE.loaded = false; loadUsers(); }
+              if (r.status === 200 && r.body && r.body.ok) { setTempPw("users", tt("已重設密碼；臨時密碼：", "Password reset; temporary password: "), r.body.tempPassword); if (box) { box.innerHTML = tempPwHtml(); bindTempPwCopy(); } USERS_CACHE.loaded = false; loadUsers(); }
               else if (box) box.textContent = tt("重設失敗", "Reset failed");
             });
           });
