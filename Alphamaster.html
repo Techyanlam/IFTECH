@@ -1468,6 +1468,26 @@
         DOCGEN = deriveDocGen();
       }
       function fetchAllLive() {
+        /* 首選 /api/bootstrap：一次請求攞齊（Worker 內部並行讀飛書）；
+           未登入（401/403）唔好 fallback，直接拋出等登入流程處理；
+           端點唔存在（舊版 Worker）先用返逐個請求嘅舊路。 */
+        return apiFetch("/api/bootstrap").then(function (r) {
+          if (r.status === 401 || r.status === 403) throw new Error("auth_required");
+          if (r.status === 200 && r.body && r.body.ok === true && r.body.cases) {
+            var b = r.body;
+            return {
+              cases: { cases: b.cases }, charges: { charges: b.charges }, invoices: { invoices: b.invoices },
+              documents: { documents: b.documents }, bookings: { bookings: b.bookings }, rates: { rates: b.rates },
+              customers: { customers: b.customers }, ports: { ports: b.ports }, fx: b.fx, quotations: { quotations: b.quotations }
+            };
+          }
+          return fetchAllLiveLegacy();
+        }).catch(function (e) {
+          if (e && e.message === "auth_required") throw e;
+          return fetchAllLiveLegacy();
+        });
+      }
+      function fetchAllLiveLegacy() {
         return Promise.all([apiFetch("/api/cases"), apiFetch("/api/charges"), apiFetch("/api/invoices"), apiFetch("/api/documents"), apiFetch("/api/bookings"), apiFetch("/api/rates"), apiFetch("/api/customers"), apiFetch("/api/ports")]).then(function (rs) {
           var keys = ["cases", "charges", "invoices", "documents", "bookings", "rates", "customers", "ports"];
           for (var i = 0; i < rs.length; i++) {
@@ -1489,10 +1509,11 @@
         state.dataMode = "snapshot";
         render();
       }
-      function connectLive() {
+      function connectLive(healthBody) {
         state.dataMode = "loading";
         applyStaticLang();
-        return apiFetch("/api/health").then(function (r) {
+        var healthP = healthBody ? Promise.resolve({ body: healthBody }) : apiFetch("/api/health");
+        return healthP.then(function (r) {
           if (!r.body || r.body.ok !== true) throw new Error("health check failed");
           state.workerVersion = r.body.version || "";
           if (!r.body.configured) { enterSnapshot(); return false; }
@@ -1949,7 +1970,7 @@
                 "<td data-label='單價'><input type='number' step='any' min='0' class='tpl-price' data-idx='" + gi + "' value='" + esc(r.price) + "' style='width:110px' /></td>" +
                 "<td data-label='單位'>" + esc(r.unit) + "</td>" +
                 "<td data-label='數量'><input type='number' step='any' min='0' class='tpl-qty' data-idx='" + gi + "' placeholder='0' style='width:90px' /></td>" +
-                "<td data-label='匯率'><input type='number' step='any' min='0' class='tpl-rate' data-idx='" + gi + "' placeholder='預設' style='width:80px' /></td>" +
+                "<td data-label='匯率'><input type='number' step='any' min='0' class='tpl-rate' data-idx='" + gi + "' value='" + esc(refRate(r.curr)) + "' style='width:80px' /></td>" +
                 "<td data-label='預計金額 (HKD)' class='num tpl-amt' data-amt='" + gi + "'>—</td></tr>";
             }).join("");
             h += '<h3 style="margin:4px 0 8px">範本收費 — ' + esc(caseCat) + '</h3>' +
@@ -1970,9 +1991,9 @@
             '<div class="field"><label for="cf-price">單價</label><input id="cf-price" type="number" step="any" min="0" /></div>' +
             '<div class="field"><label for="cf-unit">單位</label><input id="cf-unit" type="text" /></div>' +
             '<div class="field"><label for="cf-qty">數量</label><input id="cf-qty" type="number" step="any" min="0" /></div>' +
-            '<div class="field"><label for="cf-fx">匯率（可空，空 = 預設）</label><input id="cf-fx" type="number" step="any" min="0" placeholder="預設" /></div>' +
+            '<div class="field"><label for="cf-fx">匯率（已帶入參考匯率，可改）</label><input id="cf-fx" type="number" step="any" min="0" value="' + esc(refRate("HKD")) + '" /></div>' +
             "</div>" +
-            '<p class="small muted" style="margin:12px 0 0">開單日期：<strong>' + esc(todayStr) + '</strong>（今日，自動生成） · 預計金額 (HKD)：<strong id="cf-amount">—</strong>（匯率留空用預設，填咗逐行覆蓋；實際金額以飛書公式為準）</p>' +
+            '<p class="small muted" style="margin:12px 0 0">開單日期：<strong>' + esc(todayStr) + '</strong>（今日，自動生成） · 預計金額 (HKD)：<strong id="cf-amount">—</strong>（匯率已預設帶入參考匯率，可自行更改；實際金額以飛書公式為準）</p>' +
             '<div style="margin-top:14px"><button class="btn" type="submit"' + (state.chargeBusy ? " disabled" : "") + ">" + (state.chargeBusy ? "正在寫入飛書…" : "加入收費並寫入飛書") + "</button></div>" +
             '<div id="charge-result"></div></form>';
         }
@@ -2322,7 +2343,7 @@
           '<input class="qf-l-price" type="number" step="0.01" min="0" placeholder="單價" value="' + (l.price == null ? "" : l.price) + '" style="width:100px">' +
           '<input class="qf-l-unit" type="text" placeholder="單位" value="' + esc(l.unit || "") + '" style="width:80px">' +
           '<input class="qf-l-qty" type="number" step="0.01" min="0" placeholder="數量" value="' + (l.qty == null ? "" : l.qty) + '" style="width:80px">' +
-          '<input class="qf-l-rate" type="number" step="0.0001" min="0" placeholder="匯率（空=預設）" value="' + (l.rate == null ? "" : l.rate) + '" style="width:130px">' +
+          '<input class="qf-l-rate" type="number" step="0.0001" min="0" placeholder="匯率（參考）" value="' + (l.rate == null ? esc(refRate(l.curr || "HKD")) : l.rate) + '" style="width:130px">' +
           '<button type="button" class="btn btn-ghost" data-action="qf-del-line" style="padding:2px 8px">✕</button></div>';
       }
       function viewQuotations() {
@@ -2612,6 +2633,8 @@
 
       /* ---------- 收費項目 ---------- */
       var FX_HKD = { CNY: 1.153, USD: 7.85 };
+      /* 參考匯率：飛書「Exchange rate」表嘅現行值（load 後會俾 /api/fx 覆蓋）；冇設定嘅幣種當 1 */
+      function refRate(curr) { return FX_HKD[curr] || 1; }
       function updateCfAmount() {
         var amt = document.getElementById("cf-amount");
         if (!amt) return;
@@ -2700,7 +2723,10 @@
           };
           var onTplField = function (ev) {
             var el = ev.target;
-            if (el && el.getAttribute && el.getAttribute("data-idx") != null && (el.classList.contains("tpl-qty") || el.classList.contains("tpl-price") || el.classList.contains("tpl-curr") || el.classList.contains("tpl-rate"))) updRow(el.getAttribute("data-idx"));
+            if (el && el.getAttribute && el.getAttribute("data-idx") != null && (el.classList.contains("tpl-qty") || el.classList.contains("tpl-price") || el.classList.contains("tpl-curr") || el.classList.contains("tpl-rate"))) {
+              if (el.classList.contains("tpl-curr")) { var rtN = tform.querySelector(".tpl-rate[data-idx='" + el.getAttribute("data-idx") + "']"); if (rtN) rtN.value = refRate(el.value); }
+              updRow(el.getAttribute("data-idx"));
+            }
           };
           tform.addEventListener("input", onTplField);
           tform.addEventListener("change", onTplField);
@@ -2875,6 +2901,15 @@
           var linesBox = document.getElementById("qf-lines");
           if (linesBox && !linesBox.children.length) { var d0 = document.createElement("div"); d0.innerHTML = qfLineHtml({}); linesBox.appendChild(d0.firstChild); }
           qform.addEventListener("input", updQfTotal);
+          qform.addEventListener("change", function (ev) {
+            var t = ev.target;
+            if (t && t.classList && t.classList.contains("qf-l-curr")) {
+              var ln = t.closest(".qf-line");
+              var rt = ln ? ln.querySelector(".qf-l-rate") : null;
+              if (rt) rt.value = refRate(t.value);
+              updQfTotal();
+            }
+          });
           qform.addEventListener("submit", function (ev) {
             ev.preventDefault();
             var result = document.getElementById("quote-result");
@@ -3365,7 +3400,11 @@
             setV("cf-curr", opt.getAttribute("data-curr"));
             setV("cf-price", opt.getAttribute("data-price"));
             setV("cf-unit", opt.getAttribute("data-unit"));
+            setV("cf-fx", refRate(opt.getAttribute("data-curr")));
           }
+          updateCfAmount();
+        } else if (el.id === "cf-curr") {
+          var fxN2 = document.getElementById("cf-fx"); if (fxN2) fxN2.value = refRate(el.value);
           updateCfAmount();
         } else if (el.hasAttribute("data-trigger-doc")) {
           state.docTriggers[el.getAttribute("data-trigger-doc")] = canon(el.value);
@@ -3601,19 +3640,21 @@
         var lo = document.getElementById("user-logout"); if (lo) lo.addEventListener("click", doLogout);
         ["login-user", "login-pass"].forEach(function (id) { var n = document.getElementById(id); if (n) n.addEventListener("keydown", function (ev) { if (ev.key === "Enter") doLogin(); }); });
         ["chg-cur", "chg-new", "chg-confirm"].forEach(function (id) { var n = document.getElementById(id); if (n) n.addEventListener("keydown", function (ev) { if (ev.key === "Enter") doChangePassword(); }); });
-        apiFetch("/api/health").then(function (r) {
+        /* health 同 /auth/me 並行，唔好逐個等；connectLive 重用 health 結果，唔再重覆檢查 */
+        var healthP = apiFetch("/api/health");
+        var meP = AUTH.token ? apiFetch("/api/auth/me") : Promise.resolve(null);
+        Promise.all([healthP, meP]).then(function (rs) {
+          var r = rs[0], me = rs[1];
           var enforced = !!(r.body && r.body.authEnforced);
           var forceLogin = /[?&]login=1/.test(location.search);
           state.authEnforced = enforced;
-          if (!enforced && !forceLogin) { connectLive(); return; }
+          if (!enforced && !forceLogin) { connectLive(r.body); return; }
           if (!AUTH.token) { showAuthOverlay("login"); return; }
-          apiFetch("/api/auth/me").then(function (me) {
-            if (me.status === 200 && me.body && me.body.ok) {
-              AUTH.user = me.body.user; saveAuth(); updateUserChip();
-              if (AUTH.user.mustChange) { showAuthOverlay("chg"); return; }
-              connectLive();
-            } else { clearAuth(); updateUserChip(); showAuthOverlay("login"); }
-          }).catch(function () { showAuthOverlay("login"); });
+          if (me && me.status === 200 && me.body && me.body.ok) {
+            AUTH.user = me.body.user; saveAuth(); updateUserChip();
+            if (AUTH.user.mustChange) { showAuthOverlay("chg"); return; }
+            connectLive(r.body);
+          } else { clearAuth(); updateUserChip(); showAuthOverlay("login"); }
         }).catch(function () { connectLive(); });
       }
 
