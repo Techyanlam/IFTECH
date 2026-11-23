@@ -3396,6 +3396,7 @@
       function authErrorText(code) {
         if (code === "invalid_credentials") return tt("用戶名或密碼錯誤", "Incorrect username or password");
         if (code === "account_disabled") return tt("帳戶已停用，請聯絡管理員", "Account disabled - please contact the administrator");
+        if (code === "account_locked") return tt("登入失敗太多次，帳戶已鎖定 15 分鐘", "Too many failed attempts - account locked for 15 minutes");
         if (code === "weak_password") return tt("新密碼至少 8 個字元", "New password must be at least 8 characters");
         if (code === "same_password") return tt("新密碼唔可以同目前密碼一樣", "New password must differ from the current password");
         return tt("登入失敗，請再試", "Sign-in failed - please try again");
