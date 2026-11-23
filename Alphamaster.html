@@ -2689,8 +2689,14 @@
       }
 
       /* ---------- 路由 ---------- */
+      var LAST_RENDER_KEY = "";
       function render() {
         updateFxBox();
+        /* 同一頁面嘅原地更新（展開表格、改狀態等）要保留捲動位置，
+           唔好下下彈返上頂；只有真正轉頁／轉個案先返去頂部。 */
+        var renderKey = state.view + "|" + (state.view === "detail" ? (state.detailRef || "") : "");
+        var sameView = renderKey === LAST_RENDER_KEY;
+        var prevY = window.scrollY || 0;
         var html;
         if (state.view === "dashboard") html = viewDashboard();
         else if (state.view === "cases") html = viewCases();
@@ -2710,7 +2716,8 @@
         document.querySelectorAll(".nav-btn").forEach(function (b) {
           b.classList.toggle("active", b.getAttribute("data-nav") === state.view || (state.view === "detail" && b.getAttribute("data-nav") === "cases"));
         });
-        window.scrollTo(0, 0);
+        window.scrollTo(0, sameView ? prevY : 0);
+        LAST_RENDER_KEY = renderKey;
         bindView();
         hydrateRealThumbs();
       }
