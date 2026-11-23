@@ -536,6 +536,10 @@
           <span data-nav-label>User Management</span>
         </button>
         <div class="sidebar-foot">
+          <div id="fx-box" style="margin-bottom:10px;">
+            <div id="fx-box-title" style="font-weight:700;">參考匯率</div>
+            <div id="fx-box-body">USD = HKD 7.85<br />CNY = HKD 1.153</div>
+          </div>
           <div id="user-chip" style="display:none;margin-bottom:8px;">
             <span id="user-chip-name"></span><br />
             <button class="btn ghost small" id="user-logout" type="button">Log Out</button>
@@ -2635,6 +2639,17 @@
       var FX_HKD = { CNY: 1.153, USD: 7.85 };
       /* 參考匯率：飛書「Exchange rate」表嘅現行值（load 後會俾 /api/fx 覆蓋）；冇設定嘅幣種當 1 */
       function refRate(curr) { return FX_HKD[curr] || 1; }
+      /* 左邊欄常駐「參考匯率」小格：跟 FX_HKD 現行值（/api/fx 載入後自動更新） */
+      function updateFxBox() {
+        var body = document.getElementById("fx-box-body");
+        var title = document.getElementById("fx-box-title");
+        if (!body) return;
+        if (title) title.textContent = tt("參考匯率", "Reference Rates");
+        var order = ["USD", "CNY", "EUR"];
+        var keys = order.filter(function (k) { return FX_HKD[k] != null; });
+        Object.keys(FX_HKD).forEach(function (k) { if (keys.indexOf(k) < 0) keys.push(k); });
+        body.innerHTML = keys.map(function (k) { return esc(k) + " = HKD " + esc(FX_HKD[k]); }).join("<br />");
+      }
       function updateCfAmount() {
         var amt = document.getElementById("cf-amount");
         if (!amt) return;
@@ -2675,6 +2690,7 @@
 
       /* ---------- 路由 ---------- */
       function render() {
+        updateFxBox();
         var html;
         if (state.view === "dashboard") html = viewDashboard();
         else if (state.view === "cases") html = viewCases();
