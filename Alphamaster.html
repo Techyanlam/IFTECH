@@ -1769,7 +1769,7 @@
           }
           return "<tr><td data-label='收費項目'>" + esc(ch.name) + "</td>" +
             "<td data-label='貨幣'>" + esc(ch.curr) + "</td>" +
-            "<td data-label='單價' class='num'>" + fmt(ch.price) + (ch.rate > 0 ? "<div class='small muted'>匯率 " + ch.rate + "</div>" : "") + "</td>" +
+            "<td data-label='單價' class='num'>" + fmt(ch.price) + (ch.curr && ch.curr !== "HKD" ? "<div class='small muted'>匯率 " + esc(ch.rate > 0 ? ch.rate : refRate(ch.curr)) + "</div>" : "") + "</td>" +
             "<td data-label='單位'>" + esc(ch.unit) + "</td>" +
             "<td data-label='數量' class='num'>" + fmtNum(ch.qty) + "</td>" +
             "<td data-label='金額 (HKD)' class='num'>" + fmt(ch.amount) + "</td>" + del + "</tr>";
