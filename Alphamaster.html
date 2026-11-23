@@ -1282,14 +1282,12 @@
 
       /* ---------- 飛書即時接駁（Worker API；失敗跌返快照） ---------- */
       var API_BASE = "https://alpha-master-api.yan-lam.workers.dev";
-      var API_KEY = "65a722b8c2651022e03f44f5159d9c0bf4cc96b81598a028";
       function apiFetch(path, opts) {
         var ctrl = ("AbortController" in window) ? new AbortController() : null;
         var init = opts || {};
         var isWrite = !!(init.method && init.method !== "GET");
         var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, isWrite ? 90000 : 20000) : null;
         if (ctrl) init.signal = ctrl.signal;
-        init.headers = Object.assign({}, init.headers || {}, { "X-API-Key": API_KEY });
         return fetch(API_BASE + path, init).then(function (res) {
           if (timer) clearTimeout(timer);
           return res.json().catch(function () { return {}; }).then(function (body) { return { status: res.status, body: body || {} }; });
