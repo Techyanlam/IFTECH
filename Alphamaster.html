@@ -1794,16 +1794,17 @@
             '<td data-label="利潤 (HKD)" class="num' + (p < 0 ? " neg" : "") + '">' + fmt(p) + "</td>"
           : "";
         return '<tr class="clickable" data-open-case="' + esc(c.ref) + '">' +
+          '<td data-label="建立日期">' + fmtDate(c.createdAt) + "</td>" +
           '<td data-label="Reference No."><a class="ref-link mono" href="#" data-open-case="' + esc(c.ref) + '">' + esc(c.ref) + "</a>" +
           (c.pending ? '<div><span class="badge badge-warn" style="margin-top:4px">' + esc(c.pending) + "</span></div>" : "") + "</td>" +
           '<td data-label="業務">' + typeChip(c.type) + (splitTypeDir(c.type, c.dir).dir ? ' <span class="small" style="white-space:nowrap">' + esc(splitTypeDir(c.type, c.dir).dir) + "</span>" : "") + "</td>" +
           '<td data-label="狀態">' + statusBadge(c) + casePayChip(c) + "</td>" +
           '<td data-label="Shipper / Consignee"><div>' + esc(c.shipper || "—") + '</div><div class="muted small">→ ' + esc(c.consignee || "—") + "</div></td>" +
           '<td data-label="航線"><span class="route">' + routeOf(c) + "</span></td>" +
-          '<td data-label="ETD">' + fmtDate(c.etd) + "</td>" + '<td data-label="建立日期">' + fmtDate(c.createdAt) + "</td>" + money + "</tr>";
+          '<td data-label="ETD">' + fmtDate(c.etd) + "</td>" + money + "</tr>";
       }
       function caseTable(list, showMoney) {
-        var head = "<tr><th>Reference No.</th><th>業務</th><th>狀態</th><th>Shipper / Consignee</th><th>航線</th><th>ETD</th><th>建立日期</th>" +
+        var head = "<tr><th>建立日期</th><th>Reference No.</th><th>業務</th><th>狀態</th><th>Shipper / Consignee</th><th>航線</th><th>ETD</th>" +
           (showMoney ? "<th style='text-align:right'>向客收費 (HKD)</th><th style='text-align:right'>供應商成本 (HKD)</th><th style='text-align:right'>利潤 (HKD)</th>" : "") + "</tr>";
         var rows = list.map(function (c) { return caseRow(c, showMoney); }).join("");
         return '<div class="table-wrap"><table class="data"><thead>' + head + "</thead><tbody>" +
