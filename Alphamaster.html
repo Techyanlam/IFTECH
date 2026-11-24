@@ -658,7 +658,7 @@
     <script>
       "use strict";
       var content = document.getElementById("content");
-      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "", custQuery: "", custBusy: false };
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "", custQuery: "", custBusy: false, editCustId: "", custImport: null, custImportMsg: null, custEditBusy: false, custImportBusy: false };
 
       /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
       var ZH_EN = [
@@ -1014,7 +1014,6 @@
         ["連結個案", "Linked Case"],
         ["上載檔案", "Upload File"],
         ["一鍵開案", "Create Case"],
-        ["報價", "Quotations"],
         ["已完成", "Completed"],
         ["開票", "Invoiced"],
         ["已收款", "Paid"],
@@ -1107,6 +1106,29 @@
         ["新增失敗：", "Add failed: "],
         ["參考版未能寫入飛書，請喺正式版再新增客戶", "Snapshot mode cannot write to Feishu. Please add the customer in the live version."],
         ["已新增客戶：", "Customer added: "],
+        ["報價管理", "Quotations"],
+        ["報價數", "Quotations"],
+        ["編輯", "Edit"],
+        ["儲存", "Save"],
+        ["取消", "Cancel"],
+        ["操作", "Actions"],
+        ["匯出 CSV", "Export CSV"],
+        ["匯入 CSV", "Import CSV"],
+        ["下載範本", "Download Template"],
+        ["確認匯入", "Confirm Import"],
+        ["匯入預覽", "Import Preview"],
+        ["將會新增", "to be added"],
+        ["新增", "New"],
+        ["已存在（跳過）", "Already exists (skipped)"],
+        ["缺公司名稱（跳過）", "Missing company name (skipped)"],
+        ["更新失敗：", "Update failed: "],
+        ["已有同名客戶", "A customer with this name already exists"],
+        ["公司名稱唔可以留空", "Company name cannot be empty"],
+        ["已匯入", "Imported"],
+        ["跳過", "Skipped"],
+        ["失敗", "Failed"],
+        ["匯入 CSV 格式同匯出檔案一樣（可先撳「匯出 CSV」攞範本）。", "Import CSV uses the same format as the exported file (click Export CSV first to get a template)."],
+        ["未能讀取檔案：請用 CSV 格式（欄位：客戶編號、公司名稱、聯絡人、電話、電郵、地址）。", "Could not read the file. Please use CSV format (columns: Customer Code, Company Name, Contact, Phone, Email, Address)."],
         ["重量 (KG)", "Weight (KG)"],
         ["試查：", "Try: "],
         ["效果", "Effect"],
@@ -1333,12 +1355,12 @@
         if (!qid || state.quoteBusy) return;
         var q = QUOTATIONS.filter(function (x) { return x.recordId === qid; })[0];
         if (!q) return;
-        if (!window.confirm(trText("將報價 ") + q.no + trText(" 開案？系統會派發 Job No.，並將報價收費原數帶入個案。"))) return;
+        if (!window.confirm(trText("將報價單 ") + q.no + trText(" 開案？系統會派發 Job No.，並將報價收費原數帶入個案。"))) return;
         state.quoteBusy = true;
         apiJson("/api/quotations/" + encodeURIComponent(qid) + "/create-case", "POST", {}).then(function (r) {
           state.quoteBusy = false;
           if ((r.status === 200 || r.status === 201) && r.body && r.body.ok) {
-            state.quoteNotice = "報價 " + q.no + " 已開案：" + (r.body.ref || "") + "（收費已帶入 " + (r.body.chargesCopied || 0) + " 行）";
+            state.quoteNotice = "報價單 " + q.no + " 已開案：" + (r.body.ref || "") + "（收費已帶入 " + (r.body.chargesCopied || 0) + " 行）";
             refreshLive();
           } else alert("開案失敗：" + apiErrorText(r, "未知錯誤"));
         }).catch(function () { state.quoteBusy = false; alert("開案失敗：網絡錯誤"); });
@@ -2427,7 +2449,7 @@
         var rateOpts = RATES.map(function (r, i) { return '<option value="' + i + '">' + esc(r.name) + " (" + esc(r.curr) + " " + fmt(r.price) + (r.unit ? " / " + esc(r.unit) : "") + ")</option>"; }).join("");
         var portOpts = PORTS.map(function (p) { var v = p.code || p.name; return '<option value="' + esc(v) + '">' + esc(p.name + (p.type ? " · " + p.type : "") + (p.country ? " · " + p.country : "")) + "</option>"; }).join("");
         var todayStr = new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
-        return '<div class="page-head"><div><h1>報價</h1><div class="sub">Quotation 獨立模組：報價有自己編號（AMQ + 年月 + 流水）、狀態同檔案；Awarded 之後先開案，收費原數帶入個案</div></div></div>' +
+        return '<div class="page-head"><div><h1>報價管理</h1><div class="sub">Quotation 獨立模組：每張報價單有自己編號（AMQ + 年月 + 流水）、狀態同檔案；Awarded 之後先開案，收費原數帶入個案</div></div></div>' +
           (state.quoteNotice ? '<div class="success-box" style="margin-bottom:12px"><span>' + esc(state.quoteNotice) + "</span></div>" : "") +
           '<form id="quote-form" class="card" style="margin-top:0"><h2 class="section-title">新增報價</h2>' +
           '<div class="form-grid">' +
@@ -2712,15 +2734,81 @@
         var sum = list.reduce(function (s, ch) { return s + ch.amount; }, 0);
         return '<h2 class="section-title">' + esc(title) + '（<span class="mono">' + esc(ref) + "</span>）</h2>" + chargeTable(list, totals(ref).rev || sum, "合計 (HKD)");
       }
-      function viewCustomers() {
+      function custFiltered() {
         var q = (state.custQuery || "").toLowerCase();
-        var list = CUSTOMERS.filter(function (c) {
+        return CUSTOMERS.filter(function (c) {
           if (!q) return true;
           var hay = [c.code, c.name, c.contact, c.phone, c.email, c.address].join(" ").toLowerCase();
           return hay.indexOf(q) >= 0;
         });
-        var head = '<div class="page-head"><div><h1>客戶</h1><div class="sub">飛書客戶表一覽；開新單／報價揀客戶都係用呢張表</div></div></div>' +
-          '<div class="toolbar"><div class="seg-search"><input id="cust-search" type="search" placeholder="搜尋公司 / 聯絡人 / 電話 / 電郵" value="' + esc(state.custQuery) + '"></div></div>' +
+      }
+      function csvEsc(v) {
+        var s = v == null ? "" : String(v);
+        return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+      }
+      function customersCsv(list) {
+        var lines = [["Customer Code", "Company Name", "Contact", "Phone", "Email", "Address"].map(csvEsc).join(",")];
+        list.forEach(function (c) {
+          lines.push([c.code, c.name, c.contact, c.phone, c.email, c.address].map(csvEsc).join(","));
+        });
+        return "\uFEFF" + lines.join("\r\n") + "\r\n";
+      }
+      function downloadText(filename, text) {
+        var blob = new Blob([text], { type: "text/csv;charset=utf-8" });
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+      }
+      function parseCsv(text) {
+        var s = String(text || "").replace(/^\uFEFF/, "");
+        var rows = [], row = [], field = "", inQ = false;
+        for (var i = 0; i < s.length; i++) {
+          var ch = s[i];
+          if (inQ) {
+            if (ch === '"') {
+              if (s[i + 1] === '"') { field += '"'; i++; }
+              else inQ = false;
+            } else field += ch;
+          } else if (ch === '"') inQ = true;
+          else if (ch === ",") { row.push(field); field = ""; }
+          else if (ch === "\n" || ch === "\r") {
+            if (ch === "\r" && s[i + 1] === "\n") i++;
+            row.push(field); field = "";
+            if (row.length > 1 || row[0] !== "") rows.push(row);
+            row = [];
+          } else field += ch;
+        }
+        if (field !== "" || row.length) { row.push(field); rows.push(row); }
+        return rows;
+      }
+      function custImportBoxHtml() {
+        var imp = state.custImport;
+        if (!imp) return "";
+        var addN = 0;
+        imp.rows.forEach(function (r) { if (r.status === "新增") addN++; });
+        var rows = imp.rows.map(function (r) {
+          return "<tr><td>" + esc(r.name) + "</td><td>" + esc(r.contact) + "</td><td>" + esc(r.phone) + "</td><td>" + esc(r.email) + "</td><td>" + esc(r.address) + "</td><td>" + esc(r.status) + "</td></tr>";
+        }).join("");
+        return '<div class="card" style="margin-bottom:16px"><h2 class="section-title">匯入預覽（' + esc(imp.fileName) + "：共 " + imp.rows.length + " 行，將會新增 " + addN + " 間）</h2>" +
+          '<div class="table-wrap"><table class="data"><thead><tr><th>公司名稱</th><th>聯絡人</th><th>電話</th><th>電郵</th><th>地址</th><th>狀態</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+          '<div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap"><button class="btn small" type="button" id="cust-import-confirm"' + (state.custImportBusy || !addN ? " disabled" : "") + ">" + (state.custImportBusy ? "匯入中…" : "確認匯入") + '</button><button class="btn ghost small" type="button" id="cust-import-cancel">取消</button></div>' +
+          '<div id="cust-import-result" style="margin-top:10px"></div></div>';
+      }
+      function viewCustomers() {
+        var q = (state.custQuery || "").toLowerCase();
+        var list = custFiltered();
+        var msg = state.custImportMsg;
+        state.custImportMsg = null;
+        var head = '<div class="page-head"><div><h1>客戶</h1><div class="sub">飛書客戶表一覽；開新單同新增報價都係用呢張表揀客戶</div></div></div>' +
+          (msg ? '<div class="success-box" style="margin-bottom:12px"><span>' + esc(msg) + "</span></div>" : "") +
+          '<div class="toolbar"><div class="seg-search"><input id="cust-search" type="search" placeholder="搜尋公司 / 聯絡人 / 電話 / 電郵" value="' + esc(state.custQuery) + '"></div>' +
+          '<div style="display:flex; gap:8px; flex-wrap:wrap"><button class="btn ghost small" type="button" id="cust-export">匯出 CSV</button><button class="btn ghost small" type="button" id="cust-import-btn">匯入 CSV</button><button class="btn ghost small" type="button" id="cust-template">下載範本</button></div></div>' +
+          '<div class="small muted" style="margin:0 0 12px">匯入 CSV 格式同匯出檔案一樣（可先撳「匯出 CSV」攞範本）。</div>' +
+          '<input id="cust-import-file" type="file" accept=".csv,text/csv" style="display:none" />' +
+          custImportBoxHtml() +
           '<div class="card"><h2 class="section-title">新增客戶</h2>' +
           '<div class="form-grid">' +
           '<div class="field wide"><label for="cust-name">公司名稱（必填）</label><input id="cust-name" type="text" /></div>' +
@@ -2736,10 +2824,20 @@
         var rows = list.map(function (c) {
           var qc = 0;
           QUOTATIONS.forEach(function (qt) { if (qt.customerId && qt.customerId === c.recordId) qc++; });
-          return "<tr><td data-label='客戶編號'>" + esc(c.code) + "</td><td data-label='公司名稱'><strong>" + esc(c.name) + "</strong></td><td data-label='聯絡人'>" + esc(c.contact) + "</td><td data-label='電話'>" + esc(c.phone) + "</td><td data-label='電郵'>" + esc(c.email) + "</td><td data-label='地址'>" + esc(c.address) + "</td><td data-label='報價' class='num'>" + qc + "</td></tr>";
+          if (state.editCustId === c.recordId) {
+            return "<tr><td data-label='客戶編號'>" + esc(c.code) + "</td>" +
+              "<td data-label='公司名稱'><input id='cust-e-name' type='text' value='" + esc(c.name) + "' style='width:100%' /></td>" +
+              "<td data-label='聯絡人'><input id='cust-e-contact' type='text' value='" + esc(c.contact) + "' style='width:100%' /></td>" +
+              "<td data-label='電話'><input id='cust-e-phone' type='text' value='" + esc(c.phone) + "' style='width:100%' /></td>" +
+              "<td data-label='電郵'><input id='cust-e-email' type='text' value='" + esc(c.email) + "' style='width:100%' /></td>" +
+              "<td data-label='地址'><input id='cust-e-address' type='text' value='" + esc(c.address) + "' style='width:100%' /></td>" +
+              "<td data-label='報價數' class='num'>" + qc + "</td>" +
+              "<td data-label='操作'><div style='display:flex; gap:6px'><button class='btn small' type='button' data-cust-save='" + esc(c.recordId) + "'>儲存</button><button class='btn ghost small' type='button' data-cust-cancel>取消</button></div></td></tr>";
+          }
+          return "<tr><td data-label='客戶編號'>" + esc(c.code) + "</td><td data-label='公司名稱'><strong>" + esc(c.name) + "</strong></td><td data-label='聯絡人'>" + esc(c.contact) + "</td><td data-label='電話'>" + esc(c.phone) + "</td><td data-label='電郵'>" + esc(c.email) + "</td><td data-label='地址'>" + esc(c.address) + "</td><td data-label='報價數' class='num'>" + qc + "</td><td data-label='操作'><button class='btn ghost small' type='button' data-cust-edit='" + esc(c.recordId) + "'>編輯</button></td></tr>";
         }).join("");
         return head + '<h2 class="section-title">客戶列表（共 ' + list.length + " 間" + (q ? "，已篩選" : "") + '）</h2>' +
-          '<div class="table-wrap"><table class="data"><thead><tr><th>客戶編號</th><th>公司名稱</th><th>聯絡人</th><th>電話</th><th>電郵</th><th>地址</th><th style="text-align:right">報價</th></tr></thead><tbody>' + rows + "</tbody></table></div>";
+          '<div class="table-wrap"><table class="data"><thead><tr><th>客戶編號</th><th>公司名稱</th><th>聯絡人</th><th>電話</th><th>電郵</th><th>地址</th><th style="text-align:right">報價數</th><th>操作</th></tr></thead><tbody>' + rows + "</tbody></table></div>";
       }
 
       function viewCharges() {
@@ -3017,6 +3115,158 @@
             });
           });
         }
+        var custExport = document.getElementById("cust-export");
+        if (custExport) {
+          custExport.addEventListener("click", function () {
+            var d = new Date();
+            var stamp = d.getFullYear() + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0");
+            downloadText("customers-" + stamp + ".csv", customersCsv(custFiltered()));
+          });
+        }
+        var custTemplate = document.getElementById("cust-template");
+        if (custTemplate) {
+          custTemplate.addEventListener("click", function () {
+            downloadText("customers-template.csv", customersCsv([]));
+          });
+        }
+        var custImportBtn = document.getElementById("cust-import-btn");
+        var custImportFile = document.getElementById("cust-import-file");
+        if (custImportBtn && custImportFile) {
+          custImportBtn.addEventListener("click", function () { custImportFile.click(); });
+          custImportFile.addEventListener("change", function () {
+            var f = custImportFile.files && custImportFile.files[0];
+            if (!f) return;
+            var reader = new FileReader();
+            var importErr = function () {
+              state.custImport = null;
+              state.custImportMsg = "未能讀取檔案：請用 CSV 格式（欄位：客戶編號、公司名稱、聯絡人、電話、電郵、地址）。";
+              render();
+            };
+            reader.onload = function () {
+              var rows = parseCsv(reader.result || "");
+              if (!rows.length) { importErr(); return; }
+              var headRow = rows[0].map(function (h) { return String(h || "").trim(); });
+              var col = function (en, zh) {
+                var i = headRow.indexOf(en);
+                if (i >= 0) return i;
+                return headRow.indexOf(zh);
+              };
+              var iName = col("Company Name", "公司名稱");
+              if (iName < 0) { importErr(); return; }
+              var iContact = col("Contact", "聯絡人");
+              var iPhone = col("Phone", "電話");
+              var iEmail = col("Email", "電郵");
+              var iAddr = col("Address", "地址");
+              var seen = {};
+              CUSTOMERS.forEach(function (c) { seen[(c.name || "").trim().toLowerCase()] = true; });
+              var parsed = [];
+              for (var i = 1; i < rows.length; i++) {
+                var r = rows[i];
+                var allBlank = true;
+                r.forEach(function (x) { if ((x || "").trim() !== "") allBlank = false; });
+                if (allBlank) continue;
+                var nm = (r[iName] || "").trim();
+                var st = "新增";
+                if (!nm) st = "缺公司名稱（跳過）";
+                else if (seen[nm.toLowerCase()]) st = "已存在（跳過）";
+                else seen[nm.toLowerCase()] = true;
+                parsed.push({
+                  name: nm,
+                  contact: iContact >= 0 ? (r[iContact] || "").trim() : "",
+                  phone: iPhone >= 0 ? (r[iPhone] || "").trim() : "",
+                  email: iEmail >= 0 ? (r[iEmail] || "").trim() : "",
+                  address: iAddr >= 0 ? (r[iAddr] || "").trim() : "",
+                  status: st
+                });
+              }
+              if (!parsed.length) { importErr(); return; }
+              state.custImport = { fileName: f.name, rows: parsed };
+              render();
+            };
+            reader.onerror = importErr;
+            reader.readAsText(f, "UTF-8");
+            custImportFile.value = "";
+          });
+        }
+        var custImpConfirm = document.getElementById("cust-import-confirm");
+        if (custImpConfirm) {
+          custImpConfirm.addEventListener("click", function () {
+            if (state.custImportBusy || !state.custImport) return;
+            var rows = state.custImport.rows.filter(function (r) { return r.status === "新增"; });
+            if (!rows.length) return;
+            if (state.dataMode !== "live") { alert(trText("參考版未能寫入飛書，請喺正式版再新增客戶")); return; }
+            state.custImportBusy = true;
+            custImpConfirm.disabled = true;
+            var ok = 0, skipped = 0, failed = 0, idx = 0;
+            var step = function () {
+              if (idx >= rows.length) {
+                state.custImportBusy = false;
+                state.custImport = null;
+                state.custImportMsg = "已匯入 " + ok + " 間；跳過 " + skipped + " 行" + (failed ? "；失敗 " + failed + " 行" : "") + "。";
+                render();
+                return;
+              }
+              var r = rows[idx++];
+              apiJson("/api/customers", "POST", { name: r.name, contact: r.contact || undefined, phone: r.phone || undefined, email: r.email || undefined, address: r.address || undefined }).then(function (resp) {
+                if (resp.body && resp.body.ok && resp.body.customer) {
+                  var nc = resp.body.customer;
+                  var mapped = { recordId: nc.recordId || "", code: nc.code || "", name: nc.name || "", address: nc.address || "", contact: nc.contact || "", phone: nc.phone || "", email: nc.email || "" };
+                  if (resp.body.existed) skipped++;
+                  else {
+                    var found = false;
+                    CUSTOMERS.forEach(function (x) { if (x.recordId === mapped.recordId) found = true; });
+                    if (!found) CUSTOMERS.push(mapped);
+                    ok++;
+                  }
+                } else failed++;
+                step();
+              }).catch(function () { failed++; step(); });
+            };
+            step();
+          });
+        }
+        var custImpCancel = document.getElementById("cust-import-cancel");
+        if (custImpCancel) {
+          custImpCancel.addEventListener("click", function () { state.custImport = null; render(); });
+        }
+        document.querySelectorAll("[data-cust-edit]").forEach(function (btn) {
+          btn.addEventListener("click", function () { state.editCustId = btn.getAttribute("data-cust-edit"); render(); });
+        });
+        var custCancelEdit = document.querySelector("[data-cust-cancel]");
+        if (custCancelEdit) {
+          custCancelEdit.addEventListener("click", function () { state.editCustId = ""; render(); });
+        }
+        var custSaveEdit = document.querySelector("[data-cust-save]");
+        if (custSaveEdit) {
+          custSaveEdit.addEventListener("click", function () {
+            if (state.custEditBusy) return;
+            var id = custSaveEdit.getAttribute("data-cust-save");
+            var gv = function (elId) { var el = document.getElementById(elId); return el ? el.value.trim() : ""; };
+            var nm = gv("cust-e-name");
+            if (!nm) { alert(trText("公司名稱唔可以留空")); return; }
+            if (state.dataMode !== "live") { alert(trText("參考版未能寫入飛書，請喺正式版再新增客戶")); return; }
+            state.custEditBusy = true;
+            custSaveEdit.disabled = true;
+            apiJson("/api/customers/" + encodeURIComponent(id), "PATCH", { name: nm, contact: gv("cust-e-contact"), phone: gv("cust-e-phone"), email: gv("cust-e-email"), address: gv("cust-e-address") }).then(function (r) {
+              state.custEditBusy = false;
+              if (r.status === 200 && r.body && r.body.ok && r.body.customer) {
+                var nc = r.body.customer;
+                var mapped = { recordId: nc.recordId || "", code: nc.code || "", name: nc.name || "", address: nc.address || "", contact: nc.contact || "", phone: nc.phone || "", email: nc.email || "" };
+                CUSTOMERS.forEach(function (x, i) { if (x.recordId === mapped.recordId) CUSTOMERS[i] = mapped; });
+                state.editCustId = "";
+                render();
+              } else {
+                custSaveEdit.disabled = false;
+                alert(trText(r.body && r.body.error === "customer_name_exists" ? "已有同名客戶" : "更新失敗：" + apiErrorText(r, "未知錯誤")));
+                render();
+              }
+            }).catch(function (e) {
+              state.custEditBusy = false;
+              custSaveEdit.disabled = false;
+              alert(trText("更新失敗：" + (e && e.message ? e.message : "連線失敗")));
+            });
+          });
+        }
         var qcSel = document.getElementById("quote-customer");
         if (qcSel) {
           qcSel.addEventListener("change", function () { state.quoteCustomer = qcSel.value; render(); });
@@ -3087,7 +3337,7 @@
             apiJson("/api/quotations", "POST", payload).then(function (r) {
               state.quoteBusy = false;
               if ((r.status === 200 || r.status === 201) && r.body && r.body.ok) {
-                state.quoteNotice = "報價已建立：" + (r.body.no || "");
+                state.quoteNotice = "報價單已建立：" + (r.body.no || "");
                 state.quoteStatus = "全部"; state.quoteType = "全部"; state.quoteCustomer = "全部"; state.quoteQuery = "";
                 refreshLive();
               } else {
