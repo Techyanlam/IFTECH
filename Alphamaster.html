@@ -658,7 +658,7 @@
     <script>
       "use strict";
       var content = document.getElementById("content");
-      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "", custQuery: "", custBusy: false, editCustId: "", custImport: null, custImportMsg: null, custEditBusy: false, custImportBusy: false };
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "", custQuery: "", custBusy: false, editCustId: "", custImport: null, custImportMsg: null, custEditBusy: false, custImportBusy: false, newQuoteId: "", newQuotePrefill: null };
 
       /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
       var ZH_EN = [
@@ -1129,6 +1129,14 @@
         ["失敗", "Failed"],
         ["匯入 CSV 格式同匯出檔案一樣（可先撳「匯出 CSV」攞範本）。", "Import CSV uses the same format as the exported file (click Export CSV first to get a template)."],
         ["未能讀取檔案：請用 CSV 格式（欄位：客戶編號、公司名稱、聯絡人、電話、電郵、地址）。", "Could not read the file. Please use CSV format (columns: Customer Code, Company Name, Contact, Phone, Email, Address)."],
+        ["總額", "Total"],
+        ["— 不用報價單 —", "— No quotation —"],
+        ["沒有可開案的報價單", "No quotations available to open a case"],
+        ["以下收費項目會喺開案後一併加入個案：", "These charges will be added to the case after it is created:"],
+        ["此報價單冇收費項目", "This quotation has no charge lines"],
+        ["收費已帶入", "charges copied"],
+        ["行收費未能寫入，請喺個案詳情檢查", "charge line(s) could not be saved — please check in Case Details"],
+        ["已連結此個案", "linked to this case"],
         ["重量 (KG)", "Weight (KG)"],
         ["試查：", "Try: "],
         ["效果", "Effect"],
@@ -2148,19 +2156,42 @@
         opts += '<option value="__new__">＋ 新增客戶…</option>';
         return opts;
       }
+      function quoteOptionsHtml() {
+        var eligible = QUOTATIONS.filter(function (q) {
+          return q.status === "Awarded" && q.type === "跟Job報價" && !(q.caseIds && q.caseIds.length);
+        });
+        var opts = '<option value="">— 不用報價單 —</option>';
+        if (!eligible.length) return opts + '<option value="" disabled>沒有可開案的報價單</option>';
+        eligible.forEach(function (q) {
+          opts += '<option value="' + esc(q.recordId) + '"' + (q.recordId === state.newQuoteId ? " selected" : "") + ">" + esc(q.no + " — " + (q.customer || "") + " — HKD " + fmt(q.total || 0)) + "</option>";
+        });
+        return opts;
+      }
       function viewNewCase() {
         var t = state.newType;
+        var pre = state.newQuotePrefill || {};
         var fields = NEW_FIELDS[t].map(function (f) {
           var key = f[0], label = f[1], kind = f[2];
+          var v = pre[key] == null ? "" : String(pre[key]);
           var input;
-          if (kind === "textarea") input = '<textarea id="nf-' + key + '" rows="3"></textarea>';
-          else if (kind === "dir") input = '<select id="nf-' + key + '"><option value="出口">出口</option><option value="進口">進口</option></select>';
-          else if (kind === "date") input = '<input id="nf-' + key + '" type="date" />';
-          else if (kind === "number") input = '<input id="nf-' + key + '" type="number" step="any" min="0" />';
-          else if (key === "pol" || key === "pod") input = '<input id="nf-' + key + '" type="text" list="nf-portlist" autocomplete="off" />';
-          else input = '<input id="nf-' + key + '" type="text" />';
+          if (kind === "textarea") input = '<textarea id="nf-' + key + '" rows="3">' + esc(v) + '</textarea>';
+          else if (kind === "dir") input = '<select id="nf-' + key + '"><option value="出口"' + (v === "進口" ? "" : " selected") + '>出口</option><option value="進口"' + (v === "進口" ? " selected" : "") + '>進口</option></select>';
+          else if (kind === "date") input = '<input id="nf-' + key + '" type="date" value="' + esc(v) + '" />';
+          else if (kind === "number") input = '<input id="nf-' + key + '" type="number" step="any" min="0" value="' + esc(v) + '" />';
+          else if (key === "pol" || key === "pod") input = '<input id="nf-' + key + '" type="text" list="nf-portlist" autocomplete="off" value="' + esc(v) + '" />';
+          else input = '<input id="nf-' + key + '" type="text" value="' + esc(v) + '" />';
           return '<div class="field' + (kind === "textarea" ? " full" : kind === 1 ? " wide" : "") + '"><label for="nf-' + key + '">' + esc(label) + "</label>" + input + "</div>";
         }).join("");
+        var quoteBox = "";
+        if (state.newQuoteId && pre.no) {
+          quoteBox = '<div class="note-box" style="margin-bottom:16px"><strong>報價單 ' + esc(pre.no) + '（總額 HKD ' + fmt(pre.total || 0) + '）</strong>';
+          if (pre.charges && pre.charges.length) {
+            quoteBox += '<div style="margin-top:8px">以下收費項目會喺開案後一併加入個案：</div><div style="margin-top:4px">' + esc(pre.summary || "").split("\n").join("<br />") + "</div>";
+          } else {
+            quoteBox += '<div style="margin-top:8px">此報價單冇收費項目</div>';
+          }
+          quoteBox += "</div>";
+        }
 
         var typeCards = [
           ["空運", "航班、MAWB/HAWB、計費重量"],
@@ -2179,8 +2210,10 @@
           (t === "本地派送" ? '<div class="note-box" style="margin-bottom:16px">本地派送沒有落單表格，客人以電郵通知；此頁面供人手開案之用（電郵格式樣本待客人提供）。</div>' +
             (live ? "" : '<div class="note-box" style="margin-bottom:16px">注意：本地派送為參考版新增的開案入口，目前飛書 Base 個案主表並無此業務的實際個案。</div>') : "") +
           '<form id="newcase-form" class="card"><div class="form-grid">' +
-          '<div class="field wide"><label for="nf-customer">客戶（由客戶資料庫選擇，自動填入 Shipper）</label><select id="nf-customer">' + customerOptionsHtml("") + "</select></div>" +
+          '<div class="field wide"><label for="nf-quotation">報價單（揀已批核嘅報價單，自動填入客戶／資料／收費）</label><select id="nf-quotation">' + quoteOptionsHtml() + "</select></div>" +
+          '<div class="field wide"><label for="nf-customer">客戶（由客戶資料庫選擇，自動填入 Shipper）</label><select id="nf-customer">' + customerOptionsHtml(pre.customerId || "") + "</select></div>" +
           fields + "</div>" +
+          quoteBox +
           '<div id="nc-addcust" class="note-box" style="display:none; margin-bottom:16px">' +
           '<div class="form-grid">' +
           '<div class="field wide"><label for="nc-cname">公司名稱（必填）</label><input id="nc-cname" type="text" /></div>' +
@@ -3429,13 +3462,51 @@
                 var nc = normCase(r.body.case);
                 CASES.unshift(nc);
                 TOTALS[nc.ref] = { rev: 0, cost: 0 };
-                render();
-                var res3 = document.getElementById("newcase-result");
-                if (res3) {
-                  res3.innerHTML = trText('<div class="success-box"><h3>個案已建立並寫入飛書：<span class="mono">' + esc(nc.ref) + "</span></h3>" +
-                    "<div>" + typeChip(nc.type) + " · Shipper：" + esc(nc.shipper || "—") + " · Consignee：" + esc(nc.consignee || "—") + "</div>" +
-                    '<p class="small" style="margin:8px 0 0"><a href="#" data-open-case="' + esc(nc.ref) + '">查看個案詳情</a></p></div>');
-                  res3.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                var qid = state.newQuoteId;
+                var qpre = state.newQuotePrefill;
+                var finishNewCase = function (copied, failed, linked) {
+                  state.newQuoteId = "";
+                  state.newQuotePrefill = null;
+                  render();
+                  var res3 = document.getElementById("newcase-result");
+                  if (res3) {
+                    var extra = "";
+                    if (qid && qpre) {
+                      if (copied > 0) extra += "<div>收費已帶入 " + copied + " 行" + (failed ? "；有 " + failed + " 行收費未能寫入，請喺個案詳情檢查" : "") + "</div>";
+                      else if (failed > 0) extra += "<div>有 " + failed + " 行收費未能寫入，請喺個案詳情檢查</div>";
+                      else if ((qpre.charges || []).length === 0) extra += "<div>此報價單冇收費項目</div>";
+                      if (linked) extra += "<div>報價單 " + esc(qpre.no || "") + " 已連結此個案</div>";
+                    }
+                    res3.innerHTML = trText('<div class="success-box"><h3>個案已建立並寫入飛書：<span class="mono">' + esc(nc.ref) + "</span></h3>" +
+                      "<div>" + typeChip(nc.type) + " · Shipper：" + esc(nc.shipper || "—") + " · Consignee：" + esc(nc.consignee || "—") + "</div>" +
+                      extra +
+                      '<p class="small" style="margin:8px 0 0"><a href="#" data-open-case="' + esc(nc.ref) + '">查看個案詳情</a></p></div>');
+                    res3.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                  }
+                };
+                if (qid && qpre) {
+                  var qcharges = (qpre.charges || []).filter(function (ch) { return ch && ch.name && ch.price != null && ch.qty > 0; });
+                  var ci = 0, copied = 0, failed = 0;
+                  var stepQ = function () {
+                    if (ci >= qcharges.length) {
+                      apiJson("/api/quotations/" + encodeURIComponent(qid), "PATCH", { caseId: nc.recordId }).then(function (lr) {
+                        var linked = !!(lr.body && lr.body.ok);
+                        if (linked) {
+                          QUOTATIONS.forEach(function (x) { if (x.recordId === qid) { x.caseIds = [nc.recordId]; x.cases = [nc.ref]; } });
+                        }
+                        finishNewCase(copied, failed, linked);
+                      }).catch(function () { finishNewCase(copied, failed, false); });
+                      return;
+                    }
+                    var ch = qcharges[ci++];
+                    apiJson("/api/cases/" + encodeURIComponent(nc.recordId) + "/charges", "POST", { name: ch.name, cat: "向客收費", curr: ch.curr || "HKD", price: ch.price, unit: ch.unit || undefined, qty: ch.qty, rate: ch.rate || undefined }).then(function (cr) {
+                      if (cr.body && cr.body.ok) copied++; else failed++;
+                      stepQ();
+                    }).catch(function () { failed++; stepQ(); });
+                  };
+                  stepQ();
+                } else {
+                  finishNewCase(0, 0, false);
                 }
               }).catch(function (e) {
                 state.newCaseBusy = false;
@@ -3452,6 +3523,7 @@
             result.innerHTML = trText('<div class="success-box"><h3>個案預覽已建立：<span class="mono">' + esc(ref) + "</span></h3>" +
               "<div>" + typeChip(t) + " · Shipper：" + esc(shipper || "—") + " · Consignee：" + esc(consignee || "—") + "</div>" +
               "<div>" + (t === "本地派送" ? "送貨地址：" + esc(route) + " · 送貨日期：" : "航線：" + esc(route) + " · " + (t === "海運" ? "ETD：" : "日期：")) + esc(dateLine) + "</div>" +
+              (state.newQuoteId && state.newQuotePrefill ? "<div>已選報價單 " + esc(state.newQuotePrefill.no || "") + "：客戶／資料已帶入預覽；正式版開案後收費會一併加入個案。</div>" : "") +
               '<p class="small" style="margin:8px 0 0">參考版不會將資料寫入飛書。正式版啟用後，此個案會直接寫入飛書 Base 個案主表，並以同一編號作為 Job No./Invoice No.。</p></div>');
             result.scrollIntoView({ behavior: "smooth", block: "nearest" });
           });
@@ -3466,6 +3538,20 @@
               if (c) { var sh = document.getElementById("nf-shipper"); if (sh) sh.value = c.name; }
             });
           }
+              var quoteSel = document.getElementById("nf-quotation");
+              if (quoteSel) {
+                quoteSel.addEventListener("change", function () {
+                  var qid = quoteSel.value;
+                  if (!qid) { state.newQuoteId = ""; state.newQuotePrefill = null; render(); return; }
+                  var q = null;
+                  QUOTATIONS.forEach(function (x) { if (x.recordId === qid) q = x; });
+                  if (!q) { state.newQuoteId = ""; state.newQuotePrefill = null; render(); return; }
+                  state.newQuoteId = qid;
+                  if (q.bizType === "空運" || q.bizType === "海運" || q.bizType === "本地派送") state.newType = q.bizType;
+                  state.newQuotePrefill = { customerId: q.customerId || "", customerName: q.customer || "", shipper: q.customer || "", dir: q.dir || "", pol: q.pol || "", pod: q.pod || "", charges: q.charges || [], summary: q.summary || "", total: q.total || 0, no: q.no || "" };
+                  render();
+                });
+              }
           var acCancel = document.getElementById("nc-addcust-cancel");
           if (acCancel) acCancel.addEventListener("click", function () {
             var panel = document.getElementById("nc-addcust");
