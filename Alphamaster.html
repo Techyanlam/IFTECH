@@ -2091,6 +2091,19 @@
         var seq = String(CASES.length + 1 + Object.keys(state.openedIntakes).length).padStart(3, "0");
         return "AML" + letter + yymm + seq;
       }
+      /* 開新單編號預覽（跟後端 Worker 同一計法）：AML＋業務字母（空運 A／海運 S／本地派送冇字母）＋年月＋3 位流水號（同字母同月最大流水＋1） */
+      function nextRefPreview(type) {
+        var letter = type === "空運" ? "A" : type === "海運" ? "S" : "";
+        var now = new Date(Date.now() + 8 * 3600 * 1000);
+        var yymm = String(now.getUTCFullYear()).slice(2) + String(now.getUTCMonth() + 1).padStart(2, "0");
+        var maxSerial = 0;
+        CASES.forEach(function (c) {
+          var m = String(c.ref || "").match(/^AML([AS]?)(\d{4})(\d{3})$/);
+          if (!m || m[1] !== letter || m[2] !== yymm) return;
+          maxSerial = Math.max(maxSerial, Number(m[3]));
+        });
+        return "AML" + letter + yymm + String(maxSerial + 1).padStart(3, "0");
+      }
       function customerOptionsHtml(selId) {
         var opts = '<option value="">— 不選擇／自行輸入 —</option>';
         CUSTOMERS.forEach(function (c) {
@@ -2123,7 +2136,7 @@
 
         var live = state.dataMode === "live";
         var refBox = live
-          ? '<div class="ref-preview"><span>Reference No. 將於提交時由系統按飛書即時數據編配（AML＋業務字母＋年月＋流水號）。</span></div>'
+          ? '<div class="ref-preview"><span>下一個編號（預計，提交時系統按飛書即時數據編配，如有重複會自動順延）：</span><span class="big-ref mono">' + nextRefPreview(t) + '</span><span>（AML＋業務字母：空運 A／海運 S＋年月＋流水號）</span></div>'
           : '<div class="ref-preview"><span>新個案 Reference No. 預覽（統一編號：Job No. ＝ Invoice No. ＝ ' + (t === "海運" ? "HBL" : t === "空運" ? "HAWB" : "派送單") + ' No.）：</span><span class="big-ref mono" id="ref-preview">' + refPreview(t) + "</span></div>";
         return '<div class="page-head"><div><h1>開新單</h1><div class="sub">先選業務類型，表格會按空運/海運/本地派送的落單格式顯示</div></div></div>' +
           '<div class="type-picker">' + typeCards + "</div>" +
