@@ -654,7 +654,7 @@
     <script>
       "use strict";
       var content = document.getElementById("content");
-      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null };
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "" };
 
       /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
       var ZH_EN = [
@@ -2295,6 +2295,16 @@
       }
       /* ---------- 發票 ---------- */
       function viewInvoices() {
+        var list = INVOICES.filter(function (i) {
+          if (state.invCat !== "全部" && i.cat !== state.invCat) return false;
+          if (state.invPay !== "全部" && i.pay !== state.invPay) return false;
+          if (state.invQuery) {
+            var gc0 = findCase(i.case);
+            var hay = (i.no + " " + i.case + " " + (gc0 ? (gc0.shipper || "") : "")).toLowerCase();
+            if (hay.indexOf(state.invQuery.toLowerCase()) < 0) return false;
+          }
+          return true;
+        });
         var genOf = function (ref) { return DOCGEN.filter(function (g) { return g.case === ref; })[0] || null; };
         var genBadge = function (s) { return s === "已生成" ? '<span class="badge badge-ok">已生成</span>' : '<span class="badge badge-grey">未生成</span>'; };
         var genCell = function (ref) {
@@ -2303,7 +2313,7 @@
           var iv = g ? g.invoice : "未生成";
           return '<span class="small muted">報價單</span> ' + genBadge(q) + ' <span class="small muted">客人發票</span> ' + genBadge(iv) + (g && g.note ? "<div class='small muted'>" + esc(g.note) + "</div>" : "");
         };
-        var invRows = groupByCase(INVOICES).map(function (g) {
+        var invRows = groupByCase(list).map(function (g) {
           return g.items.map(function (i) {
             var idx = INVOICES.indexOf(i);
             var gc = findCase(i.case);
@@ -2318,17 +2328,23 @@
         }).join("");
         var invoicedCases = {};
         INVOICES.forEach(function (i) { invoicedCases[i.case] = true; });
-        var genOnlyRows = DOCGEN.filter(function (g) { return !invoicedCases[g.case]; }).map(function (g) {
+        /* 未有發票記錄、只有文件生成嘅個案：揀咗篩選就唔顯示（佢哋冇類別／付款狀態） */
+        var showGenOnly = state.invCat === "全部" && state.invPay === "全部" && !state.invQuery;
+        var genOnlyRows = showGenOnly ? DOCGEN.filter(function (g) { return !invoicedCases[g.case]; }).map(function (g) {
           var gc = findCase(g.case);
           return "<tr><td data-label='預覽 / Invoice No.'><span class='muted'>—</span></td>" +
             "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(g.case) + "'>" + esc(g.case) + "</a>" + (gc ? "<div class='muted small'>" + esc(gc.shipper || "") + "</div>" : "") + "</td>" +
             "<td data-label='類別'><span class='muted'>—</span></td><td data-label='日期'><span class='muted'>—</span></td>" +
             "<td data-label='金額' class='num'><span class='muted'>—</span></td><td data-label='付款狀態'><span class='muted'>—</span></td>" +
             "<td data-label='文件生成'>" + genCell(g.case) + "</td></tr>";
-        }).join("");
+        }).join("") : "";
+        var bodyRows = invRows + genOnlyRows;
+        if (!bodyRows) bodyRows = '<tr><td colspan="7" class="muted">沒有符合條件的發票</td></tr>';
         return '<div class="page-head"><div><h1>發票</h1><div class="sub">Invoice No. 與 Job No. 共用同一統一編號；有飛書原檔嘅發票，縮圖係原檔第一頁，撳入即開原檔</div></div></div>' +
+          '<div class="toolbar">' + segHtml("invcat", ["全部", "客人發票", "供應商發票"], state.invCat) + segHtml("invpay", ["全部", "未收", "已收", "未付", "已付"], state.invPay) +
+          '<input id="invoice-search" type="search" placeholder="搜尋編號 / 個案 / Shipper" value="' + esc(state.invQuery) + '"></div>' +
           '<h2 class="section-title">發票列表</h2>' +
-          '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / Invoice No.</th><th>個案</th><th>類別</th><th>日期</th><th style="text-align:right">金額</th><th>付款狀態</th><th>文件生成（DocuGenius）</th></tr></thead><tbody>' + invRows + genOnlyRows + "</tbody></table></div>" +
+          '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / Invoice No.</th><th>個案</th><th>類別</th><th>日期</th><th style="text-align:right">金額</th><th>付款狀態</th><th>文件生成（DocuGenius）</th></tr></thead><tbody>' + bodyRows + "</tbody></table></div>" +
           '<div class="note-box" style="margin-top:14px">客人發票 BILL TO 目前顯示「COMPANY NAME」（樣本遮蓋了真實名稱），正式出單前須填上客戶真實名稱。發票上款：ALPHA MASTER LOGISTICS LIMITED，荃灣白田壩街 5-21 號嘉力工業中心 A 座 9 樓 17 室，Tel (852) 3500 7163。下款收款銀行：HSBC Hong Kong，戶口 819-860339-838（USD/HKD），SWIFT HSBCHKHHHKH。</div>';
       }
 
@@ -2883,6 +2899,16 @@
         if (portSel2) {
           portSel2.addEventListener("change", function () { state.casePort = portSel2.value; render(); });
         }
+        var isearch = document.getElementById("invoice-search");
+        if (isearch) {
+          isearch.addEventListener("input", function () {
+            state.invQuery = isearch.value;
+            var pos = isearch.selectionStart;
+            render();
+            var s4 = document.getElementById("invoice-search");
+            if (s4) { s4.focus(); s4.setSelectionRange(pos, pos); }
+          });
+        }
         var qsearch = document.getElementById("quote-search");
         if (qsearch) {
           qsearch.addEventListener("input", function () {
@@ -3328,7 +3354,7 @@
         else if (t.hasAttribute("data-open-case")) { ev.preventDefault(); openCase(t.getAttribute("data-open-case")); }
         else if (t.hasAttribute("data-seg")) {
           var kind = t.getAttribute("data-seg"), val = canon(t.getAttribute("data-val"));
-          if (kind === "type") state.caseType = val; else if (kind === "dir") state.caseDir = val; else if (kind === "qstatus") state.quoteStatus = val; else if (kind === "qtype") state.quoteType = val; else state.caseStatus = val;
+          if (kind === "type") state.caseType = val; else if (kind === "dir") state.caseDir = val; else if (kind === "qstatus") state.quoteStatus = val; else if (kind === "qtype") state.quoteType = val; else if (kind === "invcat") state.invCat = val; else if (kind === "invpay") state.invPay = val; else state.caseStatus = val;
           render();
         } else if (t.hasAttribute("data-newtype")) {
           state.newType = canon(t.getAttribute("data-newtype"));
