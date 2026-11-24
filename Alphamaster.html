@@ -532,6 +532,10 @@
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"/></svg>
           <span data-nav-label>Charge Items</span>
         </button>
+        <button class="nav-btn" data-nav="customers" type="button">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5"/></svg>
+          <span data-nav-label>Customers</span>
+        </button>
         <button class="nav-btn" data-nav="users" type="button" id="nav-users-btn" style="display:none">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.2 3.4-5 6.5-5s5.7 1.8 6.5 5"/><path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M17.5 15.3c2 .6 3.4 2.2 4 4.7"/></svg>
           <span data-nav-label>User Management</span>
@@ -654,7 +658,7 @@
     <script>
       "use strict";
       var content = document.getElementById("content");
-      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "" };
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "", custQuery: "", custBusy: false };
 
       /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
       var ZH_EN = [
@@ -1092,6 +1096,17 @@
         ["送貨日期", "Delivery Date"],
         ["聯絡人", "Contact"],
         ["電話", "Phone"],
+        ["客戶", "Customers"],
+        ["新增客戶", "Add Customer"],
+        ["公司名稱", "Company Name"],
+        ["地址", "Address"],
+        ["電郵", "Email"],
+        ["客戶編號", "Customer Code"],
+        ["未有客戶記錄", "No customers yet"],
+        ["沒有符合條件的客戶", "No customers match the search."],
+        ["新增失敗：", "Add failed: "],
+        ["參考版未能寫入飛書，請喺正式版再新增客戶", "Snapshot mode cannot write to Feishu. Please add the customer in the live version."],
+        ["已新增客戶：", "Customer added: "],
         ["重量 (KG)", "Weight (KG)"],
         ["試查：", "Try: "],
         ["效果", "Effect"],
@@ -2697,6 +2712,36 @@
         var sum = list.reduce(function (s, ch) { return s + ch.amount; }, 0);
         return '<h2 class="section-title">' + esc(title) + '（<span class="mono">' + esc(ref) + "</span>）</h2>" + chargeTable(list, totals(ref).rev || sum, "合計 (HKD)");
       }
+      function viewCustomers() {
+        var q = (state.custQuery || "").toLowerCase();
+        var list = CUSTOMERS.filter(function (c) {
+          if (!q) return true;
+          var hay = [c.code, c.name, c.contact, c.phone, c.email, c.address].join(" ").toLowerCase();
+          return hay.indexOf(q) >= 0;
+        });
+        var head = '<div class="page-head"><div><h1>客戶</h1><div class="sub">飛書客戶表一覽；開新單／報價揀客戶都係用呢張表</div></div></div>' +
+          '<div class="toolbar"><div class="seg-search"><input id="cust-search" type="search" placeholder="搜尋公司 / 聯絡人 / 電話 / 電郵" value="' + esc(state.custQuery) + '"></div></div>' +
+          '<div class="card"><h2 class="section-title">新增客戶</h2>' +
+          '<div class="form-grid">' +
+          '<div class="field wide"><label for="cust-name">公司名稱（必填）</label><input id="cust-name" type="text" /></div>' +
+          '<div class="field"><label for="cust-contact">聯絡人</label><input id="cust-contact" type="text" /></div>' +
+          '<div class="field"><label for="cust-phone">電話</label><input id="cust-phone" type="text" /></div>' +
+          '<div class="field"><label for="cust-email">電郵</label><input id="cust-email" type="text" /></div>' +
+          '<div class="field wide"><label for="cust-address">地址</label><input id="cust-address" type="text" /></div>' +
+          "</div>" +
+          '<div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap"><button class="btn small" type="button" id="cust-add">儲存客戶</button></div>' +
+          '<div id="cust-result" style="margin-top:10px"></div></div>';
+        if (!CUSTOMERS.length) return head + '<div class="note-box">未有客戶記錄</div>';
+        if (!list.length) return head + '<div class="note-box">沒有符合條件的客戶</div>';
+        var rows = list.map(function (c) {
+          var qc = 0;
+          QUOTATIONS.forEach(function (qt) { if (qt.customerId && qt.customerId === c.recordId) qc++; });
+          return "<tr><td data-label='客戶編號'>" + esc(c.code) + "</td><td data-label='公司名稱'><strong>" + esc(c.name) + "</strong></td><td data-label='聯絡人'>" + esc(c.contact) + "</td><td data-label='電話'>" + esc(c.phone) + "</td><td data-label='電郵'>" + esc(c.email) + "</td><td data-label='地址'>" + esc(c.address) + "</td><td data-label='報價' class='num'>" + qc + "</td></tr>";
+        }).join("");
+        return head + '<h2 class="section-title">客戶列表（共 ' + list.length + " 間" + (q ? "，已篩選" : "") + '）</h2>' +
+          '<div class="table-wrap"><table class="data"><thead><tr><th>客戶編號</th><th>公司名稱</th><th>聯絡人</th><th>電話</th><th>電郵</th><th>地址</th><th style="text-align:right">報價</th></tr></thead><tbody>' + rows + "</tbody></table></div>";
+      }
+
       function viewCharges() {
         var head = '<div class="page-head"><div><h1>收費項目</h1><div class="sub">飛書標準費率與實際個案收費一覽</div></div></div>';
         if (RATES.length) {
@@ -2739,6 +2784,7 @@
         else if (state.view === "docs") html = viewDocs();
         else if (state.view === "docsettings") html = viewDocSettings();
         else if (state.view === "charges") html = viewCharges();
+        else if (state.view === "customers") html = viewCustomers();
         else if (state.view === "users") html = viewUsers();
         content.innerHTML = trText(html);
         applyStaticLang();
@@ -2929,6 +2975,46 @@
             render();
             var s3 = document.getElementById("quote-search");
             if (s3) { s3.focus(); s3.setSelectionRange(pos, pos); }
+          });
+        }
+        var csearch = document.getElementById("cust-search");
+        if (csearch) {
+          csearch.addEventListener("input", function () {
+            state.custQuery = csearch.value;
+            var pos = csearch.selectionStart;
+            render();
+            var s5 = document.getElementById("cust-search");
+            if (s5) { s5.focus(); s5.setSelectionRange(pos, pos); }
+          });
+        }
+        var custAdd = document.getElementById("cust-add");
+        if (custAdd) {
+          custAdd.addEventListener("click", function () {
+            if (state.custBusy) return;
+            var gv = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ""; };
+            var res = document.getElementById("cust-result");
+            var nm = gv("cust-name");
+            if (!nm) { if (res) res.innerHTML = trText('<span class="small" style="color:#c0392b">請先填公司名稱</span>'); return; }
+            if (state.dataMode !== "live") { if (res) res.innerHTML = trText('<span class="small" style="color:#c0392b">參考版未能寫入飛書，請喺正式版再新增客戶</span>'); return; }
+            state.custBusy = true;
+            custAdd.disabled = true;
+            apiJson("/api/customers", "POST", { name: nm, contact: gv("cust-contact") || undefined, phone: gv("cust-phone") || undefined, email: gv("cust-email") || undefined, address: gv("cust-address") || undefined }).then(function (r) {
+              state.custBusy = false;
+              custAdd.disabled = false;
+              if (!r.body || !r.body.ok || !r.body.customer) { if (res) res.innerHTML = trText('<span class="small" style="color:#c0392b">新增失敗：' + esc(apiErrorText(r, "未知錯誤")) + "</span>"); return; }
+              var ncust = r.body.customer;
+              var mapped = { recordId: ncust.recordId || "", code: ncust.code || "", name: ncust.name || "", address: ncust.address || "", contact: ncust.contact || "", phone: ncust.phone || "", email: ncust.email || "" };
+              var found = false;
+              CUSTOMERS.forEach(function (x) { if (x.recordId === mapped.recordId) found = true; });
+              if (!found) CUSTOMERS.push(mapped);
+              render();
+              var res2 = document.getElementById("cust-result");
+              if (res2) res2.innerHTML = trText('<div class="success-box"><span>已新增客戶：' + esc(mapped.name) + "</span></div>");
+            }).catch(function (e) {
+              state.custBusy = false;
+              custAdd.disabled = false;
+              if (res) res.innerHTML = trText('<span class="small" style="color:#c0392b">新增失敗：' + esc(e && e.message ? e.message : "連線失敗") + "</span>");
+            });
           });
         }
         var qcSel = document.getElementById("quote-customer");
