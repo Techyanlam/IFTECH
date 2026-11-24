@@ -1047,6 +1047,7 @@
         ["業務", "Type"],
         ["狀態", "Status"],
         ["航線", "Route"],
+        ["建立日期", "Create Date"],
         ["個案", "Case"],
         ["類別", "Category"],
         ["日期", "Date"],
@@ -1446,7 +1447,7 @@
           cbmLabel: td.type === "海運" ? "CBM" : td.type === "空運" ? "計費重量 (KG)" : "",
           mawb: rc.mawb || "", hawb: rc.hawb || "", booking: rc.booking || "",
           desc: rc.desc || "", container: rc.container || "",
-          quoteDate: rc.quoteDate || "", validUntil: rc.validUntil || "", extra: "",
+          quoteDate: rc.quoteDate || "", validUntil: rc.validUntil || "", createdAt: rc.createdAt || "", extra: "",
           receiveStatus: rc.receiveStatus || "", payStatus: rc.payStatus || "",
           leakText: rc.leak || "", invoiceDoc: rc.invoiceDoc || "", quotationDoc: rc.quotationDoc || "",
           files: Array.isArray(rc.files) ? rc.files : [],
@@ -1799,14 +1800,14 @@
           '<td data-label="狀態">' + statusBadge(c) + casePayChip(c) + "</td>" +
           '<td data-label="Shipper / Consignee"><div>' + esc(c.shipper || "—") + '</div><div class="muted small">→ ' + esc(c.consignee || "—") + "</div></td>" +
           '<td data-label="航線"><span class="route">' + routeOf(c) + "</span></td>" +
-          '<td data-label="ETD">' + fmtDate(c.etd) + "</td>" + money + "</tr>";
+          '<td data-label="ETD">' + fmtDate(c.etd) + "</td>" + '<td data-label="建立日期">' + fmtDate(c.createdAt) + "</td>" + money + "</tr>";
       }
       function caseTable(list, showMoney) {
-        var head = "<tr><th>Reference No.</th><th>業務</th><th>狀態</th><th>Shipper / Consignee</th><th>航線</th><th>ETD</th>" +
+        var head = "<tr><th>Reference No.</th><th>業務</th><th>狀態</th><th>Shipper / Consignee</th><th>航線</th><th>ETD</th><th>建立日期</th>" +
           (showMoney ? "<th style='text-align:right'>向客收費 (HKD)</th><th style='text-align:right'>供應商成本 (HKD)</th><th style='text-align:right'>利潤 (HKD)</th>" : "") + "</tr>";
         var rows = list.map(function (c) { return caseRow(c, showMoney); }).join("");
         return '<div class="table-wrap"><table class="data"><thead>' + head + "</thead><tbody>" +
-          (rows || '<tr><td colspan="9"><div class="empty-state">沒有符合條件的個案。</div></td></tr>') + "</tbody></table></div>";
+          (rows || '<tr><td colspan="10"><div class="empty-state">沒有符合條件的個案。</div></td></tr>') + "</tbody></table></div>";
       }
       function chargeRows(list, deletable) {
         return list.map(function (ch) {
