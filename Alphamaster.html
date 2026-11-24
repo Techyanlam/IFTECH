@@ -658,7 +658,7 @@
     <script>
       "use strict";
       var content = document.getElementById("content");
-      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "", custQuery: "", custBusy: false, editCustId: "", custImport: null, custImportMsg: null, custEditBusy: false, custImportBusy: false, newQuoteId: "", newQuotePrefill: null };
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "", custQuery: "", custBusy: false, editCustId: "", custImport: null, custImportMsg: null, custEditBusy: false, custImportBusy: false, newQuoteId: "", newQuotePrefill: null, editCaseRef: "", caseEditBusy: false, caseEditErr: "" };
 
       /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
       var ZH_EN = [
@@ -694,6 +694,9 @@
         ["重新整理", "Refresh"],
         ["已於飛書開案，新個案：", "Case opened in Feishu. New case: "],
         ["正在寫入飛書…", "Saving to Feishu…"],
+        ["編輯資料", "Edit details"],
+        ["寫入失敗：", "Write failed: "],
+        ["件數／重量必須係數字", "PCS / weight must be a number"],
         ["已核對", "Checked"],
         ["等候認讀結果時連線失敗，請重新整理後於認讀記錄查看。", "The connection failed while waiting for recognition results. Please refresh and check the intake records."],
         ["建立落單記錄失敗", "Failed to create the intake record"],
@@ -1896,6 +1899,14 @@
 
       /* ---------- 個案詳情 ---------- */
       function kv(k, v) { return '<div class="kv"><div class="k">' + esc(k) + '</div><div class="v">' + esc(v || "") + "</div></div>"; }
+      function kvEdit(k, id, v, kind, listId) {
+        var inner;
+        if (kind === "textarea") inner = '<textarea id="' + id + '" class="search-input" rows="2" style="width:100%">' + esc(v || "") + "</textarea>";
+        else if (kind === "date") inner = '<input id="' + id + '" class="search-input" type="date" value="' + esc(v || "") + '" style="width:100%" />';
+        else if (kind === "number") inner = '<input id="' + id + '" class="search-input" type="number" step="any" min="0" value="' + esc(v || "") + '" style="width:100%" />';
+        else inner = '<input id="' + id + '" class="search-input" type="text" value="' + esc(v || "") + '"' + (listId ? ' list="' + listId + '"' : "") + ' style="width:100%" />';
+        return '<div class="kv"><div class="k">' + esc(k) + '</div><div class="v">' + inner + "</div></div>";
+      }
       function viewDetail(ref) {
         var c = findCase(ref);
         if (!c) return '<p>找不到個案。</p>';
@@ -1953,23 +1964,53 @@
           '<p class="small muted" style="margin:10px 0 0">' + statusHelp + "</p>" +
           notice + "</div>";
 
-        h += '<div class="card"><h2 class="section-title">船期及貨物資料</h2><div class="detail-grid">' +
-          kv("Shipper", c.shipper) + kv("Consignee", c.consignee) + kv("Notify Party", c.notify) +
-          kv("POL（裝貨地）", c.pol) + kv("POD（卸貨地）", c.pod) + kv("Final Destination", c.finalDest) +
-          kv(c.type === "海運" ? "Vessel / Voyage" : "Flight", c.flight) +
-          kv("ETD", fmtDate(c.etd) === "—" ? "" : fmtDate(c.etd)) + kv("ETA", fmtDate(c.eta) === "—" ? "" : fmtDate(c.eta)) +
-          kv("件數 PCS", c.pcs == null ? "" : c.pcs + (c.pcsNote ? "（" + c.pcsNote + "）" : "")) +
-          kv("毛重 Gross Weight (KG)", c.gross == null ? "" : fmtNum(c.gross)) +
-          kv(c.cbmLabel || "計費重量/CBM", c.chargeable == null ? "" : fmtNum(c.chargeable)) +
-          kv(c.type === "海運" ? "MBL No." : "MAWB No.", c.mawb) +
-          kv(c.type === "海運" ? "HBL No." : "HAWB No.", c.hawb) +
-          kv("Booking / S/O No.", c.booking) +
-          kv("櫃號", c.container) +
-          kv("報價日期", fmtDate(c.quoteDate) === "—" ? "" : fmtDate(c.quoteDate)) +
-          kv("有效期至", fmtDate(c.validUntil) === "—" ? "" : fmtDate(c.validUntil)) +
-          kv("貨品描述", c.desc) +
-          (c.extra ? kv("備註", c.extra) : "") +
+        var editing = state.editCaseRef === ref;
+        var shipRows;
+        if (editing) {
+          shipRows =
+            kvEdit("Shipper", "dc-shipper", c.shipper, "text") + kvEdit("Consignee", "dc-consignee", c.consignee, "text") + kvEdit("Notify Party", "dc-notify", c.notify, "text") +
+            kvEdit("POL（裝貨地）", "dc-pol", c.pol, "text", "dc-portlist") + kvEdit("POD（卸貨地）", "dc-pod", c.pod, "text", "dc-portlist") + kvEdit("Final Destination", "dc-final", c.finalDest, "text") +
+            kvEdit(c.type === "海運" ? "Vessel / Voyage" : "Flight", "dc-flight", c.flight, "text") +
+            kvEdit("ETD", "dc-etd", c.etd, "date") + kvEdit("ETA", "dc-eta", c.eta, "date") +
+            kvEdit("件數 PCS", "dc-pcs", c.pcs == null ? "" : String(c.pcs), "number") +
+            kvEdit("毛重 Gross Weight (KG)", "dc-gross", c.gross == null ? "" : String(c.gross), "number") +
+            kvEdit(c.cbmLabel || "計費重量/CBM", "dc-chargeable", c.chargeable == null ? "" : String(c.chargeable), "number") +
+            kvEdit(c.type === "海運" ? "MBL No." : "MAWB No.", "dc-mawb", c.mawb, "text") +
+            kvEdit(c.type === "海運" ? "HBL No." : "HAWB No.", "dc-hawb", c.hawb, "text") +
+            kvEdit("Booking / S/O No.", "dc-booking", c.booking, "text") +
+            kvEdit("櫃號", "dc-container", c.container, "text") +
+            kv("報價日期", fmtDate(c.quoteDate) === "—" ? "" : fmtDate(c.quoteDate)) +
+            kv("有效期至", fmtDate(c.validUntil) === "—" ? "" : fmtDate(c.validUntil)) +
+            kvEdit("貨品描述", "dc-desc", c.desc, "textarea");
+        } else {
+          shipRows =
+            kv("Shipper", c.shipper) + kv("Consignee", c.consignee) + kv("Notify Party", c.notify) +
+            kv("POL（裝貨地）", c.pol) + kv("POD（卸貨地）", c.pod) + kv("Final Destination", c.finalDest) +
+            kv(c.type === "海運" ? "Vessel / Voyage" : "Flight", c.flight) +
+            kv("ETD", fmtDate(c.etd) === "—" ? "" : fmtDate(c.etd)) + kv("ETA", fmtDate(c.eta) === "—" ? "" : fmtDate(c.eta)) +
+            kv("件數 PCS", c.pcs == null ? "" : c.pcs + (c.pcsNote ? "（" + c.pcsNote + "）" : "")) +
+            kv("毛重 Gross Weight (KG)", c.gross == null ? "" : fmtNum(c.gross)) +
+            kv(c.cbmLabel || "計費重量/CBM", c.chargeable == null ? "" : fmtNum(c.chargeable)) +
+            kv(c.type === "海運" ? "MBL No." : "MAWB No.", c.mawb) +
+            kv(c.type === "海運" ? "HBL No." : "HAWB No.", c.hawb) +
+            kv("Booking / S/O No.", c.booking) +
+            kv("櫃號", c.container) +
+            kv("報價日期", fmtDate(c.quoteDate) === "—" ? "" : fmtDate(c.quoteDate)) +
+            kv("有效期至", fmtDate(c.validUntil) === "—" ? "" : fmtDate(c.validUntil)) +
+            kv("貨品描述", c.desc) +
+            (c.extra ? kv("備註", c.extra) : "");
+        }
+        h += '<div class="card"><h2 class="section-title">船期及貨物資料</h2>' +
+          '<div style="margin-bottom:12px">' +
+          (editing
+            ? '<button class="btn primary" type="button" data-case-save="' + esc(ref) + '"' + (state.caseEditBusy ? " disabled" : "") + ">儲存</button> " +
+              '<button class="btn ghost" type="button" data-case-cancel>取消</button>' +
+              (state.caseEditBusy ? ' <span class="small muted">正在寫入飛書…</span>' : "") +
+              (state.caseEditErr ? ' <span class="small" style="color:var(--danger)">寫入失敗：' + esc(state.caseEditErr) + "</span>" : "")
+            : '<button class="btn ghost" type="button" data-case-edit="' + esc(ref) + '">編輯資料</button>') +
           "</div>" +
+          (editing ? '<datalist id="dc-portlist">' + PORTS.map(function (p) { var v = p.code || p.name; return '<option value="' + esc(v) + '">' + esc(p.name + (p.type ? " · " + p.type : "") + (p.country ? " · " + p.country : "")) + "</option>"; }).join("") + "</datalist>" : "") +
+          '<div class="detail-grid">' + shipRows + "</div>" +
           '<div class="summary-strip">' +
           '<div class="s"><div class="k">向客收費總額 (HKD)</div><div class="v">' + fmt(t.rev) + "</div></div>" +
           '<div class="s"><div class="k">供應商成本總額 (HKD)</div><div class="v">' + fmt(t.cost) + "</div></div>" +
@@ -3300,6 +3341,76 @@
             });
           });
         }
+        document.querySelectorAll("[data-case-edit]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            state.editCaseRef = b.getAttribute("data-case-edit");
+            state.caseEditErr = "";
+            render();
+          });
+        });
+        document.querySelectorAll("[data-case-cancel]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            state.editCaseRef = "";
+            state.caseEditErr = "";
+            render();
+          });
+        });
+        document.querySelectorAll("[data-case-save]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            if (state.caseEditBusy) return;
+            var ref = b.getAttribute("data-case-save");
+            var c3 = findCase(ref);
+            if (!c3) return;
+            var gv = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ""; };
+            var num = function (id) { var s = gv(id); return s === "" ? "" : Number(s); };
+            var body = {
+              shipper: gv("dc-shipper"), consignee: gv("dc-consignee"), notify: gv("dc-notify"),
+              pol: gv("dc-pol").toUpperCase(), pod: gv("dc-pod").toUpperCase(), final: gv("dc-final"),
+              flight: gv("dc-flight"), etd: gv("dc-etd"), eta: gv("dc-eta"),
+              pcs: num("dc-pcs"), gross: num("dc-gross"), chargeable: num("dc-chargeable"),
+              mawb: gv("dc-mawb"), hawb: gv("dc-hawb"), booking: gv("dc-booking"),
+              container: gv("dc-container"), desc: gv("dc-desc")
+            };
+            if (body.pcs !== "" && !isFinite(body.pcs)) { alert(trText("件數／重量必須係數字")); return; }
+            if (body.gross !== "" && !isFinite(body.gross)) { alert(trText("件數／重量必須係數字")); return; }
+            if (body.chargeable !== "" && !isFinite(body.chargeable)) { alert(trText("件數／重量必須係數字")); return; }
+            if (state.dataMode === "live") {
+              if (!c3.recordId) { render(); return; }
+              state.caseEditBusy = true;
+              state.caseEditErr = "";
+              render();
+              apiJson("/api/cases/" + encodeURIComponent(c3.recordId), "PATCH", body).then(function (r) {
+                state.caseEditBusy = false;
+                if (!r.body || !r.body.ok || !r.body.case) {
+                  state.caseEditErr = apiErrorText(r, "未知錯誤");
+                  render();
+                  return;
+                }
+                var updated = normCase(r.body.case);
+                var idx = CASES.indexOf(c3);
+                if (idx >= 0) CASES[idx] = updated;
+                DOCGEN = deriveDocGen();
+                state.editCaseRef = "";
+                state.detailRef = updated.ref;
+                render();
+              }).catch(function (e) {
+                state.caseEditBusy = false;
+                state.caseEditErr = e && e.message ? e.message : "連線失敗";
+                render();
+              });
+              return;
+            }
+            c3.shipper = body.shipper; c3.consignee = body.consignee; c3.notify = body.notify;
+            c3.pol = body.pol; c3.pod = body.pod; c3.finalDest = body.final;
+            c3.flight = body.flight; c3.etd = body.etd; c3.eta = body.eta;
+            c3.pcs = body.pcs === "" ? null : body.pcs; c3.gross = body.gross === "" ? null : body.gross;
+            c3.chargeable = body.chargeable === "" ? null : body.chargeable;
+            c3.mawb = body.mawb; c3.hawb = body.hawb; c3.booking = body.booking;
+            c3.container = body.container; c3.desc = body.desc;
+            state.editCaseRef = "";
+            render();
+          });
+        });
         var qcSel = document.getElementById("quote-customer");
         if (qcSel) {
           qcSel.addEventListener("change", function () { state.quoteCustomer = qcSel.value; render(); });
