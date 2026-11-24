@@ -1574,9 +1574,10 @@
         return '<button type="button" class="doc-thumb ' + k.cls + '" data-preview-invoice="' + idx + '" aria-label="' + esc(k.short) + " " + esc(inv.no) + '" title="撳入預覽">' +
           '<div class="dt-title">' + esc(k.short) + '</div><div class="dt-sub">' + esc(inv.no) + "</div>" + thumbLinesHtml() + "</button>";
       }
-      function previewInvBtn(inv, gi) {
+      /* 發票只留一個「查看」連結去 Invoice 檔案欄（有原檔先出連結；冇原檔先留預覽掣開模擬預覽） */
+      function invoiceViewLink(inv, gi) {
         var f = invoiceFileOf(inv);
-        if (f) return "<a class='preview-link' data-file-link target='_blank' rel='noopener' href='" + esc(fileUrlOf(f.token, f.extra)) + "'>預覽發票</a>";
+        if (f) return "<a class='preview-link' data-file-link target='_blank' rel='noopener' href='" + esc(fileUrlOf(f.token, f.extra)) + "'>查看</a>";
         return "<button type='button' class='preview-link' data-preview-invoice='" + gi + "'>預覽發票</button>";
       }
       function previewDocBtn(d, gi) {
@@ -2016,7 +2017,7 @@
           h += '<div class="table-wrap"><table class="data"><thead><tr><th>預覽 / Invoice No.</th><th>類別</th><th>日期</th><th style="text-align:right">金額</th><th>付款狀態</th></tr></thead><tbody>' +
             invs.map(function (i) {
               var gi = INVOICES.indexOf(i);
-              return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, gi) + "<div class='doc-meta'><div class='mono'>" + esc(i.no) + "</div>" + previewInvBtn(i, gi) + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td><td data-label='類別'>" + esc(i.cat) + "</td><td data-label='日期'>" + fmtDate(i.date) + (i.creator ? "<div class='muted small'>建立者：" + esc(i.creator) + "</div>" : "") + "</td><td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td><td data-label='付款狀態'>" + payCellHtml(i) + "</td></tr>";
+              return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, gi) + "<div class='doc-meta'><div class='mono'>" + esc(i.no) + "</div>" + invoiceViewLink(i, gi) + "</div></div></td><td data-label='類別'>" + esc(i.cat) + "</td><td data-label='日期'>" + fmtDate(i.date) + (i.creator ? "<div class='muted small'>建立者：" + esc(i.creator) + "</div>" : "") + "</td><td data-label='金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td><td data-label='付款狀態'>" + payCellHtml(i) + "</td></tr>";
             }).join("") + "</tbody></table></div>";
         } else {
           h += '<div class="note-box">本案暫無發票記錄。</div>';
@@ -2330,7 +2331,7 @@
           return g.items.map(function (i) {
             var idx = INVOICES.indexOf(i);
             var gc = findCase(i.case);
-            return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, idx) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div>" + previewInvBtn(i, idx) + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td>" +
+            return "<tr><td data-label='預覽 / Invoice No.'><div class='doc-cell'>" + invoiceThumbHtml(i, idx) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div>" + invoiceViewLink(i, idx) + "</div></div></td>" +
               "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(i.case) + "'>" + esc(i.case) + "</a>" + (gc ? "<div class='muted small'>" + esc(gc.shipper || "") + "</div>" : "") + "</td>" +
               "<td data-label='類別'>" + (i.cat === "客人發票" ? '<span class="badge badge-info">客人發票</span>' : '<span class="badge badge-grey">供應商發票</span>') + "</td>" +
               "<td data-label='日期'>" + fmtDate(i.date) + (i.creator ? "<div class='muted small'>建立者：" + esc(i.creator) + (i.createdAt ? " · " + esc(i.createdAt) : "") + "</div>" : "") + "</td>" +
@@ -2635,7 +2636,7 @@
           var cusTxt = chk.cus.length ? chk.cus.map(function (x) { return '<span class="mono">' + esc(x.no) + "</span><div class='small muted'>" + fmtDate(x.date) + " · " + esc(x.pay) + "</div>"; }).join("") : '<span class="badge badge-danger">未出</span>';
           var verdictBadge = chk.kind === "leak" ? '<span class="badge badge-danger">未向客人開票</span>' : chk.kind === "ok" ? '<span class="badge badge-ok">已向客人開票</span>' : '<span class="badge badge-grey">待核對</span>';
           var billKey = c.hawb || c.mawb || "";
-          return "<tr><td data-label='供應商發票'><div class='doc-cell'>" + invoiceThumbHtml(i, INVOICES.indexOf(i)) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div><div class='small muted'>" + fmtDate(i.date) + " · " + esc(i.pay) + "</div>" + previewInvBtn(i, INVOICES.indexOf(i)) + viewFileBtnObj(invoiceFileOf(i)) + "</div></div></td>" +
+          return "<tr><td data-label='供應商發票'><div class='doc-cell'>" + invoiceThumbHtml(i, INVOICES.indexOf(i)) + "<div class='doc-meta'><div class='mono'><strong>" + esc(i.no) + "</strong></div><div class='small muted'>" + fmtDate(i.date) + " · " + esc(i.pay) + "</div>" + invoiceViewLink(i, INVOICES.indexOf(i)) + "</div></div></td>" +
             "<td data-label='個案'><a class='ref-link mono' href='#' data-open-case='" + esc(i.case) + "'>" + esc(i.case) + "</a><div class='small muted'>" + esc(billNosOf(c)) + "</div></td>" +
             "<td data-label='供應商金額' class='num'>" + esc(i.curr) + " " + fmt(i.total) + "</td>" +
             "<td data-label='客人發票'>" + cusTxt + "</td>" +
