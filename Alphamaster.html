@@ -1822,7 +1822,7 @@
           return "<th" + (right ? " style='text-align:right'" : "") + "><button type='button' class='sort-th' data-sort-key='" + key + "'>" + label + arrow + "</button></th>";
         };
         var head = "<tr>" + th("created", "建立日期") + th("ref", "Reference No.") + th("type", "業務") + th("status", "狀態") + th("shipper", "Shipper / Consignee") + th("route", "航線") + th("etd", "ETD") +
-          (showMoney ? th("rev", "向客收費 (HKD)", true) + th("cost", "供應商成本 (HKD)", true) + th("profit", "利潤 (HKD)", true) : "") + (deletable ? "<th class='sticky-action'></th>" : "") + "</tr>";
+          (showMoney ? th("rev", "向客收費 (HKD)", true) + th("cost", "供應商成本 (HKD)", true) + th("profit", "利潤 (HKD)", true) : "") + "</tr>";
         var rows = list.map(function (c) { return caseRow(c, showMoney); }).join("");
         return '<div class="table-wrap"><table class="data"><thead>' + head + "</thead><tbody>" +
           (rows || '<tr><td colspan="10"><div class="empty-state">沒有符合條件的個案。</div></td></tr>') + "</tbody></table></div>";
@@ -1864,7 +1864,7 @@
         }).join("");
       }
       function chargeTable(list, subtotal, label, deletable) {
-        return '<div class="table-wrap"><table class="data"><thead><tr><th>收費項目</th><th>貨幣</th><th style="text-align:right">單價</th><th>單位</th><th style="text-align:right">數量</th><th style="text-align:right">金額 (HKD)</th>' + (deletable ? "<th></th>" : "") + '</tr></thead><tbody>' +
+        return '<div class="table-wrap"><table class="data"><thead><tr><th>收費項目</th><th>貨幣</th><th style="text-align:right">單價</th><th>單位</th><th style="text-align:right">數量</th><th style="text-align:right">金額 (HKD)</th>' + (deletable ? "<th class='sticky-action'></th>" : "") + '</tr></thead><tbody>' +
           chargeRows(list, deletable) + '</tbody><tfoot><tr><td data-label="">' + label + '</td><td></td><td></td><td></td><td></td><td class="num">' + fmt(subtotal) + "</td>" + (deletable ? "<td class='sticky-action'></td>" : "") + "</tr></tfoot></table></div>";
       }
 
