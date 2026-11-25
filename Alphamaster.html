@@ -2872,8 +2872,52 @@
         var fxIn = fxEl ? Number(fxEl.value) : NaN;
         amt.textContent = fmt(price * qty * (fxIn > 0 ? fxIn : (FX_HKD[curr] || 1)));
       }
+      /* 樣本收費（2026-11-20 清空交客前嘅種子數據；四宗樣本個案已刪，飛書已無呢啲行，
+         所以 live 無數嗰陣用返呢份內置樣本，唔好留空表。金額按當時匯率 CNY 1.153／USD 7.85 計。 */
+      var SAMPLE_CHARGES = {
+        "AMLA2606040": [
+          { name: "AIR FREIGHT", curr: "CNY", price: 12, unit: "KG", qty: 1336, amount: 18484.896, rate: 1.153 },
+          { name: "PICKING UP & LOCAL CHARGE", curr: "CNY", price: 6334.64, unit: "SHPT", qty: 1, amount: 7303.83992, rate: 1.153 },
+          { name: "AIRPORT TERMINAL CHARGE", curr: "USD", price: 169, unit: "SHPT", qty: 1, amount: 1326.65, rate: 7.85 },
+          { name: "CUSTOM BROKER FEE", curr: "USD", price: 65, unit: "SHPT", qty: 1, amount: 510.25, rate: 7.85 },
+          { name: "CUSTOM DUTY & VAT", curr: "USD", price: 1690, unit: "SHPT", qty: 1, amount: 13266.5, rate: 7.85 },
+          { name: "TRUCKING FEE", curr: "USD", price: 546, unit: "SHPT", qty: 1, amount: 4286.1, rate: 7.85 },
+          { name: "ELEVATOR GUARD PER 1EA", curr: "USD", price: 120, unit: "SHPT", qty: 1, amount: 942, rate: 7.85 },
+          { name: "UNLOADING FROM TRUCK PER LIFT", curr: "USD", price: 97.5, unit: "SHPT", qty: 1, amount: 765.375, rate: 7.85 },
+          { name: "MOVE TO UPSTAIRS", curr: "USD", price: 299, unit: "SHPT", qty: 1, amount: 2347.15, rate: 7.85 },
+          { name: "HANDLING FEE", curr: "USD", price: 115, unit: "SHPT", qty: 1, amount: 902.75, rate: 7.85 },
+          { name: "AIR FREIGHT (FOR GAS LIFT)", curr: "CNY", price: 845, unit: "SHPT", qty: 1, amount: 974.285, rate: 1.153 }
+        ],
+        "AMLS2608022": [
+          { name: "OCEAN FREIGHT CHARGE", curr: "USD", price: 100, unit: "CBM", qty: 11.44, amount: 8980.4, rate: 7.85 },
+          { name: "ADMINISTRATION CHARGE", curr: "USD", price: 15, unit: "SHPT", qty: 1, amount: 117.75, rate: 7.85 },
+          { name: "AMS FEE", curr: "USD", price: 51.61, unit: "SHPT", qty: 1, amount: 405.1385, rate: 7.85 },
+          { name: "CFS CHARGE", curr: "USD", price: 25.55, unit: "CBM", qty: 11.44, amount: 2294.4922, rate: 7.85 },
+          { name: "DELIVERY CHARGE", curr: "USD", price: 180, unit: "SHPT", qty: 1, amount: 1413, rate: 7.85 },
+          { name: "DOCUMENTATION CHARGE", curr: "USD", price: 77.42, unit: "SET", qty: 1, amount: 607.747, rate: 7.85 },
+          { name: "HANDLING CHARGE", curr: "USD", price: 38.71, unit: "SHPT", qty: 1, amount: 303.8735, rate: 7.85 },
+          { name: "REGRISTRATION FEE", curr: "USD", price: 94.19, unit: "SHPT", qty: 1, amount: 739.3915, rate: 7.85 },
+          { name: "PALLET FEE", curr: "USD", price: 64.52, unit: "PLT", qty: 2, amount: 1012.964, rate: 7.85 }
+        ],
+        "AML2610063": [
+          { name: "TERMINAL CHARGE", curr: "HKD", price: 1.68, unit: "KG", qty: 653, amount: 1097.04 },
+          { name: "AIRLINES DOCUMENT CHARGE", curr: "HKD", price: 13, unit: "SHPT", qty: 1, amount: 13 },
+          { name: "IMPORT DECLARATION CHARGE", curr: "HKD", price: 150, unit: "SHPT", qty: 1, amount: 150 },
+          { name: "DELIVERY CHARGE", curr: "HKD", price: 0.7, unit: "KG", qty: 1170, amount: 819 }
+        ],
+        "AML2609082": [
+          { name: "CHARGES OF SHIPPING COMPANY", curr: "HKD", price: 1540, unit: "SHPT", qty: 1, amount: 1540 },
+          { name: "HANDLING CHARGE", curr: "HKD", price: 300, unit: "SHPT", qty: 1, amount: 300 },
+          { name: "IMPORT DECLARATION FEE", curr: "HKD", price: 263, unit: "SHPT", qty: 1, amount: 263 },
+          { name: "REGISTRATION FEE", curr: "HKD", price: 960, unit: "SHPT", qty: 1, amount: 960 },
+          { name: "GATE CHARGE", curr: "HKD", price: 150, unit: "SHPT", qty: 1, amount: 150 },
+          { name: "PARKING FEE", curr: "HKD", price: 330, unit: "SHPT", qty: 1, amount: 330 },
+          { name: "DELIVERY CHARGE TO CFS WAREHOUSE", curr: "HKD", price: 700, unit: "SHPT", qty: 1, amount: 700 }
+        ]
+      };
       function chargeCatalog(title, ref) {
         var list = CHARGES.filter(function (ch) { return ch.case === ref && ch.cat === "向客收費"; });
+        if (!list.length && SAMPLE_CHARGES[ref]) list = SAMPLE_CHARGES[ref];
         var sum = list.reduce(function (s, ch) { return s + ch.amount; }, 0);
         return '<h2 class="section-title">' + esc(title) + '（<span class="mono">' + esc(ref) + "</span>）</h2>" + chargeTable(list, totals(ref).rev || sum, "合計 (HKD)");
       }
