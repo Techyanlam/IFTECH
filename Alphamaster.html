@@ -1207,7 +1207,7 @@
       function noticeInfo() {
         if (state.dataMode === "live") return { title: "已接駁飛書（即時數據）", text: "數據即時來自飛書 Base；於本網站進行的操作（開案、轉換狀態、落單開案）會直接寫入飛書。" + (state.workerVersion ? "（Worker " + state.workerVersion + "）" : ""), btn: "重新整理" };
         if (state.dataMode === "loading") return { title: "正在連接飛書", text: "正在向後端 Worker 查核飛書連接；連接成功後會自動轉為即時數據，其間先顯示資料快照。", btn: "重新連接" };
-        return { title: "參考版（快照）", text: "後端 Worker 尚未設定飛書密鑰或暫時未能連接，現顯示空白快照（系統已於 2026 年 11 月 20 日清空交客）；於本網站進行的操作不會寫入飛書。", btn: "重新連接" };
+        return { title: "參考版（快照）", text: "後端 Worker 尚未設定飛書密鑰或暫時未能連接，現顯示空白快照（系統已於 2026 年 11 月 20 日清空交客）；於本網站進行的操作不會寫入飛書。" + (state.connectErr ? "（上次連接失敗：" + state.connectErr + "）" : ""), btn: "重新連接" };
       }
       function applyStaticLang() {
         var en = state.lang === "en";
@@ -1400,7 +1400,7 @@
         var ctrl = ("AbortController" in window) ? new AbortController() : null;
         var init = opts || {};
         var isWrite = !!(init.method && init.method !== "GET");
-        var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, isWrite ? 90000 : 20000) : null;
+        var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, isWrite ? 90000 : 45000) : null;
         if (ctrl) init.signal = ctrl.signal;
         if (typeof AUTH !== "undefined" && AUTH.token) {
           init.headers = Object.assign({}, init.headers || {}, { "Authorization": "Bearer " + AUTH.token });
@@ -1533,7 +1533,8 @@
       function fetchAllLive() {
         /* 首選 /api/bootstrap：一次請求攞齊（Worker 內部並行讀飛書）；
            未登入（401/403）唔好 fallback，直接拋出等登入流程處理；
-           端點唔存在（舊版 Worker）先用返逐個請求嘅舊路。 */
+           只有 404（舊版 Worker 冇呢個端點）先用返逐個請求嘅舊路；
+           其他失敗係後端／飛書本身有問題，行舊路都係讀同一批表，唔好再燒多一輪時間。 */
         return apiFetch("/api/bootstrap").then(function (r) {
           if (r.status === 401 || r.status === 403) throw new Error("auth_required");
           if (r.status === 200 && r.body && r.body.ok === true && r.body.cases) {
@@ -1544,10 +1545,12 @@
               customers: { customers: b.customers }, ports: { ports: b.ports }, fx: b.fx, quotations: { quotations: b.quotations }
             };
           }
-          return fetchAllLiveLegacy();
+          if (r.status === 404) return fetchAllLiveLegacy();
+          throw new Error("bootstrap HTTP " + r.status + (r.body && r.body.error ? " (" + r.body.error + ")" : ""));
         }).catch(function (e) {
           if (e && e.message === "auth_required") throw e;
-          return fetchAllLiveLegacy();
+          if (e && e.name === "AbortError") throw new Error("bootstrap timeout (45s)");
+          throw e;
         });
       }
       function fetchAllLiveLegacy() {
@@ -1583,14 +1586,15 @@
           return fetchAllLive().then(function (bodies) {
             applyLiveData(bodies);
             state.dataMode = "live";
+            state.connectErr = "";
             render();
             return true;
           });
-        }).catch(function () { enterSnapshot(); return false; });
+        }).catch(function (e) { state.connectErr = (e && e.message) || "unknown"; enterSnapshot(); return false; });
       }
       function refreshLive() {
         if (state.dataMode !== "live") { connectLive(); return; }
-        fetchAllLive().then(function (bodies) { applyLiveData(bodies); render(); }).catch(function () { enterSnapshot(); });
+        fetchAllLive().then(function (bodies) { applyLiveData(bodies); render(); }).catch(function (e) { state.connectErr = (e && e.message) || "unknown"; enterSnapshot(); });
       }
 
       /* ---------- 文件縮圖與預覽 ---------- */
