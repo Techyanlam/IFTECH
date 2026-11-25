@@ -658,7 +658,7 @@
     <script>
       "use strict";
       var content = document.getElementById("content");
-      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "", custQuery: "", custBusy: false, editCustId: "", custImport: null, custImportMsg: null, custEditBusy: false, custImportBusy: false, newQuoteId: "", newQuotePrefill: null, editCaseRef: "", caseEditBusy: false, caseEditErr: "" };
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "", custQuery: "", custBusy: false, editCustId: "", custImport: null, custImportMsg: null, custEditBusy: false, custImportBusy: false, newQuoteId: "", newQuotePrefill: null, editCaseRef: "", caseEditBusy: false, caseEditErr: "", editChargeId: "", chargeEditBusy: false, chargeEditErr: "" };
 
       /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
       var ZH_EN = [
@@ -697,6 +697,10 @@
         ["編輯資料", "Edit details"],
         ["寫入失敗：", "Write failed: "],
         ["件數／重量必須係數字", "PCS / weight must be a number"],
+        ["收費項目唔可以留空", "Charge name is required"],
+        ["單價必須係 0 或以上嘅數字", "Unit price must be 0 or above"],
+        ["數量必須係大過 0 嘅數字", "Quantity must be greater than 0"],
+        ["匯率必須係大過 0 嘅數字", "Rate must be greater than 0"],
         ["已核對", "Checked"],
         ["等候認讀結果時連線失敗，請重新整理後於認讀記錄查看。", "The connection failed while waiting for recognition results. Please refresh and check the intake records."],
         ["建立落單記錄失敗", "Failed to create the intake record"],
@@ -1812,10 +1816,31 @@
       }
       function chargeRows(list, deletable) {
         return list.map(function (ch) {
+          if (deletable && ch.recordId && state.editChargeId === ch.recordId) {
+            var ratePh = "參考 " + (ch.rate > 0 ? ch.rate : refRate(ch.curr));
+            var currOpts = ["HKD", "USD", "CNY", "EUR"].map(function (c) {
+              return '<option value="' + c + '"' + (ch.curr === c ? " selected" : "") + ">" + c + "</option>";
+            }).join("");
+            var catOpts = ["向客收費", "供應商成本"].map(function (c) {
+              return '<option value="' + esc(c) + '"' + (ch.cat === c ? " selected" : "") + ">" + esc(c) + "</option>";
+            }).join("");
+            return "<tr><td data-label='收費項目'><input id='ce-name' class='search-input' type='text' value='" + esc(ch.name) + "' style='width:100%' />" +
+              "<select id='ce-cat' class='search-input' style='width:100%;margin-top:4px'>" + catOpts + "</select></td>" +
+              "<td data-label='貨幣'><select id='ce-curr' class='search-input' style='width:100%'>" + currOpts + "</select></td>" +
+              "<td data-label='單價' class='num'><input id='ce-price' class='search-input' type='number' step='any' min='0' value='" + esc(ch.price == null ? "" : String(ch.price)) + "' style='width:100%;text-align:right' />" +
+              "<div class='small muted' style='margin-top:4px'>匯率 <input id='ce-rate' class='search-input' type='number' step='any' min='0' value='" + esc(ch.rate > 0 ? String(ch.rate) : "") + "' placeholder='" + esc(ratePh) + "' style='width:84px' /></div></td>" +
+              "<td data-label='單位'><input id='ce-unit' class='search-input' type='text' value='" + esc(ch.unit) + "' style='width:100%' /></td>" +
+              "<td data-label='數量' class='num'><input id='ce-qty' class='search-input' type='number' step='any' min='0' value='" + esc(ch.qty == null ? "" : String(ch.qty)) + "' style='width:100%;text-align:right' /></td>" +
+              "<td data-label='金額 (HKD)' class='num'>" + fmt(ch.amount) + "</td>" +
+              "<td data-label=''><button type='button' class='btn primary' data-charge-save='" + esc(ch.recordId) + "'" + (state.chargeEditBusy ? " disabled" : "") + ">儲存</button> " +
+              "<button type='button' class='btn ghost' data-charge-cancel>取消</button>" +
+              (state.chargeEditBusy ? "<div class='small muted' style='margin-top:4px'>正在寫入飛書…</div>" : "") +
+              (state.chargeEditErr ? "<div class='small' style='margin-top:4px;color:var(--danger)'>寫入失敗：" + esc(state.chargeEditErr) + "</div>" : "") + "</td></tr>";
+          }
           var del = "";
           if (deletable && ch.recordId) {
             var pending = state.pendingDeleteCharge === ch.recordId;
-            del = "<td data-label=''><button type='button' class='preview-link' style='color:var(--danger)' data-del-charge='" + esc(ch.recordId) + "'>" + (pending ? "確認刪除？" : "刪除") + "</button></td>";
+            del = "<td data-label=''><button type='button' class='preview-link' data-edit-charge='" + esc(ch.recordId) + "'>編輯</button> <button type='button' class='preview-link' style='color:var(--danger)' data-del-charge='" + esc(ch.recordId) + "'>" + (pending ? "確認刪除？" : "刪除") + "</button></td>";
           }
           return "<tr><td data-label='收費項目'>" + esc(ch.name) + "</td>" +
             "<td data-label='貨幣'>" + esc(ch.curr) + "</td>" +
@@ -3410,6 +3435,82 @@
             c3.mawb = body.mawb; c3.hawb = body.hawb; c3.booking = body.booking;
             c3.container = body.container; c3.desc = body.desc;
             state.editCaseRef = "";
+            render();
+          });
+        });
+        document.querySelectorAll("[data-edit-charge]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            state.editChargeId = b.getAttribute("data-edit-charge");
+            state.chargeEditErr = "";
+            state.pendingDeleteCharge = "";
+            render();
+          });
+        });
+        document.querySelectorAll("[data-charge-cancel]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            state.editChargeId = "";
+            state.chargeEditErr = "";
+            render();
+          });
+        });
+        var ceCurr = document.getElementById("ce-curr");
+        if (ceCurr) {
+          ceCurr.addEventListener("change", function () {
+            var rt = document.getElementById("ce-rate");
+            if (rt) rt.placeholder = "參考 " + refRate(ceCurr.value);
+          });
+        }
+        document.querySelectorAll("[data-charge-save]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            if (state.chargeEditBusy) return;
+            var rid = b.getAttribute("data-charge-save");
+            var ch = null;
+            CHARGES.forEach(function (x) { if (x.recordId === rid) ch = x; });
+            if (!ch) return;
+            var gv = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ""; };
+            var num = function (id) { var s = gv(id); return s === "" ? "" : Number(s); };
+            var name = gv("ce-name");
+            var price = num("ce-price");
+            var qty = num("ce-qty");
+            var rate = num("ce-rate");
+            if (!name) { alert(trText("收費項目唔可以留空")); return; }
+            if (price === "" || !isFinite(price) || price < 0) { alert(trText("單價必須係 0 或以上嘅數字")); return; }
+            if (qty === "" || !isFinite(qty) || qty <= 0) { alert(trText("數量必須係大過 0 嘅數字")); return; }
+            if (rate !== "" && (!isFinite(rate) || rate <= 0)) { alert(trText("匯率必須係大過 0 嘅數字")); return; }
+            var body = {
+              name: name,
+              cat: canon(gv("ce-cat")),
+              curr: gv("ce-curr"),
+              price: price,
+              unit: gv("ce-unit"),
+              qty: qty
+            };
+            if (rate !== "") body.rate = rate;
+            if (state.dataMode === "live") {
+              state.chargeEditBusy = true;
+              state.chargeEditErr = "";
+              render();
+              apiJson("/api/charges/" + encodeURIComponent(rid), "PATCH", body).then(function (r) {
+                state.chargeEditBusy = false;
+                if (!r.body || !r.body.ok) {
+                  state.chargeEditErr = apiErrorText(r, "未知錯誤");
+                  render();
+                  return;
+                }
+                state.editChargeId = "";
+                state.chargeNotice = { ref: state.detailRef, msg: "收費已更新並寫入飛書；金額由飛書公式重計，約半分鐘後自動更新。" };
+                refreshLive();
+              }).catch(function (e) {
+                state.chargeEditBusy = false;
+                state.chargeEditErr = e && e.message ? e.message : "連線失敗";
+                render();
+              });
+              return;
+            }
+            ch.name = body.name; ch.cat = body.cat; ch.curr = body.curr;
+            ch.price = body.price; ch.unit = body.unit; ch.qty = body.qty;
+            if (rate !== "") ch.rate = rate;
+            state.editChargeId = "";
             render();
           });
         });
