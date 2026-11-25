@@ -664,7 +664,7 @@
     <script>
       "use strict";
       var content = document.getElementById("content");
-      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", caseSortKey: "created", caseSortDir: -1, detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "", custQuery: "", custBusy: false, editCustId: "", custImport: null, custImportMsg: null, custEditBusy: false, custImportBusy: false, newQuoteId: "", newQuotePrefill: null, editCaseRef: "", caseEditBusy: false, caseEditErr: "", editChargeId: "", chargeEditBusy: false, chargeEditErr: "", editRateId: "", rateEditBusy: false, rateEditErr: "" };
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", caseSortKey: "created", caseSortDir: -1, detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "", custQuery: "", custBusy: false, editCustId: "", custImport: null, custImportMsg: null, custEditBusy: false, custImportBusy: false, newQuoteId: "", newQuotePrefill: null, editCaseRef: "", caseEditBusy: false, caseEditErr: "", editChargeId: "", chargeEditBusy: false, chargeEditErr: "", editRateId: "", rateEditBusy: false, rateEditErr: "", rateCat: "全部" };
 
       /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
       var ZH_EN = [
@@ -1192,7 +1192,7 @@
         ["。", "."]
       ];
       /* 把英文顯示值還原為內部中文值（篩選/狀態邏輯用） */
-      var CANON = { "All": "全部", "Air": "空運", "Sea": "海運", "Local Delivery": "本地派送", "Logistics Service": "物流服務", "Export": "出口", "Import": "進口", "Ordered to Supplier": "向供應商落單", "Needs Quotation": "報價", "Customer Ordered": "客人已下單", "Generating B/L": "生成提單", "Job Quotation": "跟Job報價", "Long-term Quotation": "長期報價", "Draft": "草稿", "Sent": "已發送", "Completed": "已完成", "Invoiced": "開票", "Paid": "已收款", "Closed": "結案", "In Progress": "處理中", "Manual": "手動", "Customer Charges": "向客收費", "Supplier Costs": "供應商成本" };
+      var CANON = { "All": "全部", "Air": "空運", "Sea": "海運", "Local Delivery": "本地派送", "Logistics Service": "物流服務", "Export": "出口", "Import": "進口", "Ordered to Supplier": "向供應商落單", "Needs Quotation": "報價", "Customer Ordered": "客人已下單", "Generating B/L": "生成提單", "Job Quotation": "跟Job報價", "Long-term Quotation": "長期報價", "Draft": "草稿", "Sent": "已發送", "Completed": "已完成", "Invoiced": "開票", "Paid": "已收款", "Closed": "結案", "In Progress": "處理中", "Manual": "手動", "Customer Charges": "向客收費", "Supplier Costs": "供應商成本", "AirExport": "空運出口", "SeaExport": "海運出口", "AirImport": "空運進口", "SeaImport": "海運進口" };
       function canon(v) { return CANON[v] || v; }
       var ZH_EN_SORTED = ZH_EN.slice().sort(function (a, b) { return b[0].length - a[0].length; });
       function trText(s) {
@@ -3030,7 +3030,8 @@
       function viewCharges() {
         var head = '<div class="page-head"><div><h1>收費項目</h1><div class="sub">飛書標準費率與實際個案收費一覽</div></div></div>';
         if (RATES.length) {
-          var rows = RATES.map(function (r) {
+          var rateList = RATES.filter(function (r) { return state.rateCat === "全部" || r.type === state.rateCat; });
+          var rows = rateList.map(function (r) {
             if (r.recordId && state.editRateId === r.recordId) {
               var typeOpts = [["air-export", "空運出口"], ["sea-export", "海運出口"], ["air-import", "空運進口"], ["sea-import", "海運進口"]].map(function (p) {
                 return '<option value="' + p[0] + '"' + (r.type === p[1] ? " selected" : "") + ">" + esc(p[1]) + "</option>";
@@ -3051,9 +3052,10 @@
             }
             return "<tr><td data-label='收費項目'>" + esc(r.name) + "</td><td data-label='類別'>" + esc(r.type) + "</td><td data-label='貨幣'>" + esc(r.curr) + "</td><td data-label='單價' class='num'>" + fmt(r.price) + "</td><td data-label='單位'>" + esc(r.unit) + "</td><td data-label='生效日期'>" + esc(fmtDate(r.effectiveDate)) + "</td><td data-label='' class='sticky-action'>" + (r.recordId ? "<button type='button' class='preview-link' data-rate-edit='" + esc(r.recordId) + "'>編輯</button>" : "") + "</td></tr>";
           }).join("");
-          head += '<h2 class="section-title">飛書標準費率（共 ' + RATES.length + ' 項）</h2>' +
+          head += '<h2 class="section-title">飛書標準費率（共 ' + rateList.length + ' 項' + (state.rateCat !== "全部" ? "，已篩選" : "") + '）</h2>' +
             '<div class="note-box">下列項目即飛書 Base「標準費率」表的現行內容；個案詳情「新增收費」的項目下拉由此表載入，揀選後自動帶入幣種、單價與單位。金額 (HKD) 換算匯率：CNY = 1.153、USD = 7.85。</div>' +
-            '<div class="table-wrap"><table class="data"><thead><tr><th>收費項目</th><th>類別</th><th>貨幣</th><th style="text-align:right">單價</th><th>單位</th><th>生效日期</th><th class="sticky-action"></th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+            '<div class="toolbar">' + segHtml("ratecat", ["全部", "空運出口", "海運出口", "空運進口", "海運進口"], state.rateCat) + '</div>' +
+            (rateList.length ? '<div class="table-wrap"><table class="data"><thead><tr><th>收費項目</th><th>類別</th><th>貨幣</th><th style="text-align:right">單價</th><th>單位</th><th>生效日期</th><th class="sticky-action"></th></tr></thead><tbody>' + rows + "</tbody></table></div>" : '<div class="note-box">沒有符合條件的費率</div>') +
             '<h2 class="section-title">實際個案收費（樣本）</h2>';
         } else {
           head += '<div class="note-box">下列項目為樣本實際收費。金額 (HKD) 已按匯率 CNY = 1.153、USD = 7.85 換算。</div>';
@@ -4181,7 +4183,7 @@
         else if (t.hasAttribute("data-open-case")) { ev.preventDefault(); openCase(t.getAttribute("data-open-case")); }
         else if (t.hasAttribute("data-seg")) {
           var kind = t.getAttribute("data-seg"), val = canon(t.getAttribute("data-val"));
-          if (kind === "type") state.caseType = val; else if (kind === "dir") state.caseDir = val; else if (kind === "qstatus") state.quoteStatus = val; else if (kind === "qtype") state.quoteType = val; else if (kind === "invcat") state.invCat = val; else if (kind === "invpay") state.invPay = val; else state.caseStatus = val;
+          if (kind === "type") state.caseType = val; else if (kind === "dir") state.caseDir = val; else if (kind === "qstatus") state.quoteStatus = val; else if (kind === "qtype") state.quoteType = val; else if (kind === "invcat") state.invCat = val; else if (kind === "invpay") state.invPay = val; else if (kind === "ratecat") state.rateCat = val; else state.caseStatus = val;
           render();
         } else if (t.hasAttribute("data-newtype")) {
           state.newType = canon(t.getAttribute("data-newtype"));
