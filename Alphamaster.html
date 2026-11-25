@@ -660,7 +660,7 @@
     <script>
       "use strict";
       var content = document.getElementById("content");
-      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", caseSortKey: "created", caseSortDir: -1, detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "", custQuery: "", custBusy: false, editCustId: "", custImport: null, custImportMsg: null, custEditBusy: false, custImportBusy: false, newQuoteId: "", newQuotePrefill: null, editCaseRef: "", caseEditBusy: false, caseEditErr: "", editChargeId: "", chargeEditBusy: false, chargeEditErr: "" };
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", caseSortKey: "created", caseSortDir: -1, detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "", custQuery: "", custBusy: false, editCustId: "", custImport: null, custImportMsg: null, custEditBusy: false, custImportBusy: false, newQuoteId: "", newQuotePrefill: null, editCaseRef: "", caseEditBusy: false, caseEditErr: "", editChargeId: "", chargeEditBusy: false, chargeEditErr: "", editRateId: "", rateEditBusy: false, rateEditErr: "" };
 
       /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
       var ZH_EN = [
@@ -703,6 +703,7 @@
         ["單價必須係 0 或以上嘅數字", "Unit price must be 0 or above"],
         ["數量必須係大過 0 嘅數字", "Quantity must be greater than 0"],
         ["匯率必須係大過 0 嘅數字", "Rate must be greater than 0"],
+        ["生效日期格式唔正確", "Effective date is invalid"],
         ["已核對", "Checked"],
         ["等候認讀結果時連線失敗，請重新整理後於認讀記錄查看。", "The connection failed while waiting for recognition results. Please refresh and check the intake records."],
         ["建立落單記錄失敗", "Failed to create the intake record"],
@@ -2978,11 +2979,29 @@
         var head = '<div class="page-head"><div><h1>收費項目</h1><div class="sub">飛書標準費率與實際個案收費一覽</div></div></div>';
         if (RATES.length) {
           var rows = RATES.map(function (r) {
-            return "<tr><td data-label='收費項目'>" + esc(r.name) + "</td><td data-label='類別'>" + esc(r.type) + "</td><td data-label='貨幣'>" + esc(r.curr) + "</td><td data-label='單價' class='num'>" + fmt(r.price) + "</td><td data-label='單位'>" + esc(r.unit) + "</td><td data-label='生效日期'>" + esc(fmtDate(r.effectiveDate)) + "</td></tr>";
+            if (r.recordId && state.editRateId === r.recordId) {
+              var typeOpts = ["空運出口", "海運出口", "空運進口", "海運進口"].map(function (t) {
+                return '<option value="' + esc(t) + '"' + (r.type === t ? " selected" : "") + ">" + esc(t) + "</option>";
+              }).join("");
+              var currOpts = ["HKD", "USD", "CNY", "EUR"].map(function (c) {
+                return '<option value="' + c + '"' + (r.curr === c ? " selected" : "") + ">" + c + "</option>";
+              }).join("");
+              return "<tr><td data-label='收費項目'><input id='re-name' class='search-input' type='text' value='" + esc(r.name) + "' style='width:100%' /></td>" +
+                "<td data-label='類別'><select id='re-type' class='search-input' style='width:100%'>" + typeOpts + "</select></td>" +
+                "<td data-label='貨幣'><select id='re-curr' class='search-input' style='width:100%'>" + currOpts + "</select></td>" +
+                "<td data-label='單價' class='num'><input id='re-price' class='search-input' type='number' step='any' min='0' value='" + esc(r.price == null ? "" : String(r.price)) + "' style='width:100%;text-align:right' /></td>" +
+                "<td data-label='單位'><input id='re-unit' class='search-input' type='text' value='" + esc(r.unit) + "' style='width:100%' /></td>" +
+                "<td data-label='生效日期'><input id='re-date' class='search-input' type='date' value='" + esc((r.effectiveDate || "").replace(/\//g, "-")) + "' style='width:100%' /></td>" +
+                "<td data-label=''><button type='button' class='btn primary' data-rate-save='" + esc(r.recordId) + "'" + (state.rateEditBusy ? " disabled" : "") + ">儲存</button> " +
+                "<button type='button' class='btn ghost' data-rate-cancel>取消</button>" +
+                (state.rateEditBusy ? "<div class='small muted' style='margin-top:4px'>正在寫入飛書…</div>" : "") +
+                (state.rateEditErr ? "<div class='small' style='margin-top:4px;color:var(--danger)'>寫入失敗：" + esc(state.rateEditErr) + "</div>" : "") + "</td></tr>";
+            }
+            return "<tr><td data-label='收費項目'>" + esc(r.name) + "</td><td data-label='類別'>" + esc(r.type) + "</td><td data-label='貨幣'>" + esc(r.curr) + "</td><td data-label='單價' class='num'>" + fmt(r.price) + "</td><td data-label='單位'>" + esc(r.unit) + "</td><td data-label='生效日期'>" + esc(fmtDate(r.effectiveDate)) + "</td><td data-label=''>" + (r.recordId ? "<button type='button' class='preview-link' data-rate-edit='" + esc(r.recordId) + "'>編輯</button>" : "") + "</td></tr>";
           }).join("");
           head += '<h2 class="section-title">飛書標準費率（共 ' + RATES.length + ' 項）</h2>' +
             '<div class="note-box">下列項目即飛書 Base「標準費率」表的現行內容；個案詳情「新增收費」的項目下拉由此表載入，揀選後自動帶入幣種、單價與單位。金額 (HKD) 換算匯率：CNY = 1.153、USD = 7.85。</div>' +
-            '<div class="table-wrap"><table class="data"><thead><tr><th>收費項目</th><th>類別</th><th>貨幣</th><th style="text-align:right">單價</th><th>單位</th><th>生效日期</th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
+            '<div class="table-wrap"><table class="data"><thead><tr><th>收費項目</th><th>類別</th><th>貨幣</th><th style="text-align:right">單價</th><th>單位</th><th>生效日期</th><th></th></tr></thead><tbody>' + rows + "</tbody></table></div>" +
             '<h2 class="section-title">實際個案收費（樣本）</h2>';
         } else {
           head += '<div class="note-box">下列項目為樣本實際收費。金額 (HKD) 已按匯率 CNY = 1.153、USD = 7.85 換算。</div>';
@@ -3556,6 +3575,69 @@
               state.caseSortKey = key;
               state.caseSortDir = (key === "created" || key === "etd" || key === "rev" || key === "cost" || key === "profit") ? -1 : 1;
             }
+            render();
+          });
+        });
+        document.querySelectorAll("[data-rate-edit]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            state.editRateId = b.getAttribute("data-rate-edit");
+            state.rateEditErr = "";
+            render();
+          });
+        });
+        document.querySelectorAll("[data-rate-cancel]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            state.editRateId = "";
+            state.rateEditErr = "";
+            render();
+          });
+        });
+        document.querySelectorAll("[data-rate-save]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            if (state.rateEditBusy) return;
+            var rid = b.getAttribute("data-rate-save");
+            var rr = null;
+            RATES.forEach(function (x) { if (x.recordId === rid) rr = x; });
+            if (!rr) return;
+            var gv = function (id) { var el = document.getElementById(id); return el ? el.value.trim() : ""; };
+            var name = gv("re-name");
+            var price = gv("re-price") === "" ? "" : Number(gv("re-price"));
+            var date = gv("re-date");
+            if (!name) { alert(trText("收費項目唔可以留空")); return; }
+            if (price === "" || !isFinite(price) || price < 0) { alert(trText("單價必須係 0 或以上嘅數字")); return; }
+            if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) { alert(trText("生效日期格式唔正確")); return; }
+            var body = {
+              name: name,
+              type: canon(gv("re-type")),
+              curr: gv("re-curr"),
+              price: price,
+              unit: gv("re-unit"),
+              effectiveDate: date
+            };
+            if (state.dataMode === "live") {
+              state.rateEditBusy = true;
+              state.rateEditErr = "";
+              render();
+              apiJson("/api/rates/" + encodeURIComponent(rid), "PATCH", body).then(function (r) {
+                state.rateEditBusy = false;
+                if (!r.body || !r.body.ok) {
+                  state.rateEditErr = apiErrorText(r, "未知錯誤");
+                  render();
+                  return;
+                }
+                state.editRateId = "";
+                refreshLive();
+              }).catch(function (e) {
+                state.rateEditBusy = false;
+                state.rateEditErr = e && e.message ? e.message : "連線失敗";
+                render();
+              });
+              return;
+            }
+            rr.name = body.name; rr.type = body.type; rr.curr = body.curr;
+            rr.price = body.price; rr.unit = body.unit;
+            if (date) rr.effectiveDate = date;
+            state.editRateId = "";
             render();
           });
         });
