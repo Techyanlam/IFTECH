@@ -186,6 +186,8 @@
         background: var(--surface-2); border-bottom: 1px solid var(--line);
         padding: 10px 10px; font-weight: 700; line-height: 1.35;
       }
+      .sort-th { background: none; border: 0; padding: 0; font: inherit; color: inherit; cursor: pointer; text-align: inherit; white-space: nowrap; }
+      .sort-th:hover { text-decoration: underline; }
       table.data td { padding: 10px 10px; border-bottom: 1px solid var(--line); vertical-align: top; overflow-wrap: break-word; }
       table.data tr:last-child td { border-bottom: 0; }
       table.data tr.group-row td { background: var(--surface-2); font-weight: 700; padding: 8px 10px; }
@@ -658,7 +660,7 @@
     <script>
       "use strict";
       var content = document.getElementById("content");
-      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "", custQuery: "", custBusy: false, editCustId: "", custImport: null, custImportMsg: null, custEditBusy: false, custImportBusy: false, newQuoteId: "", newQuotePrefill: null, editCaseRef: "", caseEditBusy: false, caseEditErr: "", editChargeId: "", chargeEditBusy: false, chargeEditErr: "" };
+      var state = { view: "dashboard", lang: "en", caseType: "全部", caseDir: "全部", caseStatus: "全部", casePort: "全部", caseQuery: "", caseSortKey: "", caseSortDir: 1, detailRef: null, newType: "空運", openedIntakes: {}, docTriggers: defaultDocTriggers(), intakeAi: { stage: "idle", fileName: "", preview: "", openedRef: null }, statusNotice: null, supplierQuery: "", supplierSubmitted: "", dataMode: "loading", workerVersion: "", statusBusy: false, newCaseBusy: false, intakeBusy: false, intakeResult: null, chargeBusy: false, templateBusy: false, payBusy: false, chargeCardOpen: false, invoiceBusy: false, chargeNotice: null, invoiceNotice: null, pendingDeleteCharge: "", quoteStatus: "全部", quoteType: "全部", quoteCustomer: "全部", quoteQuery: "", quoteBusy: false, quoteNotice: null, invCat: "全部", invPay: "全部", invQuery: "", custQuery: "", custBusy: false, editCustId: "", custImport: null, custImportMsg: null, custEditBusy: false, custImportBusy: false, newQuoteId: "", newQuotePrefill: null, editCaseRef: "", caseEditBusy: false, caseEditErr: "", editChargeId: "", chargeEditBusy: false, chargeEditErr: "" };
 
       /* ---------- 中英文切換（介面文字；貨物資料本身不翻譯） ---------- */
       var ZH_EN = [
@@ -1807,9 +1809,15 @@
           '<td data-label="航線"><span class="route">' + routeOf(c) + "</span></td>" +
           '<td data-label="ETD">' + fmtDate(c.etd) + "</td>" + money + "</tr>";
       }
-      function caseTable(list, showMoney) {
-        var head = "<tr><th>建立日期</th><th>Reference No.</th><th>業務</th><th>狀態</th><th>Shipper / Consignee</th><th>航線</th><th>ETD</th>" +
-          (showMoney ? "<th style='text-align:right'>向客收費 (HKD)</th><th style='text-align:right'>供應商成本 (HKD)</th><th style='text-align:right'>利潤 (HKD)</th>" : "") + "</tr>";
+      function caseTable(list, showMoney, sortable) {
+        var th = function (key, label, right) {
+          if (!sortable) return "<th" + (right ? " style='text-align:right'" : "") + ">" + label + "</th>";
+          var active = state.caseSortKey === key;
+          var arrow = active ? (state.caseSortDir === 1 ? " ▲" : " ▼") : "";
+          return "<th" + (right ? " style='text-align:right'" : "") + "><button type='button' class='sort-th' data-sort-key='" + key + "'>" + label + arrow + "</button></th>";
+        };
+        var head = "<tr>" + th("created", "建立日期") + th("ref", "Reference No.") + th("type", "業務") + th("status", "狀態") + th("shipper", "Shipper / Consignee") + th("route", "航線") + th("etd", "ETD") +
+          (showMoney ? th("rev", "向客收費 (HKD)", true) + th("cost", "供應商成本 (HKD)", true) + th("profit", "利潤 (HKD)", true) : "") + "</tr>";
         var rows = list.map(function (c) { return caseRow(c, showMoney); }).join("");
         return '<div class="table-wrap"><table class="data"><thead>' + head + "</thead><tbody>" +
           (rows || '<tr><td colspan="10"><div class="empty-state">沒有符合條件的個案。</div></td></tr>') + "</tbody></table></div>";
@@ -1893,6 +1901,31 @@
           return '<button type="button" data-seg="' + kind + '" data-val="' + esc(o) + '" class="' + (o === current ? "active" : "") + '">' + esc(o) + "</button>";
         }).join("") + "</div>";
       }
+      var CASE_STATUS_ORDER = ["處理中", "報價", "客人已下單", "向供應商落單", "生成提單", "已完成", "開票", "已收款", "結案"];
+      function sortCases(list) {
+        if (!state.caseSortKey) return list;
+        var key = state.caseSortKey, dir = state.caseSortDir || 1;
+        var val = function (c) {
+          if (key === "created") return c.createdAt || "";
+          if (key === "ref") return c.ref || "";
+          if (key === "type") return c.type || "";
+          if (key === "status") return CASE_STATUS_ORDER.indexOf(c.status || "處理中");
+          if (key === "shipper") return (c.shipper || "") + " " + (c.consignee || "");
+          if (key === "route") return routeOf(c) || "";
+          if (key === "etd") return c.etd || "";
+          if (key === "rev") return totals(c.ref).rev;
+          if (key === "cost") return totals(c.ref).cost;
+          if (key === "profit") return profit(c.ref);
+          return "";
+        };
+        return list.slice().sort(function (a, b) {
+          var va = val(a), vb = val(b), cmp;
+          if (typeof va === "number" && typeof vb === "number") cmp = va - vb;
+          else cmp = String(va).localeCompare(String(vb), "zh-Hant");
+          if (cmp === 0) cmp = String(a.ref || "").localeCompare(String(b.ref || ""));
+          return cmp * dir;
+        });
+      }
       function viewCases() {
         var list = CASES.filter(function (c) {
           if (state.caseType !== "全部" && c.type !== state.caseType) return false;
@@ -1920,7 +1953,7 @@
           })() +
           '<span class="spacer"></span>' +
           '<input class="search-input" id="case-search" type="search" placeholder="搜尋 Reference No." value="' + esc(state.caseQuery) + '" aria-label="搜尋個案" />' +
-          "</div>" + caseTable(list, true) +
+          "</div>" + caseTable(sortCases(list), true, true) +
           '<p class="small muted" style="margin-top:10px">顯示 ' + list.length + " / " + CASES.length + " 宗個案。</p>";
       }
 
@@ -3511,6 +3544,18 @@
             ch.price = body.price; ch.unit = body.unit; ch.qty = body.qty;
             if (rate !== "") ch.rate = rate;
             state.editChargeId = "";
+            render();
+          });
+        });
+        document.querySelectorAll("[data-sort-key]").forEach(function (b) {
+          b.addEventListener("click", function () {
+            var key = b.getAttribute("data-sort-key");
+            if (state.caseSortKey === key) {
+              state.caseSortDir = state.caseSortDir === 1 ? -1 : 1;
+            } else {
+              state.caseSortKey = key;
+              state.caseSortDir = (key === "created" || key === "etd" || key === "rev" || key === "cost" || key === "profit") ? -1 : 1;
+            }
             render();
           });
         });
