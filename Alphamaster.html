@@ -1530,12 +1530,14 @@
         rebuildTotals();
         DOCGEN = deriveDocGen();
       }
-      function fetchAllLive() {
+      function fetchAllLive(fresh) {
         /* 首選 /api/bootstrap：一次請求攞齊（Worker 內部並行讀飛書）；
            未登入（401/403）唔好 fallback，直接拋出等登入流程處理；
            只有 404（舊版 Worker 冇呢個端點）先用返逐個請求嘅舊路；
-           其他失敗係後端／飛書本身有問題，行舊路都係讀同一批表，唔好再燒多一輪時間。 */
-        return apiFetch("/api/bootstrap").then(function (r) {
+           其他失敗係後端／飛書本身有問題，行舊路都係讀同一批表，唔好再燒多一輪時間。
+           fresh=true 帶 ?fresh=1 強制讀飛書新數；唔帶就用 Worker 30 秒快取
+           （每分鐘 cron 會預熱），開機快好多。 */
+        return apiFetch("/api/bootstrap" + (fresh ? "?fresh=1" : "")).then(function (r) {
           if (r.status === 401 || r.status === 403) throw new Error("auth_required");
           if (r.status === 200 && r.body && r.body.ok === true && r.body.cases) {
             var b = r.body;
@@ -1583,7 +1585,7 @@
           if (!r.body || r.body.ok !== true) throw new Error("health check failed");
           state.workerVersion = r.body.version || "";
           if (!r.body.configured) { enterSnapshot(); return false; }
-          return fetchAllLive().then(function (bodies) {
+          return fetchAllLive(false).then(function (bodies) {
             applyLiveData(bodies);
             state.dataMode = "live";
             state.connectErr = "";
@@ -1594,7 +1596,7 @@
       }
       function refreshLive() {
         if (state.dataMode !== "live") { connectLive(); return; }
-        fetchAllLive().then(function (bodies) { applyLiveData(bodies); render(); }).catch(function (e) { state.connectErr = (e && e.message) || "unknown"; enterSnapshot(); });
+        fetchAllLive(true).then(function (bodies) { applyLiveData(bodies); render(); }).catch(function (e) { state.connectErr = (e && e.message) || "unknown"; enterSnapshot(); });
       }
 
       /* ---------- 文件縮圖與預覽 ---------- */
@@ -4070,7 +4072,7 @@
           var tries = 0;
           var step = function () {
             tries++;
-            fetchAllLive().then(function (bodies) {
+            fetchAllLive(true).then(function (bodies) {
               applyLiveData(bodies);
               var nb = null;
               INTAKES.forEach(function (x) { if (x.recordId === booking.recordId) nb = x; });
