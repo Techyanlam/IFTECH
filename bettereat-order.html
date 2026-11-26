@@ -1243,6 +1243,7 @@ function syncSalesToFeishu(rows, statusEl, status, orderDiscount, extraLines){
       }
       finish("已同步去飛書「銷售紀錄」（" + lines.length + " 行）。" + (syncStatus === "待確認" ? "（已暫存，未扣庫存）" : ""));
     }
+    else if (j && j.error === "stock_below_cap") finish("未能同步去飛書：呢單會令庫存低過下限（未收貨最多負 5 件），請先確認收貨或者減少數量。記錄已存喺呢部裝置。");
     else finish("未能同步去飛書（記錄已存喺呢部裝置），稍後可再提交。");
   }).catch(function(){
     if (timer) clearTimeout(timer);

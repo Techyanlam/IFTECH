@@ -91,6 +91,16 @@
         <tbody id="stockBody"></tbody>
       </table>
     </div>
+    <h2 class="sec">⏳ 待收貨未對沖（異動帳）</h2>
+    <div class="note">未收貨先扣數會記喺呢度（異動類型「待收貨」）。門店確認收貨之後，收貨數會自動對沖返。待收貨最多負 5 件。</div>
+    <div class="meta" id="pendingMeta"></div>
+    <div class="err" id="pendingStatus"></div>
+    <div style="overflow-x:auto;">
+      <table class="rectable">
+        <thead><tr><th>門店</th><th>產品</th><th>產品編號</th><th>待收貨（件）</th></tr></thead>
+        <tbody id="pendingBody"></tbody>
+      </table>
+    </div>
   </div>
 
   <!-- 2. 調整 -->
@@ -260,7 +270,7 @@ function errText(e){
   if (e === "network") return "連唔到伺服器，請檢查網絡後再試。";
   if (e === "table_not_configured") return "伺服器未設定好庫存表格，請聯絡管理員。";
   if (e === "bad_qty") return "確認收到數量唔啱（要 0–9999 整數）。";
-  if (e === "stock_below_cap") return "庫存會低過下限，成單被拒絕。";
+  if (e === "stock_below_cap") return "未收貨扣數已到上限（最多負 5 件），請先確認收貨再試。";
   return String(e);
 }
 function callWorker(action, payload){
@@ -400,6 +410,7 @@ function switchTab(name){
 
 // ===== 1. 庫存（C_每日分配及出貨記錄） =====
 function loadStock(){
+  loadPending();
   if (cPayload) { renderCStock(); return Promise.resolve(); }
   var st = document.getElementById("stockStatus");
   if (st) st.textContent = "載入緊 C 表數據…";
@@ -452,6 +463,42 @@ function renderCStock(){
   body.innerHTML = html || '<tr><td colspan="7" style="color:#71879a;">呢日未有 C 表記錄</td></tr>';
   var meta = document.getElementById("stockMeta");
   if (meta) meta.textContent = "數據日期：" + cDate + " ｜ C 表快照更新時間：" + (cPayload.generated_at || "") + " ｜ 共 " + rows.length + " 行";
+}
+
+// ===== 待收貨未對沖（異動帳）：帳面負數 = 未收貨先扣咗嘅件數 =====
+function loadPending(){
+  var st = document.getElementById("pendingStatus");
+  var meta = document.getElementById("pendingMeta");
+  var body = document.getElementById("pendingBody");
+  if (!body) return;
+  if (st) st.textContent = "載入緊待收貨數據…";
+  callWorker("stock", {}).then(function(j){
+    if (!j || !j.ok || !Array.isArray(j.stock)) {
+      if (st) st.textContent = "讀取唔到待收貨數據（" + errText(j && j.error) + "）。";
+      if (meta) meta.textContent = "";
+      body.innerHTML = "";
+      return;
+    }
+    var store = currentStore();
+    var rows = j.stock.filter(function(r){ return r.qty < 0 && (!store || r.store === store); }).slice();
+    rows.sort(function(a, b){
+      var si = SHOP_LABELS.indexOf(a.store) - SHOP_LABELS.indexOf(b.store);
+      if (si !== 0) return si;
+      return String(a.product || "").localeCompare(String(b.product || ""));
+    });
+    var tot = 0;
+    var html = "";
+    rows.forEach(function(r){
+      tot += -r.qty;
+      html += "<tr><td>" + esc(r.store) + "</td><td>" + esc(r.product) + "</td><td>" + esc(r.productCode || "") + "</td><td>" + (-r.qty) + "</td></tr>";
+    });
+    if (rows.length) html += '<tr class="tot"><td colspan="3">合計待收貨</td><td>' + tot + "</td></tr>";
+    body.innerHTML = html || '<tr><td colspan="4" style="color:#71879a;">而家冇待收貨未對沖</td></tr>';
+    if (meta) meta.textContent = "共 " + rows.length + " 款待收貨未對沖";
+    if (st) st.textContent = "";
+  }).catch(function(){
+    if (st) st.textContent = "讀取唔到待收貨數據，請按重新載入再試。";
+  });
 }
 
 // ===== 2. 調整 =====
