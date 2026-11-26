@@ -25,20 +25,20 @@
   .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
   .controls input[type="text"] { flex: 1; min-width: 200px; padding: 9px 12px; font-size: 15px; border: 1px solid #ccd9e4; border-radius: 10px; background: #fff; }
   .note { background: #eef5fb; border: 1px solid #bcd6ea; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #4a6076; margin-bottom: 14px; line-height: 1.7; }
-  .catsum { background: #eef5fb; border: 1px solid #bcd6ea; border-radius: 10px; padding: 10px 14px; font-size: 13px; color: #4a6076; margin-bottom: 14px; line-height: 1.9; }
-  .catsum a { color: #0a4f85; text-decoration: none; font-weight: 700; }
-  .catsum a:hover { text-decoration: underline; }
-  .catgroup { scroll-margin-top: 130px; }
+  .catsum { background: #eef5fb; border: 1px solid #bcd6ea; border-radius: 10px; padding: 8px 12px; font-size: 13px; color: #4a6076; margin-bottom: 14px; line-height: 1.9; position: sticky; top: 74px; z-index: 7; box-shadow: 0 2px 8px rgba(20,50,80,.08); }
+  .catsum a { display: inline-block; color: #0a4f85; text-decoration: none; font-weight: 700; background: #fff; border: 1px solid #0b5fa5; border-radius: 20px; padding: 3px 12px; margin: 2px 4px 2px 0; white-space: nowrap; }
+  .catsum a:hover { background: #0b5fa5; color: #fff; }
+  .catgroup { scroll-margin-top: 178px; }
   .shopbtns { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
   .shopbtn { padding: 10px 20px; font-size: 15px; border: 1px solid #c3d3e2; color: #4a6076; background: #fff; border-radius: 999px; cursor: pointer; }
   .shopbtn.active { color: #fff; background: linear-gradient(135deg, #1c74b2, #0b5fa5); border-color: #0b5fa5; font-weight: 700; }
   .rectable .prodcol { min-width: 160px; }
   .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
-  .cathead { position: sticky; top: 74px; z-index: 6; background: #f2f5f8; font-size: 16px; font-weight: 700; color: #4a6076; margin: 0; padding: 12px 0 6px 8px; border-left: 4px solid #0b5fa5; }
+  .cathead { position: sticky; top: 122px; z-index: 6; background: #f2f5f8; font-size: 16px; font-weight: 700; color: #4a6076; margin: 0; padding: 12px 0 6px 8px; border-left: 4px solid #0b5fa5; }
   .catgroup:first-child .cathead { padding-top: 2px; }
   .cathead span { font-weight: 400; font-size: 13px; color: #71879a; }
   .main { display: flex; gap: 16px; align-items: flex-start; }
-  .side { width: 300px; flex: 0 0 300px; position: sticky; top: 74px; background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(20,50,80,.06); }
+  .side { width: 300px; flex: 0 0 300px; position: sticky; top: 122px; background: #fff; border-radius: 14px; padding: 16px; box-shadow: 0 2px 10px rgba(20,50,80,.06); }
   .maincol { flex: 1; min-width: 0; }
   .sideItem { border-bottom: 1px solid #e8eff5; padding: 10px 0; }
   .sideItem:last-child { border-bottom: none; }
@@ -112,7 +112,7 @@
   .cartbar button:disabled { opacity: .45; cursor: not-allowed; }
   .foot { color: #8fa3b5; font-size: 12px; margin-top: 16px; text-align: center; line-height: 1.8; }
   @media (max-width: 1180px) { .grid { grid-template-columns: repeat(7, 1fr); gap: 8px; } .card { border-radius: 10px; } .card .imgwrap { padding-top: 100%; } .card .imgwrap .ph { font-size: 32px; } .card .body { padding: 6px 7px 7px; } .card .name { font-size: 12px; min-height: 32px; line-height: 1.35; } .card .sub { font-size: 11px; } .card .price { font-size: 12px; margin-top: 2px; } .card .step { margin-top: 6px; } .card .step .add { padding: 5px; font-size: 13px; border-radius: 8px; } .card .step .minus, .card .step .plus { width: 26px; height: 26px; font-size: 16px; border-radius: 8px; } .card .step .qty { font-size: 14px; min-width: 20px; } .cathead { font-size: 14px; } }
-  @media (max-width: 860px) { .grid { grid-template-columns: repeat(4, 1fr); } .side { width: 260px; flex-basis: 260px; top: 112px; } .cathead { top: 112px; } }
+  @media (max-width: 860px) { .grid { grid-template-columns: repeat(4, 1fr); } .side { width: 260px; flex-basis: 260px; top: 160px; } .cathead { top: 160px; } .catsum { top: 112px; } .catgroup { scroll-margin-top: 216px; } }
   @media (max-width: 640px) { .main { flex-direction: column; } .side { width: 100%; flex: none; position: static; } }
   @media (max-width: 560px) { .cartbar { flex-wrap: wrap; } .checkout .fields { grid-template-columns: 1fr; } }
   .loginbox { max-width: 420px; margin: 60px auto 0; background: #fff; border-radius: 16px; padding: 28px 24px; box-shadow: 0 4px 20px rgba(20,50,80,.10); text-align: center; }
@@ -158,7 +158,7 @@
         <button class="shopbtn" id="shopBtn-MKH" onclick="selectShop('Aeon (MKH)')">Aeon</button>
         <button class="shopbtn" id="shopBtn-MMCP" onclick="selectShop('將軍澳 (MMCP)')">將軍澳</button>
       </div>
-      <button class="cartbtn" id="adminReportBtn" style="display:none;" onclick="window.open('https://iftech.dpdns.org/bettereat.html','_blank')">📊 管理員報告</button>
+      <button class="cartbtn" id="adminReportBtn" style="display:none;" onclick="window.open('bettereat.html','_blank')">📊 管理員報告</button>
       <button class="cartbtn" onclick="openChangePw()">🔑 改密碼</button>
       <button class="cartbtn" onclick="refreshPrices()">🔄 價格更新</button>
       <button class="cartbtn" onclick="scrollToCart()">🛒 已選 <span id="cartCountTop">0</span> 件</button>
@@ -166,13 +166,14 @@
     </div>
   </header>
 
+  <div class="catsum" id="catSummary"></div>
+
   <div class="meta" id="metaLine">載入餐牌中…</div>
 
   <h2 class="sec">撳一下就加 1 件</h2>
   <div class="controls">
     <input type="text" id="searchInput" placeholder="搜尋產品名稱／編號">
   </div>
-  <div class="catsum" id="catSummary"></div>
   <div class="main">
     <aside class="side" id="cartPanel">
       <h2 class="sec" id="cartTitle" style="margin-top:0;">🛒 已選訂單</h2>
@@ -309,7 +310,7 @@ function renderCatSummary(){
   if (!order.length) { box.innerHTML = ""; return; }
   box.innerHTML = "分組：" + order.map(function(c){
     return '<a href="#cat-' + esc(c) + '">' + esc(c) + ' ' + counts[c] + '款</a>';
-  }).join(" · ");
+  }).join("");
 }
 // 「🔄 價格更新」掣：即時重新讀取飛書最新價錢，唔使重新載入成頁；已喺核實面板改過嘅價錢會保留
 function refreshPrices(){
