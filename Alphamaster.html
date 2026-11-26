@@ -1378,12 +1378,12 @@
         if (!qid || state.quoteBusy) return;
         var q = QUOTATIONS.filter(function (x) { return x.recordId === qid; })[0];
         if (!q) return;
-        if (!window.confirm(trText("將報價單 ") + q.no + trText(" 開案？系統會派發 Job No.，並將報價收費原數帶入個案。"))) return;
+        if (!window.confirm(trText("將報價單 ") + q.no + trText(" 開案？系統會派發 Job No.，並將報價收費原數帶入個案，報價單 PDF 亦會附加到個案。"))) return;
         state.quoteBusy = true;
         apiJson("/api/quotations/" + encodeURIComponent(qid) + "/create-case", "POST", {}).then(function (r) {
           state.quoteBusy = false;
           if ((r.status === 200 || r.status === 201) && r.body && r.body.ok) {
-            state.quoteNotice = "報價單 " + q.no + " 已開案：" + (r.body.ref || "") + "（收費已帶入 " + (r.body.chargesCopied || 0) + " 行）";
+            state.quoteNotice = "報價單 " + q.no + " 已開案：" + (r.body.ref || "") + "（收費已帶入 " + (r.body.chargesCopied || 0) + " 行" + ((r.body.quotationFileAttached || 0) > 0 ? "；報價單 PDF 已附加到個案" : "") + "）";
             refreshLive();
           } else alert("開案失敗：" + apiErrorText(r, "未知錯誤"));
         }).catch(function () { state.quoteBusy = false; alert("開案失敗：網絡錯誤"); });
@@ -3861,7 +3861,7 @@
                 TOTALS[nc.ref] = { rev: 0, cost: 0 };
                 var qid = state.newQuoteId;
                 var qpre = state.newQuotePrefill;
-                var finishNewCase = function (copied, failed, linked) {
+                var finishNewCase = function (copied, failed, linked, attached) {
                   state.newQuoteId = "";
                   state.newQuotePrefill = null;
                   render();
@@ -3873,6 +3873,7 @@
                       else if (failed > 0) extra += "<div>有 " + failed + " 行收費未能寫入，請喺個案詳情檢查</div>";
                       else if ((qpre.charges || []).length === 0) extra += "<div>此報價單冇收費項目</div>";
                       if (linked) extra += "<div>報價單 " + esc(qpre.no || "") + " 已連結此個案</div>";
+                      if ((attached || 0) > 0) extra += "<div>報價單 PDF 已附加到個案（連同總金額）</div>";
                     }
                     res3.innerHTML = trText('<div class="success-box"><h3>個案已建立並寫入飛書：<span class="mono">' + esc(nc.ref) + "</span></h3>" +
                       "<div>" + typeChip(nc.type) + " · Shipper：" + esc(nc.shipper || "—") + " · Consignee：" + esc(nc.consignee || "—") + "</div>" +
@@ -3888,11 +3889,12 @@
                     if (ci >= qcharges.length) {
                       apiJson("/api/quotations/" + encodeURIComponent(qid), "PATCH", { caseId: nc.recordId }).then(function (lr) {
                         var linked = !!(lr.body && lr.body.ok);
+                        var attached = (lr.body && lr.body.quotationFileAttached) || 0;
                         if (linked) {
                           QUOTATIONS.forEach(function (x) { if (x.recordId === qid) { x.caseIds = [nc.recordId]; x.cases = [nc.ref]; } });
                         }
-                        finishNewCase(copied, failed, linked);
-                      }).catch(function () { finishNewCase(copied, failed, false); });
+                        finishNewCase(copied, failed, linked, attached);
+                      }).catch(function () { finishNewCase(copied, failed, false, 0); });
                       return;
                     }
                     var ch = qcharges[ci++];
@@ -3903,7 +3905,7 @@
                   };
                   stepQ();
                 } else {
-                  finishNewCase(0, 0, false);
+                  finishNewCase(0, 0, false, 0);
                 }
               }).catch(function (e) {
                 state.newCaseBusy = false;
@@ -3920,7 +3922,7 @@
             result.innerHTML = trText('<div class="success-box"><h3>個案預覽已建立：<span class="mono">' + esc(ref) + "</span></h3>" +
               "<div>" + typeChip(t) + " · Shipper：" + esc(shipper || "—") + " · Consignee：" + esc(consignee || "—") + "</div>" +
               "<div>" + (t === "本地派送" ? "送貨地址：" + esc(route) + " · 送貨日期：" : "航線：" + esc(route) + " · " + (t === "海運" ? "ETD：" : "日期：")) + esc(dateLine) + "</div>" +
-              (state.newQuoteId && state.newQuotePrefill ? "<div>已選報價單 " + esc(state.newQuotePrefill.no || "") + "：客戶／資料已帶入預覽；正式版開案後收費會一併加入個案。</div>" : "") +
+              (state.newQuoteId && state.newQuotePrefill ? "<div>已選報價單 " + esc(state.newQuotePrefill.no || "") + "：客戶／資料已帶入預覽；正式版開案後收費會一併加入個案，報價單 PDF 亦會附加。</div>" : "") +
               '<p class="small" style="margin:8px 0 0">參考版不會將資料寫入飛書。正式版啟用後，此個案會直接寫入飛書 Base 個案主表，並以同一編號作為 Job No./Invoice No.。</p></div>');
             result.scrollIntoView({ behavior: "smooth", block: "nearest" });
           });
