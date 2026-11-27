@@ -1,14 +1,1 @@
-{
-  "name": "BETTEREAT 門店系統",
-  "short_name": "BETTEREAT",
-  "description": "BETTEREAT 每日已銷售清單",
-  "start_url": "bettereat.html",
-  "scope": "./",
-  "display": "standalone",
-  "background_color": "#f6f4ef",
-  "theme_color": "#c98a2d",
-  "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
-  ]
-}
+{"background_color":"#ffffff","description":"BETTEREAT 門店訂購、庫存及報表","display":"standalone","icons":[{"sizes":"192x192","src":"icon-192.png","type":"image/png"},{"sizes":"512x512","src":"icon-512.png","type":"image/png"},{"sizes":"180x180","src":"apple-touch-icon.png","type":"image/png"}],"name":"BETTEREAT 門店系統","scope":"./","short_name":"BETTEREAT","start_url":"bettereat.html","theme_color":"#0b5fa5"}
