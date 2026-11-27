@@ -476,6 +476,9 @@ function getRecordsShop(){
 }
 function setRecordsShop(v){
   try { localStorage.setItem(RECORDS_SHOP_KEY, v); } catch (e) {}
+  // 轉店：預取嗰個號係舊店嘅，作廢再為新店預取。
+  prefetchedOrderNo = null;
+  prefetchWorkerOrderNo();
 }
 function applyRecordsShopFromUrl(){
   try {
@@ -637,6 +640,7 @@ function unlockPage(){
     }
   } catch (e) {}
   if (verifyLines) renderVerify();
+  prefetchWorkerOrderNo(); // 入頁即刻喺背景預取下一個單號，提交嗰陣唔使等
 }
 function showLogin(){
   var loginEl = document.getElementById("loginScreen");
@@ -648,6 +652,8 @@ function showLogin(){
 }
 function logout(){
   try { localStorage.removeItem(LOGIN_KEY); } catch (e) {}
+  prefetchedOrderNo = null;
+  try { if (prefetchOrderNoTimer) { clearTimeout(prefetchOrderNoTimer); prefetchOrderNoTimer = null; } } catch (e) {}
   cart = {};
   loginShopChoice = "";
   var pwEl = document.getElementById("loginPw");
@@ -1159,6 +1165,35 @@ function requestWorkerOrderNo(store){
     });
   });
 }
+// 樂觀提交（2026-11-27）：預先喺背景問 Worker 攞下一個單號，等撳確認提交嗰陣即刻有號用，唔使企喺度等 4–5 秒。
+// 號係按門店派（B＋店代碼＋日期＋序號），唔同店唔會撞；同一間店兩部機同時用同一個預取號嘅機會好細
+// （預取每 45 秒刷新一次，提交後即刻再預取下一個），萬一撞咗，Worker 嘅冪等提交會將唔同產品行併入同一個單號——
+// 要完全避免就要 Worker 預留號碼，現階段先用預取。
+var prefetchedOrderNo = null;
+var prefetchOrderNoInFlight = false;
+var prefetchOrderNoTimer = null;
+function schedulePrefetch(ms){
+  try { if (prefetchOrderNoTimer) clearTimeout(prefetchOrderNoTimer); } catch (e) {}
+  prefetchOrderNoTimer = setTimeout(function(){
+    prefetchOrderNoTimer = null;
+    if (getLoginSession()) prefetchWorkerOrderNo();
+  }, ms);
+}
+function prefetchWorkerOrderNo(){
+  if (prefetchOrderNoInFlight) return;
+  var store = getRecordsShop();
+  if (!store) return;
+  prefetchOrderNoInFlight = true;
+  requestWorkerOrderNo(store).then(function(no){
+    prefetchOrderNoInFlight = false;
+    if (no) {
+      prefetchedOrderNo = no;
+      schedulePrefetch(45000); // 有號：45 秒後再刷新，縮短同一號被兩部機重用嘅窗口
+    } else {
+      schedulePrefetch(30000); // 攞唔到：30 秒後再試
+    }
+  });
+}
 // 訂單狀態歸一：只認「待確認」／「已確認」／「已取消」，其他／冇就預設「已確認」（向後兼容）。
 function normStatus(s){ return (s === "待確認" || s === "已確認" || s === "已取消") ? s : "已確認"; }
 // 一行本地記錄轉做 Worker 收嘅 line 格式；唔合規格返 null（提交／編輯同步共用）
@@ -1213,7 +1248,11 @@ function syncSalesToFeishu(rows, statusEl, status, orderDiscount, extraLines){
   var done = false;
   function finish(msg){
     if (done) return; done = true;
-    if (statusEl) statusEl.textContent += msg;
+    if (statusEl) {
+      // 樂觀提交嗰句「（飛書同步緊…）」已經過時，同步有結果就換走佢。
+      try { statusEl.textContent = String(statusEl.textContent || "").replace("（飛書同步緊…）", ""); } catch (e) {}
+      statusEl.textContent += msg;
+    }
   }
   // ⚠️ 2026-11-17 修正：舊版 recordToLine 只接受舊格式 B20261106-002，新格式 BMJF20261106-002
   // 全部被濾走，lines 係空就靜靜哋 return，飛書永遠收唔到新單。宜家格式唔啱會出提示，唔再無聲漏單。
@@ -1303,11 +1342,13 @@ function confirmVerifiedSubmit(status){
   var _nd = new Date();
   function _p2(n){ return (n < 10 ? "0" : "") + n; }
   var time = _nd.getFullYear() + "-" + _p2(_nd.getMonth() + 1) + "-" + _p2(_nd.getDate()) + " " + _p2(_nd.getHours()) + ":" + _p2(_nd.getMinutes());
-  // 單號優先由 Worker 派（以飛書做準，唔同裝置唔會撞號）；Worker 唔得先跌返去用本機號碼。
+  // 樂觀提交（2026-11-27）：單號用預取返嚟嘅 Worker 號（入頁／上次提交後已經喺背景攞定），即刻有號用，唔使等 Worker；
+  // 未預取到就即刻用本機號碼，之後記錄頁自動同步會補返。提交本身同步做（存本地＋顯示「已提交」），飛書同步喺背景慢慢做。
   submitInFlight = true;
   setSubmitButtonsDisabled(true);
-  requestWorkerOrderNo(getRecordsShop()).then(function(workerNo){
-    try {
+  try {
+    var workerNo = prefetchedOrderNo; prefetchedOrderNo = null;
+    prefetchWorkerOrderNo(); // 即刻為下一單預取號
     var orderNo = workerNo, fromWorker = !!workerNo;
     if (!orderNo) orderNo = nextOrderNo();
     var meta = { time: time, store: getRecordsShop(), name: "", phone: "", date: "", time2: "", remarks: "" };
@@ -1340,15 +1381,14 @@ function confirmVerifiedSubmit(status){
     if (totalFree > 0) promoBits.push("送 " + totalFree + " 件");
     var promoSuffix = promoBits.length ? "（優惠：" + promoBits.join("；") + "）" : "";
     if (st) { st.textContent = (submitStatus === "待確認"
-      ? "已暫存：新增 " + rows.length + " 行記錄（一個產品一行），訂單編號：" + orderNo + "，訂單總金額：" + fmtMoney(total) + promoSuffix + "，未扣庫存。之後去訂單記錄頁確認。"
-      : "已確認提交：新增 " + rows.length + " 行記錄（一個產品一行），訂單編號：" + orderNo + "，訂單總金額：" + fmtMoney(total) + promoSuffix + "。") + (fromWorker ? "" : "（單號由呢部機發出，Worker 未能派號，之後喺訂單記錄頁會自動同步去飛書。）"); st.className = "status ok"; }
+      ? "已暫存：新增 " + rows.length + " 行記錄（一個產品一行），訂單編號：" + orderNo + "，訂單總金額：" + fmtMoney(total) + promoSuffix + "，未扣庫存（飛書同步緊…）。之後去訂單記錄頁確認。"
+      : "已提交：新增 " + rows.length + " 行記錄（一個產品一行），訂單編號：" + orderNo + "，訂單總金額：" + fmtMoney(total) + promoSuffix + "（飛書同步緊…）。") + (fromWorker ? "" : "（單號由呢部機發出，Worker 未能派號，之後喺訂單記錄頁會自動同步去飛書。）"); st.className = "status ok"; }
     syncSalesToFeishu(rows, st, submitStatus, orderDiscount, extraLines);
     if (st && st.scrollIntoView) st.scrollIntoView();
-    } finally {
-      submitInFlight = false;
-      setSubmitButtonsDisabled(false);
-    }
-  });
+  } finally {
+    submitInFlight = false;
+    setSubmitButtonsDisabled(false);
+  }
 }
 function cancelVerify(){
   verifyLines = null; verifyOrig = null;

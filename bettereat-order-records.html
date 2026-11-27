@@ -86,6 +86,7 @@
   .statusbadge.st-pending { background:#e3eef7; color:#0a4f85; border:1px solid #9db8d2; }
   .statusbadge.st-confirmed { background:#e6f2e6; color:#3f6b3e; border:1px solid #9cc79c; }
   .statusbadge.st-cancelled { background:#fbe9e7; color:#b3402e; border:1px solid #e0a49c; }
+  .statusbadge.st-unsynced { background:#fff4d6; color:#8a6d00; border:1px solid #e0c06a; }
   .pendingorder { background:#fff; border:1px solid #bcd6ea; border-radius:10px; padding:10px 12px; margin-bottom:8px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
   .pendingorder .pinfo { font-size:14px; line-height:1.6; }
   .pendingorder .pbtns { display:flex; gap:8px; }
@@ -430,7 +431,7 @@ function renderRecords(){
       var actions = '<button class="del" onclick="editRecord(' + di + ')">編輯</button> <button class="del" onclick="deleteRecord(' + di + ')">刪除</button>' +
         (p.unsynced ? ' <button class="del" onclick="resyncOneRecord(' + di + ')">重新同步</button>' : "");
       if (di === editingIndex && editDraft) {
-        html += '<tr><td style="white-space:nowrap;">' + orderCell + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td>' + statusBadge(r) + '</td><td class="prodcol">' + prod + '</td>' +
+        html += '<tr><td style="white-space:nowrap;">' + orderCell + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td>' + statusBadge(r) + (p.unsynced ? ' <span class="statusbadge st-unsynced">未同步</span>' : "") + '</td><td class="prodcol">' + prod + '</td>' +
           '<td><input class="eqty" type="number" step="1" min="1" value="' + esc(editDraft.qty) + '" oninput="editDraft.qty=this.value;recomputeEditSub()"></td>' +
           '<td><input class="eprice" type="number" step="any" min="0" value="' + esc(editDraft.price) + '" oninput="editDraft.price=this.value;recomputeEditSub()"></td>' +
           '<td id="edsub">' + (r.subtotal != null ? fmtMoney(r.subtotal) : "—") + '</td>' +
@@ -439,7 +440,7 @@ function renderRecords(){
           '<td>' + esc(r.remarks) + '</td>' +
           '<td style="white-space:nowrap;"><button class="del" onclick="saveEditedRecord(' + di + ')">儲存</button> <button class="del" onclick="cancelEdit()">取消</button></td></tr>';
       } else {
-        html += '<tr><td style="white-space:nowrap;">' + orderCell + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td>' + statusBadge(r) + '</td><td class="prodcol">' + prod + '</td><td>' + qty + '</td>' +
+        html += '<tr><td style="white-space:nowrap;">' + orderCell + '</td><td style="white-space:nowrap;">' + esc(rt.date) + '</td><td style="white-space:nowrap;">' + esc(rt.time) + '</td><td>' + esc(r.store) + '</td><td>' + statusBadge(r) + (p.unsynced ? ' <span class="statusbadge st-unsynced">未同步</span>' : "") + '</td><td class="prodcol">' + prod + '</td><td>' + qty + '</td>' +
           '<td>' + (r.price != null ? fmtMoney(r.price) : "—") + '</td>' +
           '<td>' + (r.subtotal != null ? fmtMoney(r.subtotal) : "—") + '</td>' +
           '<td>' + (r.reason ? esc(r.reason) : "—") + '</td>' +
